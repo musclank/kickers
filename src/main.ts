@@ -186,8 +186,8 @@ function bindColor(id: string, key: keyof AvatarConfig) {
 }
 bindColor('skin-color', 'skin'); bindColor('outfit-color', 'outfit'); bindColor('shoe-color', 'shoes'); bindColor('hair-color', 'hairColor');
 
-const shirtImageInput = document.querySelector<HTMLInputElement>('#face-image')!;
-const removeShirtImageButton = document.querySelector<HTMLButtonElement>('#remove-face-image')!;
+const shirtImageInput = document.querySelector<HTMLInputElement>('#shirt-image')!;
+const removeShirtImageButton = document.querySelector<HTMLButtonElement>('#remove-shirt-image')!;
 function applyShirtImage(dataUrl: string) {
   const image = new Image();
   image.onload = () => {
