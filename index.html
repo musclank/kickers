@@ -37,6 +37,8 @@
           <button type="button" data-social-move="up" aria-label="Move forward">▲</button>
           <div><button type="button" data-social-move="left" aria-label="Move left">◀</button><button type="button" data-social-move="down" aria-label="Move backward">▼</button><button type="button" data-social-move="right" aria-label="Move right">▶</button></div>
           <span>MOVE AROUND</span>
+          <button id="social-sit" class="social-sit-button" type="button" aria-pressed="false">SIT DOWN</button>
+          <span id="social-action-status" class="social-action-status" aria-live="polite">Walk around and find a chair to sit.</span>
         </div>
         <div class="social-content">
           <section class="social-chat-panel"><div class="social-panel-title"><strong>PUBLIC LOBBY CHAT</strong><span id="social-status">CONNECTING…</span></div><div id="social-messages" class="social-messages" role="log" aria-live="polite"><p class="social-system-message">Welcome to KICKERS Social Hub.</p></div><form id="social-chat-form" class="social-chat-form"><input id="social-chat-input" type="text" maxlength="220" autocomplete="off" placeholder="Write a message…" aria-label="Chat message"><button id="social-send" type="submit">SEND</button></form><small class="social-chat-note">Be respectful. Keep personal information private.</small></section>
