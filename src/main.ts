@@ -951,7 +951,7 @@ function awardMatchXP(amount: number) {
 }
 const keys = new Set<string>();
 const clock = new THREE.Clock();
-const MATCH_DURATION = 180;
+const MATCH_DURATION = 300;
 let matchTimeRemaining = MATCH_DURATION;
 let roundOver = false;
 let gamePaused = false;
