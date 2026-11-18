@@ -44,31 +44,38 @@ const rim = new THREE.Mesh(new THREE.TorusGeometry(9, 0.22, 12, 80), new THREE.M
 rim.rotation.x = Math.PI / 2; rim.position.y = -0.05; scene.add(rim);
 const grid = new THREE.GridHelper(17, 17, 0x7184b8, 0x46527c); grid.position.y = -0.085; scene.add(grid);
 
-// Official Base brand mark on the arena floor.
-// Assets are sourced from Base's public brand kit and kept in their original colors.
+// Base logo floor decal: a solid blue raised tile guarantees visibility,
+// while the official white Basemark SVG supplies the brand symbol.
+const baseTile = new THREE.Mesh(
+  new THREE.BoxGeometry(3.9, 0.035, 3.9),
+  new THREE.MeshBasicMaterial({ color: 0x0052ff })
+);
+baseTile.position.set(0, -0.065, 0);
+baseTile.renderOrder = 20;
+scene.add(baseTile);
+
 const baseTextureLoader = new THREE.TextureLoader();
-baseTextureLoader.load('/base-square-blue.svg', (texture) => {
-  texture.colorSpace = THREE.SRGBColorSpace;
-  const tile = new THREE.Mesh(
-    new THREE.PlaneGeometry(3.7, 3.7),
-    new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false })
-  );
-  tile.rotation.x = -Math.PI / 2;
-  tile.position.set(0, -0.045, 0);
-  tile.renderOrder = 20;
-  scene.add(tile);
-});
-baseTextureLoader.load('/base-basemark-white.svg', (texture) => {
-  texture.colorSpace = THREE.SRGBColorSpace;
-  const mark = new THREE.Mesh(
-    new THREE.PlaneGeometry(2.85, 0.93),
-    new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false })
-  );
-  mark.rotation.x = -Math.PI / 2;
-  mark.position.set(0, -0.03, 0);
-  mark.renderOrder = 21;
-  scene.add(mark);
-});
+baseTextureLoader.load(
+  '/base-basemark-white.svg',
+  (texture) => {
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const mark = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.9, 0.945),
+      new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide
+      })
+    );
+    mark.rotation.x = -Math.PI / 2;
+    mark.position.set(0, -0.045, 0);
+    mark.renderOrder = 21;
+    scene.add(mark);
+  },
+  undefined,
+  (error) => console.error('Base floor mark failed to load:', error)
+);
 
 function material(color: string) { return new THREE.MeshStandardMaterial({ color, roughness: 0.68 }); }
 function addMesh(parent: THREE.Group, geometry: THREE.BufferGeometry, color: string, x: number, y: number, z: number) {
