@@ -535,7 +535,8 @@ function updateRoster(players: Array<{ id: string; name?: string; walletAddress?
     if (item.id === localPlayerId) continue;
     let remote = remotePlayers.get(item.id);
     const hasLook = Boolean(item.avatar);
-    if (!remote || (hasLook && !remote.mesh.userData.remoteAvatarLoaded)) {
+    const lookSignature = JSON.stringify(item.avatar || {});
+    if (!remote || (hasLook && remote.mesh.userData.remoteAvatarSignature !== lookSignature)) {
       if (remote) {
         scene.remove(remote.mesh);
         remote.mesh.traverse(obj => {
@@ -549,6 +550,7 @@ function updateRoster(players: Array<{ id: string; name?: string; walletAddress?
       const look = { ...defaults, ...(item.avatar || {}) };
       const mesh = makeAvatar(look, item.x ?? 0, item.z ?? 0, false);
       mesh.userData.remoteAvatarLoaded = hasLook;
+      mesh.userData.remoteAvatarSignature = lookSignature;
       mesh.userData.remoteRobot = look.characterType === 'robot';
       setNameLabel(mesh, item.name || 'KICKERS Player');
       remote = { mesh, targetX: item.x ?? 0, targetZ: item.z ?? 0, targetRotation: item.rotation ?? 0 };
