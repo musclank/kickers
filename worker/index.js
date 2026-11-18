@@ -1,0 +1,91 @@
+const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function makeRoomCode() {
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, byte => ROOM_CODE_CHARS[byte % ROOM_CODE_CHARS.length]).join("");
+}
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "access-control-allow-origin": "*", "access-control-allow-methods": "GET,POST,OPTIONS", "access-control-allow-headers": "content-type" } });
+}
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    if (request.method === "OPTIONS") return new Response(null, { headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "GET,POST,OPTIONS", "access-control-allow-headers": "content-type" } });
+    if (url.pathname === "/api/rooms" && request.method === "POST") {
+      const room = makeRoomCode();
+      const id = env.ROOMS.idFromName(room);
+      const stub = env.ROOMS.get(id);
+      const response = await stub.fetch("https://room.internal/init", { method: "POST" });
+      if (!response.ok) return json({ error: "Could not create room." }, 500);
+      return json({ room }, 201);
+    }
+    if (url.pathname === "/ws") {
+      const room = (url.searchParams.get("room") || "").toUpperCase();
+      const playerId = url.searchParams.get("id") || "";
+      const name = url.searchParams.get("name") || "KICKERS Player";
+      if (!/^[A-Z0-9]{6}$/.test(room) || !/^[a-zA-Z0-9-]{8,64}$/.test(playerId)) return json({ error: "Invalid room or player." }, 400);
+      const id = env.ROOMS.idFromName(room);
+      return env.ROOMS.get(id).fetch(new Request("https://room.internal/connect?id=" + encodeURIComponent(playerId) + "&name=" + encodeURIComponent(name), request));
+    }
+    return json({ service: "KICKERS Multiplayer", status: "ready", maxPlayersPerRoom: 4 });
+  }
+};
+export class ArenaRoom {
+  constructor(state) {
+    this.state = state;
+    this.sessions = new Map();
+  }
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (url.pathname === "/init") return new Response("OK");
+    if (url.pathname !== "/connect" || request.headers.get("Upgrade") !== "websocket") return new Response("Expected WebSocket", { status: 426 });
+    const pair = new WebSocketPair();
+    const [client, server] = Object.values(pair);
+    const id = url.searchParams.get("id");
+    const name = url.searchParams.get("name") || "KICKERS Player";
+    const current = this.state.getWebSockets().length;
+    if (current >= 4) return new Response("Room is full", { status: 409 });
+    server.serializeAttachment({ id, name, x: 0, z: 2, rotation: 0, avatar: null });
+    this.state.acceptWebSocket(server);
+    this.sessions.set(id, server);
+    server.send(JSON.stringify({ type: "welcome", id }));
+    this.broadcastRoster();
+    return new Response(null, { status: 101, webSocket: client });
+  }
+  webSocketMessage(ws, message) {
+    let data;
+    try { data = JSON.parse(message); } catch { return; }
+    const meta = ws.deserializeAttachment() || {};
+    if (data.type === "hello" && data.avatar && typeof data.avatar === "object") {
+      meta.avatar = data.avatar;
+      ws.serializeAttachment(meta);
+      this.broadcastRoster();
+      return;
+    }
+    if (data.type === "state") {
+      meta.x = Math.max(-8, Math.min(8, Number(data.x) || 0));
+      meta.z = Math.max(-8, Math.min(8, Number(data.z) || 0));
+      meta.rotation = Number(data.rotation) || 0;
+      ws.serializeAttachment(meta);
+      this.broadcast({ type: "state", id: meta.id, x: meta.x, z: meta.z, rotation: meta.rotation }, ws);
+    }
+    if (data.type === "kick") this.broadcast({ type: "kick", id: meta.id }, ws);
+  }
+  webSocketClose(ws) {
+    const meta = ws.deserializeAttachment() || {};
+    this.sessions.delete(meta.id);
+    this.broadcastRoster();
+  }
+  webSocketError(ws) { this.webSocketClose(ws); }
+  broadcastRoster() {
+    const players = this.state.getWebSockets().map(ws => ws.deserializeAttachment() || {});
+    this.broadcast({ type: "roster", players });
+  }
+  broadcast(data, except = null) {
+    const message = JSON.stringify(data);
+    for (const ws of this.state.getWebSockets()) {
+      if (ws === except) continue;
+      try { ws.send(message); } catch { /* Closed socket will be removed by the runtime. */ }
+    }
+  }
+}
