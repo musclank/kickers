@@ -57,7 +57,7 @@ function WalletPanel() {
             LOGIN WITH X
           </button>
           <button type="button" className="privy-button secondary" onClick={() => connectWallet()}>
-            CONNECT METAMASK
+            CONNECT EVM WALLET
           </button>
         </>
       )}
@@ -72,7 +72,7 @@ function AuthApp() {
       config={{
         defaultChain: base,
         supportedChains: [base],
-        loginMethods: ['twitter', 'wallet'],
+        loginMethods: ['twitter'],
         appearance: {
           theme: 'dark',
           accentColor: '#65e7d9',
