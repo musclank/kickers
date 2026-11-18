@@ -48,3 +48,11 @@ body { background: #10152b; color: #fff; font-family: Inter, ui-sans-serif, syst
   .desktop-hint { display: none; }
 }
 
+.photo-upload { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 8px; margin: 4px 0 16px; padding: 12px; border: 1px solid #65e7d955; border-radius: 12px; background: #65e7d90d; }
+.photo-upload div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.photo-upload strong { color: #eaf8ff; font-size: 10px; letter-spacing: .08em; }
+.photo-upload span { color: #9eabc9; font-size: 9px; line-height: 1.4; }
+.photo-upload input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.photo-picker, .photo-upload button { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 0 10px; border: 1px solid #65e7d988; border-radius: 8px; background: #1b3045; color: #7af2e5; font-size: 9px; font-weight: 900; white-space: nowrap; cursor: pointer; }
+.photo-upload button { border-color: #ffffff30; color: #c4cbe2; background: #202b46; }
+@media (max-width: 390px) { .photo-upload { grid-template-columns: 1fr auto; } .photo-upload button { grid-column: 2; } }
