@@ -705,7 +705,7 @@ function playDance() {
   danceButton.classList.add('pressed');
   setTimeout(() => danceButton.classList.remove('pressed'), 180);
 }
-danceButton.addEventListener('pointerdown', taunt);
+danceButton.addEventListener('pointerdown', playDance);
 function funnyStyle() {
   if (roundOver) return;
   if (mockTime > 0 || tauntTime > 0 || kickTime > 0) return;
@@ -715,7 +715,7 @@ function funnyStyle() {
   styleButton.classList.add('pressed');
   setTimeout(() => styleButton.classList.remove('pressed'), 180);
 }
-styleButton.addEventListener('pointerdown', mockEnemy);
+styleButton.addEventListener('pointerdown', funnyStyle);
 function kick() {
   if (roundOver) return;
   if (kickTime > 0 || tauntTime > 0 || mockTime > 0) return;
