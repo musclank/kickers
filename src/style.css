@@ -401,3 +401,5 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 body.social-hub-open .controls,body.social-hub-open .help,body.social-hub-open .topbar,body.social-hub-open .online-toggle,body.social-hub-open .online-panel,body.social-hub-open .creator-toggle,body.social-hub-open .creator-panel,body.social-hub-open .powerup-status,body.social-hub-open .desktop-hint{display:none!important}
 @media(max-width:650px){.social-toggle{top:158px;left:14px;min-height:40px}.social-content{grid-template-columns:1fr;gap:10px}.social-chat-panel{min-height:52dvh}.social-players-panel{min-height:180px}.social-player-list{max-height:170px}.social-header{margin-bottom:14px}.social-header p{max-width:230px}.social-footer{margin-top:10px}.social-messages{max-height:36dvh}}
 @media(max-width:390px){.social-hub{padding-left:10px;padding-right:10px}.social-chat-panel,.social-players-panel{padding:11px}.social-header h2{font-size:22px}.social-chat-form input{height:42px}}
+
+body.customizing .social-toggle{display:none!important}
