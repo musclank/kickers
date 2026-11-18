@@ -14,6 +14,21 @@
         <div class="topbar-actions"><div class="round-label">ARENA PROTOTYPE <span id="status">READY</span></div><button id="fullscreen-toggle" class="fullscreen-toggle" type="button" aria-label="Enter fullscreen">FULL SCREEN</button></div>
       </div>
       <div class="help">Build your fighter, then test the arena.</div>
+      <button id="online-toggle" class="online-toggle" type="button">PLAY ONLINE</button>
+      <section id="online-panel" class="online-panel">
+        <div class="online-heading"><strong>ONLINE ARENA</strong><span>UP TO 4 PLAYERS</span></div>
+        <label for="worker-url">MULTIPLAYER SERVER URL</label>
+        <input id="worker-url" type="url" placeholder="https://kickers-multiplayer.yourname.workers.dev" autocomplete="url" />
+        <div class="online-actions">
+          <button id="create-room" type="button">CREATE ROOM</button>
+          <button id="join-room" type="button">JOIN ROOM</button>
+        </div>
+        <label for="room-code">ROOM CODE</label>
+        <input id="room-code" type="text" maxlength="6" placeholder="ABC123" autocapitalize="characters" />
+        <div id="room-display" class="room-display" hidden>ROOM <strong id="room-code-value">------</strong><span id="player-count">1/4 PLAYERS</span></div>
+        <button id="leave-room" class="leave-room" type="button" disabled>LEAVE ROOM</button>
+        <span id="online-message" class="online-message">SERVER SETUP REQUIRED — ENTER YOUR WORKER URL</span>
+      </section>
       <button id="creator-toggle" class="creator-toggle">CUSTOMIZE</button>
       <section id="creator" class="creator-panel">
         <div class="creator-heading"><div><span class="eyebrow">FIGHTER LAB</span><h2>CREATE YOUR CHARACTER</h2></div><span class="live-tag">3D PREVIEW</span></div>
