@@ -42,7 +42,7 @@ const floor = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 0.7, 64), new THRE
 floor.position.y = -0.45; floor.receiveShadow = true; scene.add(floor);
 const rim = new THREE.Mesh(new THREE.TorusGeometry(9, 0.22, 12, 80), new THREE.MeshStandardMaterial({ color: 0xffc857, metalness: 0.35, roughness: 0.45 }));
 rim.rotation.x = Math.PI / 2; rim.position.y = -0.05; scene.add(rim);
-const grid = new THREE.GridHelper(17, 17, 0x7184b8, 0x46527c); grid.position.y = -0.085; scene.add(grid);
+// Grid removed for a clean white arena floor.
 
 // Base logo floor decal: a solid blue raised tile guarantees visibility,
 // while the official white Basemark SVG supplies the brand symbol.
