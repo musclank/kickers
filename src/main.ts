@@ -804,7 +804,7 @@ function frameCharacterPreview() {
   const distance = Math.max(6.5, sphere.radius / Math.sin(limitingHalfFov) * 1.72);
   camera.position.set(center.x, center.y + distance * 0.08, center.z - distance);
   // Aim slightly below the character's center to shift the fighter upward on screen.
-  camera.lookAt(center.x, center.y - sphere.radius * 0.42, center.z);
+  camera.lookAt(center.x, center.y - sphere.radius * 1.15, center.z);
   camera.updateProjectionMatrix();
 }
 function setCustomizationOpen(open: boolean) {
@@ -813,7 +813,7 @@ function setCustomizationOpen(open: boolean) {
   customizing = open;
   creator.classList.toggle('open', open);
   document.body.classList.toggle('customizing', open);
-  creatorToggle.textContent = open ? 'CLOSE CREATOR' : 'CUSTOMIZE';
+  creatorToggle.textContent = open ? 'LANJUTKAN' : 'KARAKTER';
   if (open) {
     releaseStick();
     keys.clear();
