@@ -121,11 +121,9 @@ body { background: #10152b; color: #fff; font-family: Inter, ui-sans-serif, syst
 #app::after {
   opacity: .2;
   background-image:
-    linear-gradient(#68e8e8 1px, transparent 1px),
-    linear-gradient(90deg, #68e8e8 1px, transparent 1px),
     radial-gradient(ellipse at 50% 50%, transparent 35%, #070b1a99 100%),
     radial-gradient(ellipse at 15% 15%, #126b8a55, transparent 42%),
     radial-gradient(ellipse at 88% 80%, #4935a855, transparent 42%);
-  background-size: 48px 48px, 48px 48px, 100% 100%, 100% 100%, 100% 100%;
+  background-size: 100% 100%;
   mask-image: linear-gradient(to bottom, #000 0%, #000 60%, transparent 100%);
 }
