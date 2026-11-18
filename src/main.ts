@@ -7,6 +7,8 @@ const statusEl = document.querySelector<HTMLSpanElement>('#status')!;
 const kickButton = document.querySelector<HTMLButtonElement>('#kick')!;
 const danceButton = document.querySelector<HTMLButtonElement>('#taunt')!;
 const styleButton = document.querySelector<HTMLButtonElement>('#mock')!;
+const specialButton = document.querySelector<HTMLButtonElement>('#special')!;
+const powerupStatus = document.querySelector<HTMLElement>('#powerup-status')!;
 const joystick = document.querySelector<HTMLDivElement>('#joystick')!;
 const stick = document.querySelector<HTMLDivElement>('#stick')!;
 const creator = document.querySelector<HTMLDivElement>('#creator')!;
@@ -509,6 +511,16 @@ const rivals = [
 ];
 rivals.forEach((bot, index) => setNameLabel(bot, `BOT 0${index + 1}`));
 
+// Lightweight offline-only collectible: one reusable mesh, no per-frame allocations.
+const powerup = new THREE.Group();
+const powerupCore = new THREE.Mesh(new THREE.IcosahedronGeometry(0.34, 1), new THREE.MeshStandardMaterial({ color: 0x65e7d9, emissive: 0x167e83, emissiveIntensity: 1.1, metalness: 0.35, roughness: 0.25 }));
+const powerupRing = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.055, 8, 24), new THREE.MeshStandardMaterial({ color: 0xffd36a, emissive: 0x80531a, emissiveIntensity: 0.45, metalness: 0.6, roughness: 0.3 }));
+powerupRing.rotation.x = Math.PI / 2;
+powerup.add(powerupCore, powerupRing);
+powerup.position.set(-3.2, 0.85, 1.2);
+powerup.userData.respawn = 0;
+scene.add(powerup);
+
 type RemotePlayer = { mesh: THREE.Group; targetX: number; targetZ: number; targetRotation: number; };
 const remotePlayers = new Map<string, RemotePlayer>();
 const characterTypeInput = document.querySelector<HTMLSelectElement>('#character-type')!;
@@ -888,6 +900,18 @@ try {
 } catch { /* Ignore an invalid local saved design. */ }
 
 let moveX = 0, moveZ = 0, kickTime = 0, tauntTime = 0, mockTime = 0, walkTime = 0, kickHitDone = false;
+let speedBoostTime = 0, specialCooldown = 0, powerupRespawn = 0;
+let matchXpAwarded = false;
+const xpKey = 'kickers-progression-v1';
+function awardMatchXP(amount: number) {
+  if (matchXpAwarded) return 0;
+  matchXpAwarded = true;
+  let stats = { xp: 0, wins: 0, matches: 0 };
+  try { stats = { ...stats, ...JSON.parse(localStorage.getItem(xpKey) || '{}') }; } catch { /* reset invalid local data */ }
+  stats.xp += amount; stats.matches += 1; stats.wins += 1;
+  localStorage.setItem(xpKey, JSON.stringify(stats));
+  return stats.xp;
+}
 const keys = new Set<string>();
 const clock = new THREE.Clock();
 const MATCH_DURATION = 180;
@@ -906,6 +930,9 @@ function beginVictory() {
   moveX = 0; moveZ = 0;
   statusEl.textContent = 'CHAMPION!';
   trophy.visible = false;
+  const totalXP = awardMatchXP(100);
+  powerup.visible = false;
+  matchOverMessage.textContent = `All rivals eliminated! +100 XP · Total XP: ${totalXP}`;
 }
 function formatMatchTime(seconds: number) {
   const whole = Math.max(0, Math.ceil(seconds));
@@ -932,7 +959,7 @@ playAgainButton.addEventListener('click', () => location.reload());
 addEventListener('keydown', (event) => { if (event.code === 'Escape' || event.key.toLowerCase() === 'p') { event.preventDefault(); setGamePaused(!gamePaused); return; } if (gamePaused) return; keys.add(event.key.toLowerCase()); if (event.code === 'Space') { event.preventDefault(); kick(); } });
 addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
 function playDance() {
-  if (roundOver) return;
+  if (roundOver || gamePaused || customizing) return;
   playSound('dance');
   if (tauntTime > 0 || mockTime > 0 || kickTime > 0) return;
   tauntTime = 1.35;
@@ -943,7 +970,7 @@ function playDance() {
 }
 danceButton.addEventListener('pointerdown', playDance);
 function funnyStyle() {
-  if (roundOver) return;
+  if (roundOver || gamePaused || customizing) return;
   playSound('pose');
   if (mockTime > 0 || tauntTime > 0 || kickTime > 0) return;
   mockTime = 1.6;
@@ -953,8 +980,38 @@ function funnyStyle() {
   setTimeout(() => styleButton.classList.remove('pressed'), 180);
 }
 styleButton.addEventListener('pointerdown', funnyStyle);
+function useSpecial() {
+  if (roundOver || gamePaused || customizing) return;
+  if (networkReady) { setOnlineMessage('SPECIAL MOVES ARE CURRENTLY OFFLINE-ONLY'); return; }
+  if (specialCooldown > 0) return;
+  if (kickTime > 0 || tauntTime > 0 || mockTime > 0) return;
+  specialCooldown = 12;
+  const pulse = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.09, 8, 36), new THREE.MeshBasicMaterial({ color: 0x65e7d9, transparent: true, opacity: 0.9 }));
+  pulse.rotation.x = Math.PI / 2; pulse.position.set(player.position.x, 0.12, player.position.z); scene.add(pulse);
+  const started = performance.now();
+  const animatePulse = () => {
+    const progress = Math.min(1, (performance.now() - started) / 520);
+    pulse.scale.setScalar(1 + progress * 4.2); (pulse.material as THREE.MeshBasicMaterial).opacity = 0.9 * (1 - progress);
+    if (progress < 1) requestAnimationFrame(animatePulse);
+    else { scene.remove(pulse); pulse.geometry.dispose(); (pulse.material as THREE.Material).dispose(); }
+  };
+  requestAnimationFrame(animatePulse);
+  for (const bot of rivals) {
+    if (bot.userData.fallen || !bot.visible) continue;
+    const dx = bot.position.x - player.position.x, dz = bot.position.z - player.position.z;
+    const distance = Math.hypot(dx, dz);
+    if (distance < 4.2 && distance > 0.001) {
+      const impulse = (bot.userData.knockback as THREE.Vector3 | undefined) ?? new THREE.Vector3();
+      impulse.x += dx / distance * 10; impulse.z += dz / distance * 10; impulse.y = Math.max(impulse.y, 5.2);
+      bot.userData.knockback = impulse;
+    }
+  }
+  playSound('impact'); statusEl.textContent = 'SHOCKWAVE!';
+  specialButton.classList.add('pressed'); window.setTimeout(() => specialButton.classList.remove('pressed'), 180);
+}
+specialButton.addEventListener('pointerdown', useSpecial);
 function kick() {
-  if (roundOver) return;
+  if (roundOver || gamePaused || customizing) return;
   playSound('kick');
   if (kickTime > 0 || tauntTime > 0 || mockTime > 0) return;
   kickTime = 0.48;
@@ -1047,8 +1104,9 @@ function animate() {
   const moving = Math.abs(inputX) + Math.abs(inputZ) > 0.05;
   const playerFallen = Boolean(player.userData.fallen);
   if (!playerFallen) {
-    player.position.x += inputX / length * 5 * delta;
-    player.position.z += inputZ / length * 5 * delta;
+    const moveSpeed = speedBoostTime > 0 ? 7.2 : 5;
+    player.position.x += inputX / length * moveSpeed * delta;
+    player.position.z += inputZ / length * moveSpeed * delta;
     if (Math.hypot(player.position.x, player.position.z) > 8.78) {
       player.userData.fallen = true;
       playSound('fall');
@@ -1072,6 +1130,28 @@ function animate() {
       }
     }
   }
+
+  // Offline collectible: update a single low-poly pickup and award a temporary speed boost.
+  if (!networkReady && !victoryStarted) {
+    specialCooldown = Math.max(0, specialCooldown - delta);
+    speedBoostTime = Math.max(0, speedBoostTime - delta);
+    powerupStatus.textContent = speedBoostTime > 0 ? `SPEED BOOST ${speedBoostTime.toFixed(1)}s` : (specialCooldown > 0 ? `SPECIAL ${Math.ceil(specialCooldown)}s` : 'POWER-UP READY');
+    if (powerup.visible) {
+      powerup.rotation.y += delta * 1.5;
+      powerup.position.y = 0.82 + Math.sin(clock.elapsedTime * 2.8) * 0.12;
+      if (!player.userData.fallen && Math.hypot(player.position.x - powerup.position.x, player.position.z - powerup.position.z) < 1.05) {
+        powerup.visible = false; speedBoostTime = 7; powerupRespawn = 10;
+        powerupStatus.textContent = 'SPEED BOOST 7.0s'; statusEl.textContent = 'POWER-UP COLLECTED!'; playSound('victory');
+      }
+    } else if (powerupRespawn > 0) {
+      powerupRespawn = Math.max(0, powerupRespawn - delta);
+      if (powerupRespawn === 0) {
+        const angle = Math.random() * Math.PI * 2, radius = 2.2 + Math.random() * 3.6;
+        powerup.position.set(Math.cos(angle) * radius, 0.85, Math.sin(angle) * radius);
+        powerup.visible = true;
+      }
+    }
+  } else { powerup.visible = false; powerupStatus.textContent = networkReady ? 'ONLINE MATCH' : 'MATCH COMPLETE'; }
 
   // Solo arena bots actively hunt the player, close the distance, and launch timed kicks.
   if (!networkReady) rivals.forEach((bot, index) => {
