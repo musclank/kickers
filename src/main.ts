@@ -1187,7 +1187,9 @@ function animate() {
     const activeEffect = speedBoostTime > 0 ? `SPEED BOOST ${speedBoostTime.toFixed(1)}s`
       : shieldTime > 0 ? `SHIELD ${shieldTime.toFixed(1)}s`
       : powerKickTime > 0 ? `POWER KICK ${powerKickTime.toFixed(1)}s`
-      : specialCooldown > 0 ? `SPECIAL ${Math.ceil(specialCooldown)}s` : 'POWER-UP READY';
+      : specialCooldown > 0 ? `SPECIAL ${Math.ceil(specialCooldown)}s`
+      : !powerup.visible && powerupRespawn > 0 ? `NEXT POWER-UP IN ${powerupRespawn.toFixed(1)}s`
+      : 'POWER-UP AVAILABLE';
     powerupStatus.textContent = activeEffect;
     if (powerup.visible) {
       powerup.rotation.y += delta * 1.5;
