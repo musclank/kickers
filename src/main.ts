@@ -42,6 +42,12 @@ renderer.domElement.className = 'game-canvas';
 scene.add(new THREE.HemisphereLight(0xb8d7ff, 0x24203b, 2));
 const sun = new THREE.DirectionalLight(0xffffff, 3);
 sun.position.set(-5, 12, 7); sun.castShadow = true; scene.add(sun);
+// Deep circular chasm surrounds the arena. The dark floor is far below the platform,
+// while the inner rock wall makes the drop-off clearly visible from the camera.
+const abyssFloor = new THREE.Mesh(new THREE.CylinderGeometry(42, 42, 0.5, 64), new THREE.MeshStandardMaterial({ color: 0x080d1b, roughness: 1 }));
+abyssFloor.position.y = -9.2; abyssFloor.receiveShadow = true; scene.add(abyssFloor);
+const abyssWall = new THREE.Mesh(new THREE.CylinderGeometry(9.12, 9.12, 8.5, 64, 1, true), new THREE.MeshStandardMaterial({ color: 0x171d32, roughness: 1, side: THREE.BackSide }));
+abyssWall.position.y = -4.75; scene.add(abyssWall);
 const floor = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 0.7, 64), new THREE.MeshStandardMaterial({ color: 0xf2f4f8, roughness: 0.85 }));
 floor.position.y = -0.45; floor.receiveShadow = true; scene.add(floor);
 const rim = new THREE.Mesh(new THREE.TorusGeometry(9, 0.22, 12, 80), new THREE.MeshStandardMaterial({ color: 0xffc857, metalness: 0.35, roughness: 0.45 }));
@@ -646,11 +652,26 @@ function animate() {
   const z = (keys.has('s') || keys.has('arrowdown') ? 1 : 0) - (keys.has('w') || keys.has('arrowup') ? 1 : 0);
   const inputX = x || moveX, inputZ = z || moveZ, length = Math.hypot(inputX, inputZ) || 1;
   const moving = Math.abs(inputX) + Math.abs(inputZ) > 0.05;
-  player.position.x = THREE.MathUtils.clamp(player.position.x + inputX / length * 5 * delta, -8, 8);
-  player.position.z = THREE.MathUtils.clamp(player.position.z + inputZ / length * 5 * delta, -8, 8);
+  const playerFallen = Boolean(player.userData.fallen);
+  if (!playerFallen) {
+    player.position.x += inputX / length * 5 * delta;
+    player.position.z += inputZ / length * 5 * delta;
+    if (Math.hypot(player.position.x, player.position.z) > 8.78) {
+      player.userData.fallen = true;
+      player.userData.fallVelocity = 0;
+      statusEl.textContent = 'YOU FELL INTO THE ABYSS!';
+      kickTime = 0; tauntTime = 0; mockTime = 0;
+    }
+  } else {
+    player.userData.fallVelocity = Number(player.userData.fallVelocity || 0) - 18 * delta;
+    player.position.y += Number(player.userData.fallVelocity) * delta;
+    player.rotation.z += delta * 2.2;
+    if (player.position.y < -12) player.visible = false;
+  }
 
   // Solo arena bots actively hunt the player, close the distance, and launch timed kicks.
   if (!networkReady) rivals.forEach((bot, index) => {
+    if (bot.userData.fallen) return;
     const velocity = (bot.userData.knockback as THREE.Vector3 | undefined) ?? new THREE.Vector3();
     const botAI = (bot.userData.botAI as { cooldown: number; attackTime: number; hitDone: boolean } | undefined)
       ?? { cooldown: 0.5 + index * 0.55, attackTime: 0, hitDone: false };
@@ -660,6 +681,11 @@ function animate() {
     const dx = player.position.x - bot.position.x;
     const dz = player.position.z - bot.position.z;
     const distance = Math.hypot(dx, dz);
+    if (Math.hypot(bot.position.x, bot.position.z) > 8.78 && !bot.userData.fallen) {
+      bot.userData.fallen = true;
+      velocity.y = Math.min(velocity.y, 0);
+    }
+    if (bot.userData.fallen) return;
     if (distance > 0.001 && bot.position.y < 0.2) {
       bot.rotation.y = Math.atan2(-dx, -dz);
       if (distance > 1.55 && botAI.attackTime <= 0) {
@@ -860,11 +886,16 @@ function animate() {
   });
   if (!networkReady) rivals.forEach((rival, i) => {
     const velocity = (rival.userData.knockback as THREE.Vector3 | undefined) ?? new THREE.Vector3();
-    velocity.y -= 13 * delta;
+    velocity.y -= (rival.userData.fallen ? 18 : 13) * delta;
     rival.position.addScaledVector(velocity, delta);
     const drag = Math.exp(-2.4 * delta);
     velocity.x *= drag;
     velocity.z *= drag;
+    if (rival.userData.fallen) {
+      if (rival.position.y < -12) rival.visible = false;
+      rival.userData.knockback = velocity;
+      return;
+    }
     if (rival.position.y < 0) {
       rival.position.y = 0;
       if (velocity.y < -1.2) velocity.y = -velocity.y * 0.22;
