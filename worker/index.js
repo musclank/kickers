@@ -19,6 +19,10 @@ export default {
       if (!response.ok) return json({ error: "Could not create room." }, 500);
       return json({ room }, 201);
     }
+    if (url.pathname === "/social/ws") {
+      const id = env.SOCIAL_ROOMS.idFromName("kickers-public-social-hub");
+      return env.SOCIAL_ROOMS.get(id).fetch(request);
+    }
     if (url.pathname === "/ws") {
       const room = (url.searchParams.get("room") || "").toUpperCase();
       const playerId = url.searchParams.get("id") || "";
@@ -90,6 +94,66 @@ export class ArenaRoom {
     for (const ws of this.state.getWebSockets()) {
       if (ws === except) continue;
       try { ws.send(message); } catch { /* Closed socket will be removed by the runtime. */ }
+    }
+  }
+}
+
+
+const SOCIAL_ROOM_CAPACITY = 20;
+function cleanSocialText(value, max = 220) {
+  return String(value || "").replace(/[<>]/g, "").replace(/[\\u0000-\\u001f\\u007f]/g, " ").replace(/\\s+/g, " ").trim().slice(0, max);
+}
+export class SocialRoom {
+  constructor(state) { this.state = state; }
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (url.pathname !== "/ws" || request.headers.get("Upgrade") !== "websocket") return new Response("Expected WebSocket", { status: 426 });
+    const sockets = this.state.getWebSockets();
+    const id = url.searchParams.get("id") || "";
+    if (!/^[a-zA-Z0-9-]{8,64}$/.test(id)) return new Response("Invalid player.", { status: 400 });
+    if (sockets.length >= SOCIAL_ROOM_CAPACITY) return new Response("Social Hub is full.", { status: 409 });
+    if (sockets.some(ws => (ws.deserializeAttachment() || {}).id === id)) return new Response("Already connected.", { status: 409 });
+    const pair = new WebSocketPair();
+    const [client, server] = Object.values(pair);
+    server.serializeAttachment({ id, name: "KICKERS Player", lastChatAt: 0 });
+    this.state.acceptWebSocket(server);
+    server.send(JSON.stringify({ type: "system", message: "Welcome to the KICKERS public lobby." }));
+    this.broadcastRoster();
+    return new Response(null, { status: 101, webSocket: client });
+  }
+  webSocketMessage(ws, message) {
+    let data;
+    try { data = JSON.parse(message); } catch { return; }
+    const meta = ws.deserializeAttachment() || {};
+    if (data.type === "hello") {
+      meta.name = cleanSocialText(data.name, 24) || "KICKERS Player";
+      ws.serializeAttachment(meta);
+      this.broadcastRoster();
+      return;
+    }
+    if (data.type === "chat") {
+      const now = Date.now();
+      if (now - Number(meta.lastChatAt || 0) < 900) return;
+      const text = cleanSocialText(data.message, 220);
+      if (!text) return;
+      meta.lastChatAt = now;
+      ws.serializeAttachment(meta);
+      this.broadcast({ type: "chat", name: meta.name || "KICKERS Player", message: text });
+    }
+  }
+  webSocketClose() { this.broadcastRoster(); }
+  webSocketError() { this.broadcastRoster(); }
+  broadcastRoster() {
+    const players = this.state.getWebSockets().map(ws => {
+      const meta = ws.deserializeAttachment() || {};
+      return { id: meta.id, name: meta.name || "KICKERS Player" };
+    });
+    this.broadcast({ type: "roster", players });
+  }
+  broadcast(data) {
+    const payload = JSON.stringify(data);
+    for (const ws of this.state.getWebSockets()) {
+      try { ws.send(payload); } catch { /* Cloudflare removes closed sockets. */ }
     }
   }
 }
