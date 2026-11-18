@@ -127,3 +127,18 @@ body { background: #10152b; color: #fff; font-family: Inter, ui-sans-serif, syst
   background-size: 100% 100%;
   mask-image: linear-gradient(to bottom, #000 0%, #000 60%, transparent 100%);
 }
+
+
+/* Compact audio controls */
+.sound-controls { display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid #65e7d955; border-radius:10px; background:#111a30dd; pointer-events:auto; }
+#audio-toggle { border:0; padding:4px 2px; background:transparent; color:#78eee2; font-size:9px; font-weight:1000; letter-spacing:.08em; white-space:nowrap; cursor:pointer; }
+#audio-toggle.muted { color:#8994b2; }
+.volume-control { display:flex; align-items:center; gap:5px; color:#aab6dc; font-size:8px; font-weight:900; }
+.volume-control input { width:58px; accent-color:#65e7d9; }
+@media (max-width:600px) {
+  .topbar { left:10px; right:10px; }
+  .topbar-actions { gap:5px; }
+  .sound-controls { gap:4px; padding:5px 6px; }
+  .volume-control input { width:38px; }
+  #audio-toggle { font-size:8px; }
+}
