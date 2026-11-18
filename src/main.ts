@@ -204,7 +204,7 @@ try {
   }
 } catch { /* Ignore an invalid local saved design. */ }
 
-let moveX = 0, moveZ = 0, kickTime = 0, walkTime = 0;
+let moveX = 0, moveZ = 0, kickTime = 0, walkTime = 0, kickHitDone = false;
 const keys = new Set<string>();
 const clock = new THREE.Clock();
 addEventListener('keydown', (event) => { keys.add(event.key.toLowerCase()); if (event.code === 'Space') { event.preventDefault(); kick(); } });
@@ -212,6 +212,7 @@ addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
 function kick() {
   if (kickTime > 0) return;
   kickTime = 0.48;
+  kickHitDone = false;
   statusEl.textContent = 'FOOT KICK!';
   kickButton.classList.add('pressed');
   setTimeout(() => kickButton.classList.remove('pressed'), 160);
@@ -267,6 +268,34 @@ function animate() {
     kickLeg.rotation.x = swing * 1.05;
     kickShin.rotation.x = -swing * 0.22;
     player.rotation.x = -swing * 0.07;
+
+    // Register one impact during the forward part of each kick.
+    if (!kickHitDone && progress >= 0.32 && progress <= 0.68) {
+      kickHitDone = true;
+      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion).normalize();
+      let landedHit = false;
+      rivals.forEach((rival) => {
+        const offset = new THREE.Vector3(
+          rival.position.x - player.position.x,
+          0,
+          rival.position.z - player.position.z
+        );
+        const distance = offset.length();
+        if (distance > 0.001 && distance <= 2.35) {
+          const towardRival = offset.clone().normalize();
+          if (forward.dot(towardRival) > 0.42) {
+            const impulse = (rival.userData.knockback as THREE.Vector3 | undefined) ?? new THREE.Vector3();
+            impulse.x += towardRival.x * 8.5;
+            impulse.z += towardRival.z * 8.5;
+            impulse.y = Math.max(impulse.y, 4.8);
+            rival.userData.knockback = impulse;
+            landedHit = true;
+          }
+        }
+      });
+      if (landedHit) statusEl.textContent = 'HIT!';
+    }
+
     if (kickTime <= 0) {
       kickLeg.rotation.x = 0;
       kickShin.rotation.x = 0;
@@ -274,7 +303,25 @@ function animate() {
       statusEl.textContent = 'READY';
     }
   }
-  rivals.forEach((rival, i) => { rival.position.y = Math.sin(clock.elapsedTime * 2 + i) * 0.06; rival.rotation.y += delta * (i % 2 ? 0.35 : -0.3); });
+  rivals.forEach((rival, i) => {
+    const velocity = (rival.userData.knockback as THREE.Vector3 | undefined) ?? new THREE.Vector3();
+    velocity.y -= 13 * delta;
+    rival.position.addScaledVector(velocity, delta);
+    const drag = Math.exp(-2.4 * delta);
+    velocity.x *= drag;
+    velocity.z *= drag;
+    if (rival.position.y < 0) {
+      rival.position.y = 0;
+      if (velocity.y < -1.2) velocity.y = -velocity.y * 0.22;
+      else velocity.y = 0;
+    }
+    if (rival.position.y === 0 && Math.abs(velocity.x) + Math.abs(velocity.z) < 0.08) {
+      velocity.x = 0;
+      velocity.z = 0;
+    }
+    rival.userData.knockback = velocity;
+    rival.rotation.y += delta * (i % 2 ? 0.35 : -0.3);
+  });
   camera.position.x += (player.position.x * 0.22 - camera.position.x) * 0.04;
   camera.lookAt(player.position.x * 0.15, 0, 0);
   renderer.render(scene, camera);
