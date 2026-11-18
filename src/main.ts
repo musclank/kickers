@@ -248,91 +248,92 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = t
   const group = new THREE.Group();
   group.userData.remoteRobot = cfg.characterType === 'robot';
   if (cfg.characterType === 'robot') {
-    const green = '#35ad43', greenDark = '#176b32', cream = '#e8d5b6';
-    const red = '#df5b42', navy = '#28233f', metal = '#51463b', black = '#10131a';
-    // Compact tracked robot body, with layered armor plates.
-    addMesh(group, new THREE.BoxGeometry(1.12, 0.92, 0.72), navy, 0, 1.28, 0);
-    addMesh(group, new THREE.BoxGeometry(0.92, 0.16, 0.76), cream, 0, 0.82, 0);
-    addMesh(group, new THREE.BoxGeometry(0.72, 0.10, 0.05), metal, 0, 1.04, -0.39);
-    addMesh(group, new THREE.BoxGeometry(0.28, 0.12, 0.06), '#1689d8', 0, 1.47, -0.39);
-    // Pixel-like Base-inspired chest mark.
-    const pixels = [
-      [-0.12, 1.72, '#f28a25'], [0, 1.61, '#f28a25'], [0, 1.50, '#e9e8d8'],
-      [-0.12, 1.39, '#9bd83b'], [0, 1.39, '#9bd83b'], [0.12, 1.39, '#9bd83b'],
-      [-0.24, 1.28, '#9bd83b'], [-0.12, 1.28, '#9bd83b'], [0, 1.28, '#9bd83b'], [0.12, 1.28, '#9bd83b'],
-      [-0.24, 1.17, '#258de0'], [-0.12, 1.17, '#258de0'], [0, 1.17, '#258de0'], [0.12, 1.17, '#258de0'], [0.24, 1.17, '#258de0']
-    ] as Array<[number, number, string]>;
-    for (const [px, py, color] of pixels) addMesh(group, new THREE.BoxGeometry(0.115, 0.105, 0.035), color, px, py, -0.385);
-    // Large green square head.
-    addMesh(group, new THREE.BoxGeometry(1.42, 1.12, 0.92), green, 0, 2.42, 0);
-    addMesh(group, new THREE.BoxGeometry(1.28, 0.12, 0.94), greenDark, 0, 1.88, 0);
-    // Red square goggle frames with cream and dark inset lenses.
+    // Robot parts use the same live creator values as the human model.
+    const bw = cfg.bodyWidth, bh = cfg.bodyHeight, hs = cfg.headSize, ll = cfg.legLength;
+    const bodyY = 0.86 * bh;
+    const torso = addMesh(group, new THREE.BoxGeometry(1.12 * bw, 0.92 * bh, 0.72 * bw), cfg.outfit, 0, bodyY, 0);
+    addMesh(group, new THREE.BoxGeometry(0.96 * bw, 0.14 * bh, 0.76 * bw), cfg.shoes, 0, bodyY - 0.43 * bh, 0);
+    addMesh(group, new THREE.BoxGeometry(0.72 * bw, 0.09 * bh, 0.035), cfg.shoes, 0, bodyY - 0.20 * bh, -0.37 * bw);
+    // Custom shirt artwork is mapped to both chest and back, not left as a floating UI-only preview.
+    if (shirtTexture && useShirtTexture) {
+      const printMaterial = new THREE.MeshBasicMaterial({ map: shirtTexture, transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 });
+      const front = new THREE.Mesh(new THREE.PlaneGeometry(0.88 * bw, 0.66 * bh), printMaterial);
+      front.position.set(0, bodyY, -0.366 * bw); front.renderOrder = 4; group.add(front);
+      const back = new THREE.Mesh(new THREE.PlaneGeometry(0.88 * bw, 0.66 * bh), printMaterial);
+      back.position.set(0, bodyY, 0.366 * bw); back.rotation.y = Math.PI; back.renderOrder = 4; group.add(back);
+    }
+    // Head, eyes and mouth.
+    const headY = bodyY + 0.91 * bh + 0.53 * hs;
+    addMesh(group, new THREE.BoxGeometry(1.22 * hs, 1.06 * hs, 0.88 * hs), cfg.skin, 0, headY, 0);
+    const eyeFrame = material(cfg.shoes);
+    const eyeLens = material('#10131a');
     for (const side of [-1, 1]) {
       const eye = new THREE.Group();
-      eye.position.set(side * 0.36, 2.48, -0.49);
-      addMesh(eye, new THREE.BoxGeometry(0.58, 0.62, 0.13), red, 0, 0, 0);
-      addMesh(eye, new THREE.BoxGeometry(0.43, 0.47, 0.045), cream, 0, 0, -0.085);
-      addMesh(eye, new THREE.BoxGeometry(0.19, 0.40, 0.025), black, side * 0.095, 0, -0.115);
-      group.add(eye);
+      eye.position.set(side * 0.31 * hs, headY - 0.03 * hs, -0.46 * hs);
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.48 * hs, 0.48 * hs, 0.08), eyeFrame);
+      const lens = new THREE.Mesh(new THREE.BoxGeometry(0.34 * hs, 0.34 * hs, 0.035), eyeLens);
+      lens.position.z = -0.055; eye.add(frame, lens); group.add(eye);
     }
-    addMesh(group, new THREE.BoxGeometry(0.74, 0.07, 0.06), black, 0, 1.99, -0.49);
-    // Antenna and round green tip.
-    addMesh(group, new THREE.CylinderGeometry(0.035, 0.05, 0.48, 10), metal, -0.43, 3.08, 0);
-    addMesh(group, new THREE.SphereGeometry(0.16, 16, 12), green, -0.43, 3.39, 0);
-    addMesh(group, new THREE.SphereGeometry(0.055, 10, 8), '#a7f5a1', -0.48, 3.45, -0.10);
-    // Side ear / sensor pods.
+    addMesh(group, new THREE.BoxGeometry(0.38 * hs, 0.055, 0.035), cfg.shoes, 0, headY - 0.40 * hs, -0.46 * hs);
+    // Antenna and side sensors.
+    const antenna = addMesh(group, new THREE.CylinderGeometry(0.035 * hs, 0.045 * hs, 0.34 * hs, 10), cfg.shoes, -0.36 * hs, headY + 0.68 * hs, 0);
+    addMesh(group, new THREE.SphereGeometry(0.12 * hs, 14, 10), cfg.hairColor, -0.36 * hs, headY + 0.91 * hs, 0);
     for (const side of [-1, 1]) {
-      const pod = addMesh(group, new THREE.CylinderGeometry(0.23, 0.23, 0.20, 16), cream, side * 0.76, 2.30, 0);
+      const pod = addMesh(group, new THREE.CylinderGeometry(0.17 * hs, 0.17 * hs, 0.16 * hs, 14), cfg.shoes, side * 0.68 * hs, headY, 0);
       pod.rotation.z = Math.PI / 2;
-      addMesh(group, new THREE.TorusGeometry(0.16, 0.035, 8, 16), metal, side * 0.88, 2.30, 0);
     }
-    // Articulated arms; upper and lower sections swing with the walk cycle.
+    // Hair style controls are also supported by the robot head.
+    if (cfg.hairStyle === 'smooth') {
+      addMesh(group, new THREE.BoxGeometry(1.18 * hs, 0.13 * hs, 0.86 * hs), cfg.hairColor, 0, headY + 0.53 * hs, 0);
+    } else if (cfg.hairStyle === 'spiky') {
+      for (let i = -1; i <= 1; i++) {
+        const spike = addMesh(group, new THREE.ConeGeometry(0.12 * hs, 0.32 * hs, 7), cfg.hairColor, i * 0.22 * hs, headY + 0.66 * hs, 0);
+        spike.rotation.z = i * -0.3;
+      }
+    } else if (cfg.hairStyle === 'cap') {
+      addMesh(group, new THREE.BoxGeometry(1.28 * hs, 0.18 * hs, 0.94 * hs), cfg.hairColor, 0, headY + 0.52 * hs, 0);
+      addMesh(group, new THREE.BoxGeometry(0.72 * hs, 0.07 * hs, 0.34 * hs), cfg.hairColor, 0, headY + 0.43 * hs, -0.54 * hs);
+    }
+    if (cfg.accessory === 'glasses') {
+      for (const side of [-1, 1]) {
+        const lens = addMesh(group, new THREE.BoxGeometry(0.43 * hs, 0.28 * hs, 0.045), cfg.shoes, side * 0.30 * hs, headY - 0.02 * hs, -0.49 * hs);
+        lens.material = new THREE.MeshStandardMaterial({ color: cfg.shoes, metalness: 0.35, roughness: 0.2 });
+      }
+      addMesh(group, new THREE.BoxGeometry(0.20 * hs, 0.045, 0.05), cfg.shoes, 0, headY - 0.02 * hs, -0.49 * hs);
+    } else if (cfg.accessory === 'crown') {
+      addMesh(group, new THREE.ConeGeometry(0.36 * hs, 0.34 * hs, 5), '#ffd34e', 0, headY + 0.69 * hs, 0);
+    } else if (cfg.accessory === 'horns') {
+      for (const side of [-1, 1]) {
+        const horn = addMesh(group, new THREE.ConeGeometry(0.12 * hs, 0.36 * hs, 8), cfg.hairColor, side * 0.38 * hs, headY + 0.62 * hs, 0);
+        horn.rotation.z = side * -0.35;
+      }
+    }
+    // Articulated arms use the selected skin tone and body width.
     const makeArm = (side: number) => {
       const pivot = new THREE.Group();
-      pivot.position.set(side * 0.72, 1.55, 0);
-      const upper = addMesh(pivot, new THREE.CapsuleGeometry(0.17, 0.38, 5, 10), cream, side * 0.12, -0.22, 0);
-      upper.rotation.z = side * -0.18;
-      addMesh(pivot, new THREE.BoxGeometry(0.27, 0.23, 0.30), green, side * 0.16, -0.48, 0);
-      addMesh(pivot, new THREE.CapsuleGeometry(0.14, 0.30, 4, 8), cream, side * 0.20, -0.70, 0);
-      const hand = addMesh(pivot, new THREE.SphereGeometry(0.19, 12, 10), green, side * 0.20, -0.94, -0.02);
-      for (let finger = -1; finger <= 1; finger++) {
-        const digit = addMesh(pivot, new THREE.CapsuleGeometry(0.055, 0.13, 4, 6), cream,
-          side * (0.20 + finger * 0.11), -1.12, -0.04);
-        digit.rotation.z = finger * 0.22;
-        addMesh(pivot, new THREE.SphereGeometry(0.06, 8, 6), green, side * (0.20 + finger * 0.11), -1.22, -0.04);
-      }
-      group.add(pivot);
-      return pivot;
+      pivot.position.set(side * 0.68 * bw, bodyY + 0.28 * bh, 0);
+      const upper = addMesh(pivot, new THREE.CapsuleGeometry(0.14 * bw, 0.34 * bh, 5, 10), cfg.skin, side * 0.10 * bw, -0.20 * bh, 0);
+      upper.rotation.z = side * -0.16;
+      addMesh(pivot, new THREE.BoxGeometry(0.24 * bw, 0.20 * bh, 0.26 * bw), cfg.outfit, side * 0.14 * bw, -0.42 * bh, 0);
+      addMesh(pivot, new THREE.CapsuleGeometry(0.12 * bw, 0.28 * bh, 4, 8), cfg.skin, side * 0.18 * bw, -0.64 * bh, 0);
+      addMesh(pivot, new THREE.SphereGeometry(0.15 * bw, 12, 10), cfg.shoes, side * 0.18 * bw, -0.84 * bh, 0);
+      group.add(pivot); return pivot;
     };
     const leftArm = makeArm(-1), rightArm = makeArm(1);
-    // Two articulated legs ending in tank-track feet.
+    // Two individually animated robot legs with color-customizable track boots.
     const makeTrackLeg = (side: number) => {
       const leg = new THREE.Group();
-      leg.position.set(side * 0.36, 0.78, 0.04);
-      addMesh(leg, new THREE.CapsuleGeometry(0.14, 0.30, 4, 8), metal, 0, -0.20, 0);
-      addMesh(leg, new THREE.SphereGeometry(0.18, 12, 10), cream, 0, -0.38, 0);
-      const tread = addMesh(leg, new THREE.CapsuleGeometry(0.34, 0.42, 8, 14), black, 0, -0.68, 0.02);
-      tread.rotation.z = Math.PI / 2;
-      tread.scale.set(1, 1, 0.88);
-      for (const wheelX of [-0.22, 0, 0.22]) {
-        const wheel = addMesh(leg, new THREE.CylinderGeometry(0.19, 0.19, 0.12, 16), metal, wheelX, -0.68, -0.04);
-        wheel.rotation.x = Math.PI / 2;
-        addMesh(leg, new THREE.CylinderGeometry(0.075, 0.075, 0.13, 12), '#b58a50', wheelX, -0.68, -0.12).rotation.x = Math.PI / 2;
-      }
-      group.add(leg);
-      return leg;
+      leg.position.set(side * 0.34 * bw, 0.76 * ll, 0.04);
+      addMesh(leg, new THREE.CapsuleGeometry(0.13 * bw, 0.28 * ll, 4, 8), cfg.skin, 0, -0.18 * ll, 0);
+      addMesh(leg, new THREE.BoxGeometry(0.42 * bw, 0.42 * ll, 0.58 * bw), cfg.shoes, 0, -0.56 * ll, -0.04);
+      addMesh(leg, new THREE.BoxGeometry(0.46 * bw, 0.12 * ll, 0.62 * bw), cfg.outfit, 0, -0.77 * ll, -0.04);
+      group.add(leg); return leg;
     };
     const leftLeg = makeTrackLeg(-1), kickLeg = makeTrackLeg(1);
-    const kickShin = new THREE.Group();
-    kickLeg.add(kickShin);
-    group.userData.leftLeg = leftLeg;
-    group.userData.kickLeg = kickLeg;
-    group.userData.kickShin = kickShin;
-    group.userData.leftArm = leftArm;
-    group.userData.rightArm = rightArm;
-    group.position.set(x, 0, z);
-    scene.add(group);
-    return group;
+    const kickShin = new THREE.Group(); kickLeg.add(kickShin);
+    group.userData.leftLeg = leftLeg; group.userData.kickLeg = kickLeg; group.userData.kickShin = kickShin;
+    group.userData.leftArm = leftArm; group.userData.rightArm = rightArm;
+    group.position.set(x, 0, z); scene.add(group); return group;
   }
   const bodyY = 0.85 * cfg.bodyHeight;
   addMesh(group, new THREE.CapsuleGeometry(0.48 * cfg.bodyWidth, 0.55 * cfg.bodyHeight, 6, 12), cfg.outfit, 0, bodyY, 0);
