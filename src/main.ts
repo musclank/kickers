@@ -250,9 +250,13 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = t
   if (cfg.characterType === 'robot') {
     const green = '#35ad43', greenDark = '#176b32', cream = '#e8d5b6';
     const red = '#df5b42', navy = '#28233f', metal = '#51463b', black = '#10131a';
+    const torsoColor = cfg.outfit !== defaults.outfit ? cfg.outfit : navy;
+    const armColor = cfg.skin !== defaults.skin ? cfg.skin : cream;
+    const bootColor = cfg.shoes !== defaults.shoes ? cfg.shoes : black;
+    const metalColor = cfg.shoes !== defaults.shoes ? cfg.shoes : metal;
     // Original compact tracked robot design. Creator settings change colors/accessories,
     // while the signature silhouette and proportions stay intact.
-    addMesh(group, new THREE.BoxGeometry(1.12, 0.92, 0.72), navy, 0, 1.28, 0);
+    addMesh(group, new THREE.BoxGeometry(1.12, 0.92, 0.72), torsoColor, 0, 1.28, 0);
     addMesh(group, new THREE.BoxGeometry(0.92, 0.16, 0.76), cream, 0, 0.82, 0);
     addMesh(group, new THREE.BoxGeometry(0.72, 0.10, 0.05), metal, 0, 1.04, -0.39);
     addMesh(group, new THREE.BoxGeometry(0.28, 0.12, 0.06), '#1689d8', 0, 1.47, -0.39);
@@ -285,13 +289,13 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = t
     const makeArm = (side: number) => {
       const pivot = new THREE.Group();
       pivot.position.set(side * 0.72, 1.55, 0);
-      const upper = addMesh(pivot, new THREE.CapsuleGeometry(0.17, 0.38, 5, 10), cream, side * 0.12, -0.22, 0);
+      const upper = addMesh(pivot, new THREE.CapsuleGeometry(0.17, 0.38, 5, 10), armColor, side * 0.12, -0.22, 0);
       upper.rotation.z = side * -0.18;
       addMesh(pivot, new THREE.BoxGeometry(0.27, 0.23, 0.30), green, side * 0.16, -0.48, 0);
-      addMesh(pivot, new THREE.CapsuleGeometry(0.14, 0.30, 4, 8), cream, side * 0.20, -0.70, 0);
+      addMesh(pivot, new THREE.CapsuleGeometry(0.14, 0.30, 4, 8), armColor, side * 0.20, -0.70, 0);
       addMesh(pivot, new THREE.SphereGeometry(0.19, 12, 10), green, side * 0.20, -0.94, -0.02);
       for (let finger = -1; finger <= 1; finger++) {
-        const digit = addMesh(pivot, new THREE.CapsuleGeometry(0.055, 0.13, 4, 6), cream,
+        const digit = addMesh(pivot, new THREE.CapsuleGeometry(0.055, 0.13, 4, 6), armColor,
           side * (0.20 + finger * 0.11), -1.12, -0.04);
         digit.rotation.z = finger * 0.22;
         addMesh(pivot, new THREE.SphereGeometry(0.06, 8, 6), green, side * (0.20 + finger * 0.11), -1.22, -0.04);
@@ -303,15 +307,15 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = t
     const makeTrackLeg = (side: number) => {
       const leg = new THREE.Group();
       leg.position.set(side * 0.36, 0.78, 0.04);
-      addMesh(leg, new THREE.CapsuleGeometry(0.14, 0.30, 4, 8), metal, 0, -0.20, 0);
+      addMesh(leg, new THREE.CapsuleGeometry(0.14, 0.30, 4, 8), metalColor, 0, -0.20, 0);
       addMesh(leg, new THREE.SphereGeometry(0.18, 12, 10), cream, 0, -0.38, 0);
-      const tread = addMesh(leg, new THREE.CapsuleGeometry(0.34, 0.42, 8, 14), black, 0, -0.68, 0.02);
+      const tread = addMesh(leg, new THREE.CapsuleGeometry(0.34, 0.42, 8, 14), bootColor, 0, -0.68, 0.02);
       tread.rotation.z = Math.PI / 2;
       tread.scale.set(1, 1, 0.88);
       for (const wheelX of [-0.22, 0, 0.22]) {
-        const wheel = addMesh(leg, new THREE.CylinderGeometry(0.19, 0.19, 0.12, 16), metal, wheelX, -0.68, -0.04);
+        const wheel = addMesh(leg, new THREE.CylinderGeometry(0.19, 0.19, 0.12, 16), metalColor, wheelX, -0.68, -0.04);
         wheel.rotation.x = Math.PI / 2;
-        addMesh(leg, new THREE.CylinderGeometry(0.075, 0.075, 0.13, 12), '#b58a50', wheelX, -0.68, -0.12).rotation.x = Math.PI / 2;
+        addMesh(leg, new THREE.CylinderGeometry(0.075, 0.075, 0.13, 12), cfg.hairColor !== defaults.hairColor ? cfg.hairColor : '#b58a50', wheelX, -0.68, -0.12).rotation.x = Math.PI / 2;
       }
       group.add(leg);
       return leg;
