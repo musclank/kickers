@@ -57,10 +57,13 @@ The browser client supports room creation/joining and real-time player position/
 
 ### Deploy the multiplayer Worker
 
-1. Install Node.js and Wrangler on a computer, or use Cloudflare's browser-based Worker editor.
-2. From the repository root run `npx wrangler login`.
-3. Deploy with `npx wrangler deploy`.
-4. Copy the resulting `https://kickers-multiplayer.<account>.workers.dev` URL.
-5. Open KICKERS, choose **PLAY ONLINE**, paste the Worker URL, then create or join a six-character room code.
+1. In Cloudflare, open **Workers & Pages** and choose **Create application**.
+2. Choose the GitHub import option and connect `musclank/kickers`.
+3. The Worker name must be `kickers-multiplayer`, matching `wrangler.toml`.
+4. Use the repository root as the root directory. Leave the build command empty and use `npx wrangler deploy` as the deploy command.
+5. Deploy, then copy the resulting `https://kickers-multiplayer.<account>.workers.dev` URL.
+6. Open KICKERS, choose **PLAY ONLINE**, paste the Worker URL, then create or join a six-character room code.
+
+Alternatively, deploy from a computer with `npx wrangler login` followed by `npx wrangler deploy` from the repository root.
 
 Cloudflare Pages continues to host the game frontend. The Worker is a separate service. The first multiplayer phase synchronizes player presence, movement, direction, and kick animation; authoritative hit detection, matchmaking, and persistence are subsequent phases.
