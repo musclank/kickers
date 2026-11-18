@@ -1,0 +1,17 @@
+{
+  "name": "KICKERS",
+  "short_name": "KICKERS",
+  "description": "Build your fighter. Own the arena.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07152f",
+  "theme_color": "#07152f",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
