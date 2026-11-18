@@ -12,11 +12,11 @@ const saveButton = document.querySelector<HTMLButtonElement>('#save-character')!
 const savedLabel = document.querySelector<HTMLSpanElement>('#saved-label')!;
 
 type AvatarConfig = {
-  skin: string; outfit: string; shoes: string; hair: string; accessory: string;
+  skin: string; outfit: string; shoes: string; hairColor: string; hairStyle: string; accessory: string;
   bodyWidth: number; bodyHeight: number; headSize: number; legLength: number;
 };
 const defaults: AvatarConfig = {
-  skin: '#4de2d0', outfit: '#ffb84d', shoes: '#24243a', hair: '#26314d',
+  skin: '#4de2d0', outfit: '#ffb84d', shoes: '#24243a', hairColor: '#26314d', hairStyle: 'smooth',
   accessory: 'none', bodyWidth: 1, bodyHeight: 1, headSize: 1, legLength: 1
 };
 let config: AvatarConfig = { ...defaults };
@@ -71,17 +71,17 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number) {
   addMesh(group, new THREE.BoxGeometry(0.34, 0.2, 0.48), cfg.shoes, -0.22, 0.16, -0.1);
   addMesh(group, new THREE.BoxGeometry(0.34, 0.2, 0.48), cfg.shoes, 0.22, 0.16, -0.1);
   // Hair options
-  if (cfg.hair !== 'none') {
-    if (cfg.hair === 'spiky') {
+  if (cfg.hairStyle !== 'none') {
+    if (cfg.hairStyle === 'spiky') {
       for (let i = -1; i <= 1; i++) {
-        const tuft = addMesh(group, new THREE.ConeGeometry(0.14, 0.34, 8), cfg.hair, i * 0.2, bodyY + 1.2 * cfg.headSize, 0);
+        const tuft = addMesh(group, new THREE.ConeGeometry(0.14, 0.34, 8), cfg.hairColor, i * 0.2, bodyY + 1.2 * cfg.headSize, 0);
         tuft.rotation.z = i * -0.35;
       }
-    } else if (cfg.hair === 'cap') {
-      addMesh(group, new THREE.SphereGeometry(0.41 * cfg.headSize, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), cfg.hair, 0, bodyY + 1.03 * cfg.headSize, 0);
-      addMesh(group, new THREE.BoxGeometry(0.48, 0.06, 0.28), cfg.hair, 0, bodyY + 0.99 * cfg.headSize, -0.28);
+    } else if (cfg.hairStyle === 'cap') {
+      addMesh(group, new THREE.SphereGeometry(0.41 * cfg.headSize, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), cfg.hairColor, 0, bodyY + 1.03 * cfg.headSize, 0);
+      addMesh(group, new THREE.BoxGeometry(0.48, 0.06, 0.28), cfg.hairColor, 0, bodyY + 0.99 * cfg.headSize, -0.28);
     } else {
-      addMesh(group, new THREE.SphereGeometry(0.4 * cfg.headSize, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), cfg.hair, 0, bodyY + 1.08 * cfg.headSize, 0);
+      addMesh(group, new THREE.SphereGeometry(0.4 * cfg.headSize, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), cfg.hairColor, 0, bodyY + 1.08 * cfg.headSize, 0);
     }
   }
   // Accessories
@@ -104,7 +104,7 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number) {
 let player = makeAvatar(config, 0, 2);
 const rivals = [
   makeAvatar({ ...defaults, skin: '#ff6b78', outfit: '#5d293d', accessory: 'horns' }, -4, -2),
-  makeAvatar({ ...defaults, skin: '#ffc857', outfit: '#4b5f9a', hair: 'spiky' }, 4, -3),
+  makeAvatar({ ...defaults, skin: '#ffc857', outfit: '#4b5f9a', hairStyle: 'spiky' }, 4, -3),
   makeAvatar({ ...defaults, skin: '#9b83ff', outfit: '#3d725f', accessory: 'crown' }, 1, -6)
 ];
 function rebuildPlayer() {
@@ -117,13 +117,13 @@ function bindColor(id: string, key: keyof AvatarConfig) {
   input.value = String(config[key]);
   input.addEventListener('input', () => { (config[key] as string) = input.value; rebuildPlayer(); });
 }
-bindColor('skin-color', 'skin'); bindColor('outfit-color', 'outfit'); bindColor('shoe-color', 'shoes'); bindColor('hair-color', 'hair');
+bindColor('skin-color', 'skin'); bindColor('outfit-color', 'outfit'); bindColor('shoe-color', 'shoes'); bindColor('hair-color', 'hairColor');
 function bindSelect(id: string, key: keyof AvatarConfig) {
   const input = document.querySelector<HTMLSelectElement>('#' + id)!;
   input.value = String(config[key]);
   input.addEventListener('change', () => { (config[key] as string) = input.value; rebuildPlayer(); });
 }
-bindSelect('hair-style', 'hair'); bindSelect('accessory', 'accessory');
+bindSelect('hair-style', 'hairStyle'); bindSelect('accessory', 'accessory');
 function bindRange(id: string, key: keyof AvatarConfig) {
   const input = document.querySelector<HTMLInputElement>('#' + id)!;
   const output = document.querySelector<HTMLOutputElement>('#' + id + '-value')!;
@@ -145,8 +145,8 @@ try {
   if (saved) {
     config = { ...defaults, ...JSON.parse(saved) as Partial<AvatarConfig> };
     rebuildPlayer();
-    for (const id of ['skin-color','outfit-color','shoe-color','hair-color']) (document.querySelector<HTMLInputElement>('#'+id)!).value = String(config[id === 'skin-color' ? 'skin' : id === 'outfit-color' ? 'outfit' : id === 'shoe-color' ? 'shoes' : 'hair']);
-    for (const id of ['hair-style','accessory']) (document.querySelector<HTMLSelectElement>('#'+id)!).value = String(config[id === 'hair-style' ? 'hair' : 'accessory']);
+    for (const id of ['skin-color','outfit-color','shoe-color','hair-color']) (document.querySelector<HTMLInputElement>('#'+id)!).value = String(config[id === 'skin-color' ? 'skin' : id === 'outfit-color' ? 'outfit' : id === 'shoe-color' ? 'shoes' : 'hairColor']);
+    for (const id of ['hair-style','accessory']) (document.querySelector<HTMLSelectElement>('#'+id)!).value = String(config[id === 'hair-style' ? 'hairStyle' : 'accessory']);
     for (const [id,key] of [['body-width','bodyWidth'],['body-height','bodyHeight'],['head-size','headSize'],['leg-length','legLength']] as const) {
       const el = document.querySelector<HTMLInputElement>('#'+id)!; el.value = String(config[key]);
       (document.querySelector<HTMLOutputElement>('#'+id+'-value')!).value = Number(config[key]).toFixed(1);
