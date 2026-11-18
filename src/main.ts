@@ -783,6 +783,25 @@ let customizationSnapshot: {
   playerPosition: THREE.Vector3; playerRotation: THREE.Euler; playerVisible: boolean;
   cameraPosition: THREE.Vector3; rivalVisibility: boolean[]; remoteVisibility: boolean[];
 } | null = null;
+function frameCharacterPreview() {
+  // Fit the complete character bounds to the available viewport, including antenna,
+  // accessories, arms and feet. Hide the floating username while measuring.
+  const nameSprite = player.userData.nameSprite as THREE.Sprite | undefined;
+  const wasNameVisible = nameSprite?.visible ?? false;
+  if (nameSprite) nameSprite.visible = false;
+  const bounds = new THREE.Box3().setFromObject(player);
+  if (nameSprite) nameSprite.visible = wasNameVisible;
+  if (bounds.isEmpty()) return;
+  const center = bounds.getCenter(new THREE.Vector3());
+  const sphere = bounds.getBoundingSphere(new THREE.Sphere());
+  const verticalFov = THREE.MathUtils.degToRad(camera.fov);
+  const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * camera.aspect);
+  const limitingHalfFov = Math.max(0.12, Math.min(verticalFov, horizontalFov) / 2);
+  const distance = Math.max(5.5, sphere.radius / Math.sin(limitingHalfFov) * 1.28);
+  camera.position.set(center.x, center.y + distance * 0.10, center.z + distance);
+  camera.lookAt(center.x, center.y, center.z);
+  camera.updateProjectionMatrix();
+}
 function setCustomizationOpen(open: boolean) {
   if (open === customizing) return;
   if (open && roundOver) return;
@@ -806,8 +825,7 @@ function setCustomizationOpen(open: boolean) {
     player.visible = true;
     rivals.forEach(bot => { bot.visible = false; });
     remotePlayers.forEach(remote => { remote.mesh.visible = false; });
-    camera.position.set(0, 4.8, 9.5);
-    camera.lookAt(0, 1.55, 0);
+    frameCharacterPreview();
     statusEl.textContent = 'CHARACTER PREVIEW';
   } else {
     if (customizationSnapshot) {
@@ -1286,4 +1304,4 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
-addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); });
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); if (customizing) frameCharacterPreview(); });
