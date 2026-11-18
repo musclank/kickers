@@ -14,7 +14,7 @@ const fullscreenButton = document.querySelector<HTMLButtonElement>('#fullscreen-
 
 type AvatarConfig = {
   skin: string; outfit: string; shoes: string; hairColor: string; hairStyle: string; accessory: string;
-  bodyWidth: number; bodyHeight: number; headSize: number; legLength: number; faceImage?: string;
+  bodyWidth: number; bodyHeight: number; headSize: number; legLength: number; shirtImage?: string;
 };
 const defaults: AvatarConfig = {
   skin: '#4de2d0', outfit: '#ffb84d', shoes: '#24243a', hairColor: '#26314d', hairStyle: 'smooth',
@@ -90,19 +90,51 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number) {
   addMesh(group, new THREE.CapsuleGeometry(0.48 * cfg.bodyWidth, 0.55 * cfg.bodyHeight, 6, 12), cfg.outfit, 0, bodyY, 0);
   addMesh(group, new THREE.SphereGeometry(0.39 * cfg.headSize, 20, 16), cfg.skin, 0, bodyY + 0.82 * cfg.headSize, 0);
   if (shirtTexture) {
-    // Print the selected gallery image on both sides of the outfit, never on the face.
-    const shirtMaterial = new THREE.MeshBasicMaterial({
-      map: shirtTexture, transparent: true, depthWrite: false, side: THREE.DoubleSide
-    });
-    const frontPrint = new THREE.Mesh(new THREE.PlaneGeometry(0.62 * cfg.bodyWidth, 0.72 * cfg.bodyHeight), shirtMaterial);
-    frontPrint.position.set(0, bodyY, -0.485 * cfg.bodyWidth);
-    frontPrint.renderOrder = 4;
-    group.add(frontPrint);
-    const backPrint = new THREE.Mesh(new THREE.PlaneGeometry(0.62 * cfg.bodyWidth, 0.72 * cfg.bodyHeight), shirtMaterial.clone());
-    backPrint.position.set(0, bodyY, 0.485 * cfg.bodyWidth);
-    backPrint.rotation.y = Math.PI;
-    backPrint.renderOrder = 4;
-    group.add(backPrint);
+    // Curved UV patches follow the capsule torso instead of floating as flat planes.
+    const makeShirtPatch = (back: boolean) => {
+      const columns = 24, rows = 28;
+      const radius = 0.48 * cfg.bodyWidth;
+      const halfCylinder = 0.275 * cfg.bodyHeight;
+      const patchWidth = radius * 1.42;
+      const patchHeight = 0.68 * cfg.bodyHeight;
+      const positions: number[] = [];
+      const uvs: number[] = [];
+      const indices: number[] = [];
+      for (let row = 0; row <= rows; row++) {
+        const v = row / rows;
+        const y = (0.5 - v) * patchHeight;
+        const capOffset = Math.max(0, Math.abs(y) - halfCylinder);
+        const sectionRadius = Math.sqrt(Math.max(0.001, radius * radius - capOffset * capOffset));
+        for (let column = 0; column <= columns; column++) {
+          const u = column / columns;
+          const localU = back ? 1 - u : u;
+          const x = (localU - 0.5) * patchWidth;
+          const surfaceZ = Math.sqrt(Math.max(0.001, sectionRadius * sectionRadius - x * x));
+          positions.push(x, bodyY + y, (back ? 1 : -1) * (surfaceZ + 0.008));
+          uvs.push(u, 1 - v);
+        }
+      }
+      for (let row = 0; row < rows; row++) {
+        for (let column = 0; column < columns; column++) {
+          const a = row * (columns + 1) + column;
+          const b = a + columns + 1;
+          indices.push(a, b, a + 1, b, b + 1, a + 1);
+        }
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      geometry.setIndex(indices);
+      geometry.computeVertexNormals();
+      const print = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
+        map: shirtTexture!, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+        polygonOffset: true, polygonOffsetFactor: -1
+      }));
+      print.renderOrder = 4;
+      group.add(print);
+    };
+    makeShirtPatch(false);
+    makeShirtPatch(true);
   }
   // Eyes and smile sit on the front (-Z).
   addMesh(group, new THREE.SphereGeometry(0.055, 12, 10), '#172033', -0.14 * cfg.headSize, bodyY + 0.9 * cfg.headSize, -0.34 * cfg.headSize);
@@ -205,7 +237,7 @@ function applyShirtImage(dataUrl: string) {
     nextTexture.colorSpace = THREE.SRGBColorSpace;
     const previousTexture = shirtTexture;
     shirtTexture = nextTexture;
-    config.faceImage = dataUrl;
+    config.shirtImage = dataUrl;
     rebuildPlayer();
     previousTexture?.dispose();
     savedLabel.textContent = 'SHIRT PRINT APPLIED — SAVE TO KEEP IT';
@@ -238,7 +270,7 @@ shirtImageInput.addEventListener('change', () => {
 });
 removeShirtImageButton.addEventListener('click', () => {
   const previousTexture = shirtTexture;
-  shirtTexture = null; delete config.faceImage;
+  shirtTexture = null; delete config.shirtImage;
   rebuildPlayer(); previousTexture?.dispose();
   shirtImageInput.value = '';
   savedLabel.textContent = 'SHIRT PRINT REMOVED — SAVE TO KEEP IT';
@@ -287,7 +319,7 @@ try {
   const saved = localStorage.getItem('kickers-avatar-v1');
   if (saved) {
     config = { ...defaults, ...JSON.parse(saved) as Partial<AvatarConfig> };
-    if (config.faceImage) applyShirtImage(config.faceImage);
+    if (config.shirtImage) applyShirtImage(config.shirtImage);
     rebuildPlayer();
     for (const id of ['skin-color','outfit-color','shoe-color','hair-color']) (document.querySelector<HTMLInputElement>('#'+id)!).value = String(config[id === 'skin-color' ? 'skin' : id === 'outfit-color' ? 'outfit' : id === 'shoe-color' ? 'shoes' : 'hairColor']);
     for (const id of ['hair-style','accessory']) (document.querySelector<HTMLSelectElement>('#'+id)!).value = String(config[id === 'hair-style' ? 'hairStyle' : 'accessory']);
