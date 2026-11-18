@@ -64,12 +64,26 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number) {
   const leftArm = addMesh(group, armGeo, cfg.skin, -0.58 * cfg.bodyWidth, bodyY + 0.03, 0);
   const rightArm = addMesh(group, armGeo, cfg.skin, 0.58 * cfg.bodyWidth, bodyY + 0.03, 0);
   leftArm.rotation.z = -0.25; rightArm.rotation.z = 0.25;
-  // Legs and shoes
-  const legY = 0.22 * cfg.legLength;
-  addMesh(group, new THREE.CapsuleGeometry(0.16, 0.36 * cfg.legLength, 4, 8), cfg.skin, -0.22, legY + 0.16, 0);
-  addMesh(group, new THREE.CapsuleGeometry(0.16, 0.36 * cfg.legLength, 4, 8), cfg.skin, 0.22, legY + 0.16, 0);
-  addMesh(group, new THREE.BoxGeometry(0.34, 0.2, 0.48), cfg.shoes, -0.22, 0.16, -0.1);
-  addMesh(group, new THREE.BoxGeometry(0.34, 0.2, 0.48), cfg.shoes, 0.22, 0.16, -0.1);
+  // Separate articulated legs: the right leg is the actual kicking leg.
+  const legScale = cfg.legLength;
+  const leftLeg = new THREE.Group();
+  leftLeg.position.set(-0.22 * cfg.bodyWidth, 0.48 * legScale, 0);
+  addMesh(leftLeg, new THREE.CapsuleGeometry(0.15, 0.28 * legScale, 4, 8), cfg.skin, 0, -0.16 * legScale, 0);
+  addMesh(leftLeg, new THREE.BoxGeometry(0.34, 0.2, 0.5), cfg.shoes, 0, -0.34 * legScale, -0.13);
+  group.add(leftLeg);
+
+  const kickLeg = new THREE.Group();
+  kickLeg.position.set(0.22 * cfg.bodyWidth, 0.48 * legScale, 0);
+  addMesh(kickLeg, new THREE.CapsuleGeometry(0.15, 0.28 * legScale, 4, 8), cfg.skin, 0, -0.16 * legScale, 0);
+  const knee = addMesh(kickLeg, new THREE.SphereGeometry(0.15, 12, 10), cfg.skin, 0, -0.29 * legScale, 0);
+  const shin = new THREE.Group();
+  shin.position.set(0, -0.29 * legScale, 0);
+  addMesh(shin, new THREE.CapsuleGeometry(0.13, 0.25 * legScale, 4, 8), cfg.skin, 0, -0.13 * legScale, 0);
+  addMesh(shin, new THREE.BoxGeometry(0.36, 0.2, 0.54), cfg.shoes, 0, -0.29 * legScale, -0.16);
+  kickLeg.add(shin);
+  group.add(kickLeg);
+  group.userData.kickLeg = kickLeg;
+  group.userData.kickShin = shin;
   // Hair options
   if (cfg.hairStyle !== 'none') {
     if (cfg.hairStyle === 'spiky') {
@@ -161,8 +175,10 @@ addEventListener('keydown', (event) => { keys.add(event.key.toLowerCase()); if (
 addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
 function kick() {
   if (kickTime > 0) return;
-  kickTime = 0.32; statusEl.textContent = 'KICK!';
-  kickButton.classList.add('pressed'); setTimeout(() => kickButton.classList.remove('pressed'), 140);
+  kickTime = 0.48;
+  statusEl.textContent = 'FOOT KICK!';
+  kickButton.classList.add('pressed');
+  setTimeout(() => kickButton.classList.remove('pressed'), 160);
 }
 kickButton.addEventListener('pointerdown', kick);
 let pointerId: number | null = null;
@@ -191,8 +207,21 @@ function animate() {
   player.position.z = THREE.MathUtils.clamp(player.position.z + inputZ / length * 5 * delta, -8, 8);
   if (Math.abs(inputX) + Math.abs(inputZ) > 0.05) player.rotation.y = Math.atan2(inputX, inputZ);
   if (kickTime > 0) {
-    kickTime -= delta; player.scale.z = 1 + Math.sin((0.32 - kickTime) / 0.32 * Math.PI) * 0.28;
-    if (kickTime <= 0) { player.scale.z = 1; statusEl.textContent = 'READY'; }
+    kickTime = Math.max(0, kickTime - delta);
+    const progress = 1 - kickTime / 0.48;
+    const swing = Math.sin(progress * Math.PI);
+    const kickLeg = player.userData.kickLeg as THREE.Group;
+    const kickShin = player.userData.kickShin as THREE.Group;
+    // Lift the thigh, extend the shin, and send the sneaker forward (-Z).
+    kickLeg.rotation.x = swing * 1.05;
+    kickShin.rotation.x = -swing * 0.22;
+    player.rotation.x = -swing * 0.07;
+    if (kickTime <= 0) {
+      kickLeg.rotation.x = 0;
+      kickShin.rotation.x = 0;
+      player.rotation.x = 0;
+      statusEl.textContent = 'READY';
+    }
   }
   rivals.forEach((rival, i) => { rival.position.y = Math.sin(clock.elapsedTime * 2 + i) * 0.06; rival.rotation.y += delta * (i % 2 ? 0.35 : -0.3); });
   camera.position.x += (player.position.x * 0.22 - camera.position.x) * 0.04;
