@@ -253,9 +253,21 @@ function updateRoster(players: Array<{ id: string; name?: string; avatar?: Parti
   for (const item of players) {
     if (item.id === localPlayerId) continue;
     let remote = remotePlayers.get(item.id);
-    if (!remote) {
+    const hasLook = Boolean(item.avatar);
+    if (!remote || (hasLook && !remote.mesh.userData.remoteAvatarLoaded)) {
+      if (remote) {
+        scene.remove(remote.mesh);
+        remote.mesh.traverse(obj => {
+          if (obj instanceof THREE.Mesh) {
+            obj.geometry.dispose();
+            if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+            else obj.material.dispose();
+          }
+        });
+      }
       const look = { ...defaults, ...(item.avatar || {}) };
       const mesh = makeAvatar(look, item.x ?? 0, item.z ?? 0, false);
+      mesh.userData.remoteAvatarLoaded = hasLook;
       remote = { mesh, targetX: item.x ?? 0, targetZ: item.z ?? 0, targetRotation: item.rotation ?? 0 };
       remotePlayers.set(item.id, remote);
     } else if (typeof item.x === 'number') {
