@@ -375,3 +375,29 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 @media (max-width: 390px) {
   .special-button { width: 48px; height: 48px; font-size: 6px; }
 }
+
+
+/* Contract address field: compact, aligned mobile layout. */
+.brand-block { min-width:0; }
+.contract-box { width:min(310px, 42vw); min-width:0; }
+.contract-field { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:stretch; width:100%; min-width:0; }
+.contract-field input { display:block; min-width:0; width:100%; height:32px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.contract-field button { min-width:52px; height:32px; padding:0 10px; white-space:nowrap; }
+@media (max-width:700px) {
+  .topbar { display:grid; grid-template-columns:minmax(0, 1fr) auto; align-items:start; column-gap:8px; }
+  .brand-block { width:clamp(145px, 43vw, 205px); gap:5px; }
+  .brand { line-height:1; }
+  .contract-box { width:100%; padding:7px 8px; border-radius:9px; }
+  .contract-box label { margin-bottom:5px; font-size:7px; letter-spacing:.13em; }
+  .contract-field { gap:5px; }
+  .contract-field input { height:30px; padding:0 7px; font-size:7px; }
+  .contract-field button { min-width:48px; height:30px; padding:0 7px; font-size:7px; }
+  .topbar-actions { max-width:none; min-width:0; width:auto; justify-content:flex-end; gap:5px; }
+}
+@media (max-width:390px) {
+  .brand-block { width:clamp(138px, 42vw, 165px); }
+  .contract-box { padding:6px; }
+  .contract-field { gap:4px; }
+  .contract-field input { font-size:6.5px; padding:0 5px; }
+  .contract-field button { min-width:43px; padding:0 5px; font-size:6.5px; }
+}
