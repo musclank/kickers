@@ -953,7 +953,7 @@ const clock = new THREE.Clock();
 const MATCH_DURATION = 300;
 let matchTimeRemaining = MATCH_DURATION;
 let roundOver = false;
-let gamePaused = false;
+let gamePaused = true;
 let victoryActive = false;
 let victoryTime = 0;
 let victoryStarted = false;
@@ -989,6 +989,18 @@ function setGamePaused(paused: boolean) {
   }
   statusEl.textContent = paused ? 'PAUSED' : 'READY';
 }
+const startScreen = document.querySelector<HTMLDivElement>('#start-screen')!;
+const startGameButton = document.querySelector<HTMLButtonElement>('#start-game')!;
+const startCustomizeButton = document.querySelector<HTMLButtonElement>('#start-customize')!;
+startGameButton.addEventListener('click', () => {
+  startScreen.hidden = true;
+  setGamePaused(false);
+  playSound('ui');
+});
+startCustomizeButton.addEventListener('click', () => {
+  startScreen.hidden = true;
+  setCustomizationOpen(true);
+});
 pauseButton.addEventListener('click', () => setGamePaused(!gamePaused));
 resumeButton.addEventListener('click', () => setGamePaused(false));
 playAgainButton.addEventListener('click', () => location.reload());
