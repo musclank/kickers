@@ -151,3 +151,34 @@ body { background: #10152b; color: #fff; font-family: Inter, ui-sans-serif, syst
 .pause-toggle[hidden] { display:none; }
 .pause-overlay { z-index:25; }
 @media (max-width:600px) { .pause-toggle { padding:7px 8px; font-size:8px; } }
+
+
+/* Character lab: freeze the match and give the live 3D fighter a clear preview stage. */
+body.customizing .controls,
+body.customizing .help,
+body.customizing .online-toggle,
+body.customizing .online-panel,
+body.customizing .pause-toggle,
+body.customizing .desktop-hint,
+body.customizing .topbar,
+body.customizing .creator-toggle { display: none !important; }
+body.customizing .creator-panel {
+  display: block;
+  top: auto;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  right: 14px;
+  max-height: min(72dvh, 720px);
+  width: min(390px, calc(100vw - 28px));
+}
+@media (max-width: 600px) {
+  body.customizing .creator-panel {
+    left: 10px;
+    right: 10px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    width: auto;
+    max-height: 49dvh;
+    padding: 12px;
+  }
+  body.customizing .creator-heading { margin-bottom: 10px; }
+  body.customizing .creator-heading h2 { font-size: 13px; }
+}
