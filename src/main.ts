@@ -4,6 +4,7 @@ import './style.css';
 const app = document.querySelector<HTMLDivElement>('#app')!;
 const statusEl = document.querySelector<HTMLSpanElement>('#status')!;
 const kickButton = document.querySelector<HTMLButtonElement>('#kick')!;
+const tauntButton = document.querySelector<HTMLButtonElement>('#taunt')!;
 const joystick = document.querySelector<HTMLDivElement>('#joystick')!;
 const stick = document.querySelector<HTMLDivElement>('#stick')!;
 const creator = document.querySelector<HTMLDivElement>('#creator')!;
@@ -349,6 +350,7 @@ function updateRoster(players: Array<{ id: string; name?: string; avatar?: Parti
       const look = { ...defaults, ...(item.avatar || {}) };
       const mesh = makeAvatar(look, item.x ?? 0, item.z ?? 0, false);
       mesh.userData.remoteAvatarLoaded = hasLook;
+      mesh.userData.remoteRobot = look.characterType === 'robot';
       remote = { mesh, targetX: item.x ?? 0, targetZ: item.z ?? 0, targetRotation: item.rotation ?? 0 };
       remotePlayers.set(item.id, remote);
     } else if (typeof item.x === 'number') {
@@ -395,6 +397,10 @@ function connectToRoom(room: string) {
           remote.targetZ = data.z ?? remote.targetZ;
           remote.targetRotation = data.rotation ?? remote.targetRotation;
         }
+      }
+      if (data.type === 'taunt' && data.id && data.id !== localPlayerId) {
+        const remote = remotePlayers.get(data.id);
+        if (remote) remote.mesh.userData.remoteTauntTime = 1.35;
       }
       if (data.type === 'kick' && data.id && data.id !== localPlayerId) {
         const remote = remotePlayers.get(data.id);
@@ -574,11 +580,20 @@ try {
   }
 } catch { /* Ignore an invalid local saved design. */ }
 
-let moveX = 0, moveZ = 0, kickTime = 0, walkTime = 0, kickHitDone = false;
+let moveX = 0, moveZ = 0, kickTime = 0, tauntTime = 0, walkTime = 0, kickHitDone = false;
 const keys = new Set<string>();
 const clock = new THREE.Clock();
 addEventListener('keydown', (event) => { keys.add(event.key.toLowerCase()); if (event.code === 'Space') { event.preventDefault(); kick(); } });
 addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
+function taunt() {
+  if (tauntTime > 0 || kickTime > 0) return;
+  tauntTime = 1.35;
+  if (networkReady) sendNetwork({ type: 'taunt' });
+  statusEl.textContent = 'SILLY SHOWTIME!';
+  tauntButton.classList.add('pressed');
+  setTimeout(() => tauntButton.classList.remove('pressed'), 180);
+}
+tauntButton.addEventListener('pointerdown', taunt);
 function kick() {
   if (kickTime > 0) return;
   kickTime = 0.48;
@@ -628,12 +643,29 @@ function animate() {
   const rightLeg = player.userData.kickLeg as THREE.Group;
   const leftArm = player.userData.leftArm as THREE.Mesh;
   const rightArm = player.userData.rightArm as THREE.Mesh;
-  if (kickTime <= 0) {
+  if (kickTime <= 0 && tauntTime <= 0) {
     leftLeg.rotation.x = stride;
     rightLeg.rotation.x = -stride;
   }
   leftArm.rotation.x = moving ? -stride * 0.45 : 0;
   rightArm.rotation.x = moving ? stride * 0.45 : 0;
+  if (tauntTime > 0) {
+    tauntTime = Math.max(0, tauntTime - delta);
+    const phase = 1.35 - tauntTime;
+    const wave = Math.sin(phase * 13);
+    leftArm.rotation.z = (config.characterType === 'robot' ? 0 : -0.25) - 1.0 - Math.abs(wave) * 0.28;
+    rightArm.rotation.z = (config.characterType === 'robot' ? 0 : 0.25) + 1.0 + Math.abs(wave) * 0.28;
+    leftArm.rotation.x = wave * 0.35;
+    rightArm.rotation.x = -wave * 0.35;
+    player.rotation.z = Math.sin(phase * 18) * 0.13;
+    player.position.y = Math.abs(Math.sin(phase * 12)) * 0.16;
+    if (tauntTime <= 0) {
+      leftArm.rotation.z = config.characterType === 'robot' ? 0 : -0.25;
+      rightArm.rotation.z = config.characterType === 'robot' ? 0 : 0.25;
+      leftArm.rotation.x = 0; rightArm.rotation.x = 0; player.rotation.z = 0;
+      statusEl.textContent = 'READY';
+    }
+  }
   player.position.y = moving ? Math.abs(Math.sin(walkTime * 2)) * 0.025 : 0;
   if (kickTime > 0) {
     kickTime = Math.max(0, kickTime - delta);
@@ -684,6 +716,30 @@ function animate() {
     remote.mesh.position.x += (remote.targetX - remote.mesh.position.x) * Math.min(1, delta * 14);
     remote.mesh.position.z += (remote.targetZ - remote.mesh.position.z) * Math.min(1, delta * 14);
     remote.mesh.rotation.y += (remote.targetRotation - remote.mesh.rotation.y) * Math.min(1, delta * 12);
+    const remoteTaunt = Number(remote.mesh.userData.remoteTauntTime || 0);
+    if (remoteTaunt > 0) {
+      remote.mesh.userData.remoteTauntTime = Math.max(0, remoteTaunt - delta);
+      const phase = 1.35 - remoteTaunt;
+      const wave = Math.sin(phase * 13);
+      const la = remote.mesh.userData.leftArm as THREE.Object3D;
+      const ra = remote.mesh.userData.rightArm as THREE.Object3D;
+      if (la && ra) {
+        la.rotation.z = (remote.mesh.userData.remoteRobot ? 0 : -0.25) - 1.0 - Math.abs(wave) * 0.28;
+        ra.rotation.z = (remote.mesh.userData.remoteRobot ? 0 : 0.25) + 1.0 + Math.abs(wave) * 0.28;
+        la.rotation.x = wave * 0.35; ra.rotation.x = -wave * 0.35;
+      }
+      remote.mesh.rotation.z = Math.sin(phase * 18) * 0.13;
+      remote.mesh.position.y = Math.abs(Math.sin(phase * 12)) * 0.16;
+    } else {
+      const la = remote.mesh.userData.leftArm as THREE.Object3D;
+      const ra = remote.mesh.userData.rightArm as THREE.Object3D;
+      if (la && ra) {
+        la.rotation.z = remote.mesh.userData.remoteRobot ? 0 : -0.25;
+        ra.rotation.z = remote.mesh.userData.remoteRobot ? 0 : 0.25;
+        la.rotation.x = 0; ra.rotation.x = 0;
+      }
+      remote.mesh.rotation.z = 0; remote.mesh.position.y = 0;
+    }
     const remoteKick = Number(remote.mesh.userData.remoteKickTime || 0);
     if (remoteKick > 0) {
       remote.mesh.userData.remoteKickTime = Math.max(0, remoteKick - delta);
