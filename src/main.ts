@@ -196,6 +196,25 @@ for (let i = 0; i < 8; i++) {
   const beacon = new THREE.PointLight(i % 2 ? 0x8b7cff : 0x50e8dc, 1.2, 7);
   beacon.position.set(Math.cos(angle) * 7.7, 4.3, Math.sin(angle) * 7.7); socialScene.add(beacon);
 }
+// Four lounge chairs around the room provide visible places to sit.
+const socialSeatSpots = Array.from({ length: 4 }, (_, i) => {
+  const angle = i / 4 * Math.PI * 2 + Math.PI / 4;
+  const x = Math.cos(angle) * 5.25, z = Math.sin(angle) * 5.25;
+  const chair = new THREE.Group();
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x254b63, metalness: 0.62, roughness: 0.3 });
+  const cushionMat = new THREE.MeshStandardMaterial({ color: i % 2 ? 0x4f68a8 : 0x168c91, metalness: 0.22, roughness: 0.55 });
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.16, 0.92), cushionMat);
+  seat.position.y = 0.78; seat.castShadow = true; chair.add(seat);
+  const back = new THREE.Mesh(new THREE.BoxGeometry(1.05, 1.05, 0.16), cushionMat);
+  back.position.set(0, 1.28, 0.38); back.castShadow = true; chair.add(back);
+  for (const sx of [-0.39, 0.39]) for (const sz of [-0.31, 0.31]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.72, 0.10), frameMat);
+    leg.position.set(sx, 0.36, sz); leg.castShadow = true; chair.add(leg);
+  }
+  chair.position.set(x, 0, z); chair.rotation.y = Math.PI / 2 - angle;
+  socialScene.add(chair);
+  return { x, z, rotation: chair.rotation.y };
+});
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.12;
@@ -634,6 +653,8 @@ const socialToggle = document.querySelector<HTMLButtonElement>('#social-toggle')
 const socialHub = document.querySelector<HTMLElement>('#social-hub')!;
 const socialClose = document.querySelector<HTMLButtonElement>('#social-close')!;
 const socialLeave = document.querySelector<HTMLButtonElement>('#social-leave')!;
+const socialSitButton = document.querySelector<HTMLButtonElement>('#social-sit')!;
+const socialActionStatus = document.querySelector<HTMLElement>('#social-action-status')!;
 const socialStatus = document.querySelector<HTMLElement>('#social-status')!;
 const socialMessages = document.querySelector<HTMLElement>('#social-messages')!;
 const socialPlayerList = document.querySelector<HTMLElement>('#social-player-list')!;
@@ -644,15 +665,31 @@ let socialSocket: WebSocket | null = null;
 let socialConnected = false;
 let socialPausedOffline = false;
 let socialLocalAvatar: THREE.Group | null = null;
-let socialLocalX = 0, socialLocalZ = 0, socialSendClock = 0;
-const socialRemoteAvatars = new Map<string, { mesh: THREE.Group; signature: string; targetX: number; targetZ: number; targetRotation: number }>();
+let socialLocalX = 0, socialLocalZ = 0, socialSendClock = 0, socialIsSeated = false;
+const socialRemoteAvatars = new Map<string, { mesh: THREE.Group; signature: string; targetX: number; targetZ: number; targetRotation: number; targetSeated: boolean }>();
 const socialMove = { up: false, down: false, left: false, right: false };
+function applySocialSitPose(mesh: THREE.Group, seated: boolean, blend = 1) {
+  const legAngle = seated ? (mesh.userData.remoteRobot ? 0.62 : 1.08) : 0;
+  const armAngle = seated ? -0.34 : 0;
+  for (const key of ['leftLeg', 'kickLeg']) {
+    const part = mesh.userData[key] as THREE.Object3D | undefined;
+    if (part) part.rotation.x += (legAngle - part.rotation.x) * blend;
+  }
+  for (const key of ['leftArm', 'rightArm']) {
+    const part = mesh.userData[key] as THREE.Object3D | undefined;
+    if (part) part.rotation.x += (armAngle - part.rotation.x) * blend;
+  }
+}
+function updateSocialSitButton() {
+  socialSitButton.textContent = socialIsSeated ? 'STAND UP' : 'SIT DOWN';
+  socialSitButton.setAttribute('aria-pressed', String(socialIsSeated));
+}
 function clearSocialAvatars() {
   if (socialLocalAvatar) { socialScene.remove(socialLocalAvatar); socialLocalAvatar = null; }
   for (const remote of socialRemoteAvatars.values()) socialScene.remove(remote.mesh);
   socialRemoteAvatars.clear();
 }
-function syncSocialAvatars(players: Array<{id:string;name?:string;avatar?:Partial<AvatarConfig>;x?:number;z?:number;rotation?:number}>) {
+function syncSocialAvatars(players: Array<{id:string;name?:string;avatar?:Partial<AvatarConfig>;x?:number;z?:number;rotation?:number;seated?:boolean}>) {
   const ids = new Set(players.filter(p => p.id !== localPlayerId).map(p => p.id));
   for (const [id, remote] of socialRemoteAvatars) if (!ids.has(id)) { socialScene.remove(remote.mesh); socialRemoteAvatars.delete(id); }
   for (const item of players) {
@@ -664,15 +701,39 @@ function syncSocialAvatars(players: Array<{id:string;name?:string;avatar?:Partia
       if (remote) socialScene.remove(remote.mesh);
       const mesh = makeAvatar(look, item.x ?? 0, item.z ?? 0, false, socialScene);
       setNameLabel(mesh, item.name || 'KICKERS Player');
-      remote = { mesh, signature, targetX: item.x ?? 0, targetZ: item.z ?? 0, targetRotation: item.rotation ?? 0 };
+      remote = { mesh, signature, targetX: item.x ?? 0, targetZ: item.z ?? 0, targetRotation: item.rotation ?? 0, targetSeated: item.seated === true };
       socialRemoteAvatars.set(item.id, remote);
     } else setNameLabel(remote.mesh, item.name || 'KICKERS Player');
     remote.targetX = item.x ?? remote.targetX;
     remote.targetZ = item.z ?? remote.targetZ;
     remote.targetRotation = item.rotation ?? remote.targetRotation;
+    remote.targetSeated = item.seated === true;
   }
 }
 function setSocialMove(direction: keyof typeof socialMove, active: boolean) { socialMove[direction] = active; }
+function toggleSocialSit() {
+  if (socialIsSeated) {
+    socialIsSeated = false;
+    socialActionStatus.textContent = 'You stood up.';
+    updateSocialSitButton();
+    return;
+  }
+  let nearest = socialSeatSpots[0], nearestDistance = Infinity;
+  for (const seat of socialSeatSpots) {
+    const distance = Math.hypot(socialLocalX - seat.x, socialLocalZ - seat.z);
+    if (distance < nearestDistance) { nearest = seat; nearestDistance = distance; }
+  }
+  if (nearestDistance > 1.8) {
+    socialActionStatus.textContent = 'Move close to a chair to sit.';
+    return;
+  }
+  socialLocalX = nearest.x; socialLocalZ = nearest.z;
+  if (socialLocalAvatar) socialLocalAvatar.rotation.y = nearest.rotation;
+  socialIsSeated = true;
+  Object.keys(socialMove).forEach(key => { socialMove[key as keyof typeof socialMove] = false; });
+  socialActionStatus.textContent = 'Relaxing in the Social Hub.';
+  updateSocialSitButton();
+}
 function addSocialMessage(name: string, message: string, system = false) {
   const row = document.createElement('div');
   row.className = system ? 'social-message social-system-message' : 'social-message';
@@ -715,11 +776,11 @@ function connectSocialHub() {
   });
   ws.addEventListener('message',(event)=>{
     try {
-      const data=JSON.parse(String(event.data)) as {type:string;players?:Array<{id:string;name?:string;avatar?:Partial<AvatarConfig>;x?:number;z?:number;rotation?:number}>;id?:string;x?:number;z?:number;rotation?:number;name?:string;message?:string};
+      const data=JSON.parse(String(event.data)) as {type:string;players?:Array<{id:string;name?:string;avatar?:Partial<AvatarConfig>;x?:number;z?:number;rotation?:number;seated?:boolean}>;id?:string;x?:number;z?:number;rotation?:number;seated?:boolean;name?:string;message?:string};
       if(data.type==='roster'&&data.players) renderSocialPlayers(data.players);
       if(data.type==='state'&&data.id&&data.id!==localPlayerId) {
         const remote=socialRemoteAvatars.get(data.id);
-        if(remote){remote.targetX=Number(data.x)||0;remote.targetZ=Number(data.z)||0;remote.targetRotation=Number(data.rotation)||0;}
+        if(remote){remote.targetX=Number(data.x)||0;remote.targetZ=Number(data.z)||0;remote.targetRotation=Number(data.rotation)||0;remote.targetSeated=data.seated===true;}
       }
       if(data.type==='chat'&&typeof data.message==='string') addSocialMessage(data.name||'KICKERS Player',data.message);
       if(data.type==='system'&&typeof data.message==='string') addSocialMessage('KICKERS',data.message,true);
@@ -744,7 +805,9 @@ function closeSocialHub() {
 function openSocialHub() {
   socialHub.hidden=false; socialToggle.hidden=true;
   clearSocialAvatars();
-  socialLocalX=0; socialLocalZ=2; socialSendClock=0;
+  socialLocalX=0; socialLocalZ=2; socialSendClock=0; socialIsSeated=false;
+  socialActionStatus.textContent='Walk around and find a chair to sit.';
+  updateSocialSitButton();
   socialLocalAvatar=makeAvatar({...defaults,...config},socialLocalX,socialLocalZ,false,socialScene);
   setNameLabel(socialLocalAvatar,playerDisplayName);
   if(!networkReady&&!roundOver&&!gamePaused){setGamePaused(true);socialPausedOffline=true;}
@@ -754,6 +817,7 @@ function openSocialHub() {
 socialToggle.addEventListener('click',openSocialHub);
 socialClose.addEventListener('click',closeSocialHub);
 socialLeave.addEventListener('click',closeSocialHub);
+socialSitButton.addEventListener('click',toggleSocialSit);
 socialChatForm.addEventListener('submit',(event)=>{
   event.preventDefault();
   const message=socialChatInput.value.trim();
@@ -1218,9 +1282,18 @@ function animate() {
       const dz = Number(socialMove.down || keyDown) - Number(socialMove.up || keyUp);
       const length = Math.hypot(dx,dz) || 1;
       const moving = Math.abs(dx)+Math.abs(dz)>0;
+      if (moving && socialIsSeated) {
+        socialIsSeated = false;
+        socialActionStatus.textContent = 'You stood up.';
+        updateSocialSitButton();
+      }
       if (moving) {
-        socialLocalX = THREE.MathUtils.clamp(socialLocalX + dx/length*4.1*delta,-6.4,6.4);
-        socialLocalZ = THREE.MathUtils.clamp(socialLocalZ + dz/length*4.1*delta,-6.4,6.4);
+        const nextX = socialLocalX + dx/length*4.1*delta;
+        const nextZ = socialLocalZ + dz/length*4.1*delta;
+        const roomDistance = Math.hypot(nextX,nextZ);
+        const roomScale = roomDistance > 7.55 ? 7.55 / roomDistance : 1;
+        socialLocalX = nextX * roomScale;
+        socialLocalZ = nextZ * roomScale;
         socialLocalAvatar.rotation.y = Math.atan2(-dx,-dz);
         const walk = Math.sin(clock.elapsedTime*10)*0.28;
         const leftLeg=socialLocalAvatar.userData.leftLeg as THREE.Group|undefined;
@@ -1233,21 +1306,27 @@ function animate() {
         if(leftLeg) leftLeg.rotation.x=0;
         if(kickLeg) kickLeg.rotation.x=0;
       }
-      socialLocalAvatar.position.set(socialLocalX,Math.sin(clock.elapsedTime*2)*0.025,socialLocalZ);
+      applySocialSitPose(socialLocalAvatar, socialIsSeated, Math.min(1, delta * 10));
+      socialLocalAvatar.position.set(socialLocalX, socialIsSeated ? -0.14 : (moving ? Math.abs(Math.sin(clock.elapsedTime*10))*0.045 : Math.sin(clock.elapsedTime*2)*0.025), socialLocalZ);
       socialSendClock += delta;
       if(socialConnected && socialSocket?.readyState===WebSocket.OPEN && socialSendClock>=0.10) {
         socialSendClock=0;
-        socialSocket.send(JSON.stringify({type:'state',x:socialLocalX,z:socialLocalZ,rotation:socialLocalAvatar.rotation.y}));
+        socialSocket.send(JSON.stringify({type:'state',x:socialLocalX,z:socialLocalZ,rotation:socialLocalAvatar.rotation.y,seated:socialIsSeated}));
       }
     }
     for(const remote of socialRemoteAvatars.values()) {
       remote.mesh.position.x += (remote.targetX-remote.mesh.position.x)*Math.min(1,delta*8);
       remote.mesh.position.z += (remote.targetZ-remote.mesh.position.z)*Math.min(1,delta*8);
       remote.mesh.rotation.y += (remote.targetRotation-remote.mesh.rotation.y)*Math.min(1,delta*8);
-      remote.mesh.position.y = Math.sin(clock.elapsedTime*2+remote.targetX)*0.025;
+      applySocialSitPose(remote.mesh, remote.targetSeated, Math.min(1, delta * 7));
+      const targetHeight = remote.targetSeated ? -0.14 : Math.sin(clock.elapsedTime*2+remote.targetX)*0.025;
+      remote.mesh.position.y += (targetHeight-remote.mesh.position.y)*Math.min(1,delta*8);
     }
     socialFloorRing.rotation.z += delta*0.08;
     socialCenterRing.rotation.z -= delta*0.12;
+    socialCamera.position.x += (socialLocalX - socialCamera.position.x) * Math.min(1, delta * 2.2);
+    socialCamera.position.z += (socialLocalZ + 17 - socialCamera.position.z) * Math.min(1, delta * 2.2);
+    socialCamera.lookAt(socialLocalX, 0.8, socialLocalZ);
     renderer.render(socialScene,socialCamera);
     return;
   }
