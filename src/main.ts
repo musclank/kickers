@@ -5,6 +5,7 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 const statusEl = document.querySelector<HTMLSpanElement>('#status')!;
 const kickButton = document.querySelector<HTMLButtonElement>('#kick')!;
 const tauntButton = document.querySelector<HTMLButtonElement>('#taunt')!;
+const mockButton = document.querySelector<HTMLButtonElement>('#mock')!;
 const joystick = document.querySelector<HTMLDivElement>('#joystick')!;
 const stick = document.querySelector<HTMLDivElement>('#stick')!;
 const creator = document.querySelector<HTMLDivElement>('#creator')!;
@@ -402,6 +403,10 @@ function connectToRoom(room: string) {
         const remote = remotePlayers.get(data.id);
         if (remote) remote.mesh.userData.remoteTauntTime = 1.35;
       }
+      if (data.type === 'mock' && data.id && data.id !== localPlayerId) {
+        const remote = remotePlayers.get(data.id);
+        if (remote) remote.mesh.userData.remoteMockTime = 1.6;
+      }
       if (data.type === 'kick' && data.id && data.id !== localPlayerId) {
         const remote = remotePlayers.get(data.id);
         if (remote) remote.mesh.userData.remoteKickTime = 0.48;
@@ -580,13 +585,13 @@ try {
   }
 } catch { /* Ignore an invalid local saved design. */ }
 
-let moveX = 0, moveZ = 0, kickTime = 0, tauntTime = 0, walkTime = 0, kickHitDone = false;
+let moveX = 0, moveZ = 0, kickTime = 0, tauntTime = 0, mockTime = 0, walkTime = 0, kickHitDone = false;
 const keys = new Set<string>();
 const clock = new THREE.Clock();
 addEventListener('keydown', (event) => { keys.add(event.key.toLowerCase()); if (event.code === 'Space') { event.preventDefault(); kick(); } });
 addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
 function taunt() {
-  if (tauntTime > 0 || kickTime > 0) return;
+  if (tauntTime > 0 || mockTime > 0 || kickTime > 0) return;
   tauntTime = 1.35;
   if (networkReady) sendNetwork({ type: 'taunt' });
   statusEl.textContent = 'SILLY SHOWTIME!';
@@ -594,8 +599,17 @@ function taunt() {
   setTimeout(() => tauntButton.classList.remove('pressed'), 180);
 }
 tauntButton.addEventListener('pointerdown', taunt);
+function mockEnemy() {
+  if (mockTime > 0 || tauntTime > 0 || kickTime > 0) return;
+  mockTime = 1.6;
+  if (networkReady) sendNetwork({ type: 'mock' });
+  statusEl.textContent = 'NICE TRY!';
+  mockButton.classList.add('pressed');
+  setTimeout(() => mockButton.classList.remove('pressed'), 180);
+}
+mockButton.addEventListener('pointerdown', mockEnemy);
 function kick() {
-  if (kickTime > 0) return;
+  if (kickTime > 0 || tauntTime > 0 || mockTime > 0) return;
   kickTime = 0.48;
   kickHitDone = false;
   if (networkReady) sendNetwork({ type: 'kick' });
@@ -643,7 +657,7 @@ function animate() {
   const rightLeg = player.userData.kickLeg as THREE.Group;
   const leftArm = player.userData.leftArm as THREE.Mesh;
   const rightArm = player.userData.rightArm as THREE.Mesh;
-  if (kickTime <= 0 && tauntTime <= 0) {
+  if (kickTime <= 0 && tauntTime <= 0 && mockTime <= 0) {
     leftLeg.rotation.x = stride;
     rightLeg.rotation.x = -stride;
   }
@@ -666,7 +680,25 @@ function animate() {
       statusEl.textContent = 'READY';
     }
   }
-  player.position.y = moving ? Math.abs(Math.sin(walkTime * 2)) * 0.025 : 0;
+  if (mockTime > 0) {
+    mockTime = Math.max(0, mockTime - delta);
+    const phase = 1.6 - mockTime;
+    const laugh = Math.sin(phase * 17);
+    // Point at the rival, then lean back and laugh in a playful cartoon taunt.
+    rightArm.rotation.x = 1.18 + Math.max(0, laugh) * 0.12;
+    rightArm.rotation.z = (config.characterType === 'robot' ? 0 : 0.25) + 0.18;
+    leftArm.rotation.x = 0.55 + Math.abs(laugh) * 0.22;
+    leftArm.rotation.z = (config.characterType === 'robot' ? 0 : -0.25) - 0.72;
+    player.rotation.z = Math.sin(phase * 17) * 0.10;
+    player.position.y = Math.abs(Math.sin(phase * 17)) * 0.075;
+    if (mockTime <= 0) {
+      rightArm.rotation.x = 0; leftArm.rotation.x = 0;
+      rightArm.rotation.z = config.characterType === 'robot' ? 0 : 0.25;
+      leftArm.rotation.z = config.characterType === 'robot' ? 0 : -0.25;
+      player.rotation.z = 0; statusEl.textContent = 'READY';
+    }
+  }
+  if (mockTime <= 0 && tauntTime <= 0) player.position.y = moving ? Math.abs(Math.sin(walkTime * 2)) * 0.025 : 0;
   if (kickTime > 0) {
     kickTime = Math.max(0, kickTime - delta);
     const progress = 1 - kickTime / 0.48;
@@ -739,6 +771,30 @@ function animate() {
         la.rotation.x = 0; ra.rotation.x = 0;
       }
       remote.mesh.rotation.z = 0; remote.mesh.position.y = 0;
+    }
+    const remoteMock = Number(remote.mesh.userData.remoteMockTime || 0);
+    if (remoteMock > 0) {
+      remote.mesh.userData.remoteMockTime = Math.max(0, remoteMock - delta);
+      const phase = 1.6 - remoteMock;
+      const laugh = Math.sin(phase * 17);
+      const la = remote.mesh.userData.leftArm as THREE.Object3D;
+      const ra = remote.mesh.userData.rightArm as THREE.Object3D;
+      if (la && ra) {
+        ra.rotation.x = 1.18 + Math.max(0, laugh) * 0.12;
+        ra.rotation.z = (remote.mesh.userData.remoteRobot ? 0 : 0.25) + 0.18;
+        la.rotation.x = 0.55 + Math.abs(laugh) * 0.22;
+        la.rotation.z = (remote.mesh.userData.remoteRobot ? 0 : -0.25) - 0.72;
+      }
+      remote.mesh.rotation.z = Math.sin(phase * 17) * 0.10;
+      remote.mesh.position.y = Math.abs(Math.sin(phase * 17)) * 0.075;
+      if (remote.mesh.userData.remoteMockTime === 0) {
+        if (la && ra) {
+          la.rotation.x = 0; ra.rotation.x = 0;
+          la.rotation.z = remote.mesh.userData.remoteRobot ? 0 : -0.25;
+          ra.rotation.z = remote.mesh.userData.remoteRobot ? 0 : 0.25;
+        }
+        remote.mesh.rotation.z = 0; remote.mesh.position.y = 0;
+      }
     }
     const remoteKick = Number(remote.mesh.userData.remoteKickTime || 0);
     if (remoteKick > 0) {
