@@ -620,7 +620,8 @@ function animate() {
   player.position.x = THREE.MathUtils.clamp(player.position.x + inputX / length * 5 * delta, -8, 8);
   player.position.z = THREE.MathUtils.clamp(player.position.z + inputZ / length * 5 * delta, -8, 8);
   // Alternate legs and counter-swing arms for a grounded walk cycle.
-  if (moving) player.rotation.y = Math.atan2(inputX, -inputZ);
+  // Face the actual travel direction. Three.js forward is local -Z, so X needs the opposite sign here.
+  if (moving) player.rotation.y = Math.atan2(-inputX, -inputZ);
   walkTime += delta * (moving ? 10 : 3);
   const stride = moving ? Math.sin(walkTime) * 0.48 : 0;
   const leftLeg = player.userData.leftLeg as THREE.Group;
