@@ -5,6 +5,16 @@ body { background: #10152b; color: #fff; font-family: Inter, ui-sans-serif, syst
 .game-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
 .topbar { position: absolute; z-index: 2; top: max(18px, env(safe-area-inset-top)); left: 20px; right: 20px; display: flex; align-items: center; justify-content: space-between; pointer-events: none; }
 .brand { font-size: clamp(25px, 5vw, 38px); font-weight: 1000; letter-spacing: .12em; color: #fff; text-shadow: 0 3px 0 #59668e; }
+
+.brand-block { display:flex; flex-direction:column; align-items:flex-start; gap:7px; pointer-events:auto; }
+.contract-box { width:min(310px, 42vw); padding:8px 10px; border:1px solid #65e7d955; border-radius:10px; background:#101a30d9; box-shadow:0 8px 24px #0003; backdrop-filter:blur(10px); }
+.contract-box label { display:block; margin-bottom:5px; color:#65e7d9; font-size:8px; font-weight:1000; letter-spacing:.16em; }
+.contract-field { display:flex; gap:6px; }
+.contract-field input { min-width:0; width:100%; padding:7px 8px; border:1px solid #ffffff20; border-radius:6px; outline:none; background:#080f20; color:#dbe6ff; font:700 9px/1.2 monospace; letter-spacing:.02em; }
+.contract-field input::placeholder { color:#8794b3; opacity:1; }
+.contract-field button { padding:0 9px; border:1px solid #65e7d966; border-radius:6px; background:#1a3044; color:#65e7d9; font-size:8px; font-weight:1000; letter-spacing:.08em; }
+.contract-field button:disabled { opacity:.45; cursor:not-allowed; }
+
 .round-label { font-size: 10px; letter-spacing: .15em; font-weight: 800; color: #aab6dc; text-align: right; }
 .round-label span { display: block; color: #55e6d2; margin-top: 5px; }
 .topbar-actions { display: flex; align-items: center; gap: 12px; pointer-events: auto; }
@@ -136,6 +146,11 @@ body { background: #10152b; color: #fff; font-family: Inter, ui-sans-serif, syst
 .volume-control { display:flex; align-items:center; gap:5px; color:#aab6dc; font-size:8px; font-weight:900; }
 .volume-control input { width:58px; accent-color:#65e7d9; }
 @media (max-width:600px) {
+  .brand-block { gap:5px; }
+  .contract-box { width:min(245px, 53vw); padding:6px 7px; }
+  .contract-box label { font-size:7px; }
+  .contract-field input { font-size:8px; padding:6px; }
+  .contract-field button { padding:0 7px; font-size:7px; }
   .topbar { left:10px; right:10px; }
   .topbar-actions { gap:5px; }
   .sound-controls { gap:4px; padding:5px 6px; }
