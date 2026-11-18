@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   PrivyProvider,
@@ -27,9 +27,11 @@ function WalletPanel() {
     : 'KICKERS Player';
 
   useEffect(() => {
-    if (!authenticated) return;
     window.dispatchEvent(new CustomEvent('kickers:identity', {
-      detail: { displayName, walletAddress: walletAddress ?? null }
+      detail: {
+        displayName: authenticated ? displayName : 'KICKERS Player',
+        walletAddress: authenticated ? (walletAddress ?? null) : null
+      }
     }));
   }, [authenticated, displayName, walletAddress]);
 
