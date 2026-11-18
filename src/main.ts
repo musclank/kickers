@@ -129,7 +129,7 @@ function startArcadeMusic() {
 audioToggle.addEventListener('click', () => {
   soundEnabled = !soundEnabled;
   localStorage.setItem('kickers-sound-enabled', String(soundEnabled));
-  if (soundEnabled) { ensureAudio(); playSound('ui'); }
+  if (soundEnabled) { ensureAudio(); if (musicGain && audioContext) musicGain.gain.setTargetAtTime(0.16, audioContext.currentTime, 0.08); playSound('ui'); }
   else if (audioContext && musicGain) { musicGain.gain.setTargetAtTime(0, audioContext.currentTime, 0.08); }
   updateAudioUI();
 });
@@ -811,7 +811,6 @@ function beginVictory() {
   victoryTime = 0;
   moveX = 0; moveZ = 0;
   statusEl.textContent = 'CHAMPION!';
-  playSound('victory');
   trophy.visible = false;
 }
 function formatMatchTime(seconds: number) {
