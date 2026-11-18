@@ -144,3 +144,10 @@ body { background: #10152b; color: #fff; font-family: Inter, ui-sans-serif, syst
 }
 
 @media (max-width:480px) { .volume-control { display:none; } }
+
+
+/* Offline pause controls and overlay */
+.pause-toggle { border:1px solid #65e7d9aa; border-radius:10px; padding:9px 11px; background:#17233bef; color:#7af2e5; font-size:9px; font-weight:1000; letter-spacing:.08em; cursor:pointer; touch-action:manipulation; pointer-events:auto; }
+.pause-toggle[hidden] { display:none; }
+.pause-overlay { z-index:25; }
+@media (max-width:600px) { .pause-toggle { padding:7px 8px; font-size:8px; } }
