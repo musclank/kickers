@@ -765,7 +765,6 @@ function animate() {
   }
   if (victoryActive) {
     victoryTime += delta;
-    const approach = Math.min(1, victoryTime / 1.65);
     player.position.x += (0 - player.position.x) * Math.min(1, delta * 2.8);
     player.position.z += (0 - player.position.z) * Math.min(1, delta * 2.8);
     player.rotation.y += (Math.PI - player.rotation.y) * Math.min(1, delta * 2.5);
