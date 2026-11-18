@@ -94,7 +94,7 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number) {
       new THREE.PlaneGeometry(0.52 * cfg.headSize, 0.52 * cfg.headSize),
       new THREE.MeshBasicMaterial({ map: faceTexture, transparent: true, depthWrite: false, side: THREE.DoubleSide })
     );
-    photoFace.position.set(0, bodyY + 0.82 * cfg.headSize, -0.365 * cfg.headSize);
+    photoFace.position.set(0, bodyY + 0.82 * cfg.headSize, -0.405 * cfg.headSize);
     photoFace.renderOrder = 5;
     group.add(photoFace);
   }
