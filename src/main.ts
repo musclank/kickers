@@ -16,6 +16,9 @@ const savedLabel = document.querySelector<HTMLSpanElement>('#saved-label')!;
 const fullscreenButton = document.querySelector<HTMLButtonElement>('#fullscreen-toggle')!;
 const matchTimeEl = document.querySelector<HTMLElement>('#match-time')!;
 const matchOverEl = document.querySelector<HTMLDivElement>('#match-over')!;
+const pauseButton = document.querySelector<HTMLButtonElement>('#pause-toggle')!;
+const pauseOverlay = document.querySelector<HTMLDivElement>('#pause-overlay')!;
+const resumeButton = document.querySelector<HTMLButtonElement>('#resume-game')!;
 const playAgainButton = document.querySelector<HTMLButtonElement>('#play-again')!;
 const matchOverTitle = matchOverEl.querySelector<HTMLHeadingElement>('h2')!;
 const matchOverMessage = matchOverEl.querySelector<HTMLParagraphElement>('p')!;
@@ -584,6 +587,8 @@ function connectToRoom(room: string) {
   setOnlineMessage('CONNECTING TO ROOM...');
   ws.addEventListener('open', () => {
     networkReady = true;
+    setGamePaused(false);
+    pauseButton.hidden = true;
     sendNetwork({ type: 'hello', name: playerDisplayName, walletAddress: playerWalletAddress, avatar: { ...config, shirtImage: undefined } });
     setOnlineMessage('CONNECTED — WAITING FOR PLAYERS');
     playSound('ui');
@@ -624,6 +629,7 @@ function connectToRoom(room: string) {
   ws.addEventListener('close', () => {
     if (socket !== ws) return;
     networkReady = false;
+    pauseButton.hidden = false;
     socket = null;
     activeRoom = '';
     remotePlayers.forEach(remote => scene.remove(remote.mesh));
@@ -800,6 +806,7 @@ const clock = new THREE.Clock();
 const MATCH_DURATION = 180;
 let matchTimeRemaining = MATCH_DURATION;
 let roundOver = false;
+let gamePaused = false;
 let victoryActive = false;
 let victoryTime = 0;
 let victoryStarted = false;
@@ -817,8 +824,25 @@ function formatMatchTime(seconds: number) {
   const whole = Math.max(0, Math.ceil(seconds));
   return `${String(Math.floor(whole / 60)).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;
 }
+function setGamePaused(paused: boolean) {
+  if (networkReady || roundOver || gamePaused === paused) return;
+  gamePaused = paused;
+  pauseOverlay.hidden = !paused;
+  pauseOverlay.setAttribute('aria-hidden', String(!paused));
+  pauseButton.textContent = paused ? 'RESUME' : 'PAUSE';
+  pauseButton.setAttribute('aria-label', paused ? 'Resume offline game' : 'Pause offline game');
+  keys.clear();
+  releaseStick();
+  if (audioContext) {
+    if (paused && audioContext.state === 'running') void audioContext.suspend();
+    else if (!paused && soundEnabled && audioContext.state === 'suspended') void audioContext.resume();
+  }
+  statusEl.textContent = paused ? 'PAUSED' : 'READY';
+}
+pauseButton.addEventListener('click', () => setGamePaused(!gamePaused));
+resumeButton.addEventListener('click', () => setGamePaused(false));
 playAgainButton.addEventListener('click', () => location.reload());
-addEventListener('keydown', (event) => { keys.add(event.key.toLowerCase()); if (event.code === 'Space') { event.preventDefault(); kick(); } });
+addEventListener('keydown', (event) => { if (event.code === 'Escape' || event.key.toLowerCase() === 'p') { event.preventDefault(); setGamePaused(!gamePaused); return; } if (gamePaused) return; keys.add(event.key.toLowerCase()); if (event.code === 'Space') { event.preventDefault(); kick(); } });
 addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
 function playDance() {
   if (roundOver) return;
@@ -873,6 +897,7 @@ joystick.addEventListener('pointerup', releaseStick); joystick.addEventListener(
 function animate() {
   requestAnimationFrame(animate);
   const delta = Math.min(clock.getDelta(), 0.04);
+  if (gamePaused && !networkReady) { renderer.render(scene, camera); return; }
   if (!roundOver) {
     matchTimeRemaining = Math.max(0, matchTimeRemaining - delta);
     matchTimeEl.textContent = formatMatchTime(matchTimeRemaining);
