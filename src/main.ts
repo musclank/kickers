@@ -20,6 +20,129 @@ const playAgainButton = document.querySelector<HTMLButtonElement>('#play-again')
 const matchOverTitle = matchOverEl.querySelector<HTMLHeadingElement>('h2')!;
 const matchOverMessage = matchOverEl.querySelector<HTMLParagraphElement>('p')!;
 
+/* KICKERS procedural arcade audio: no external audio files required. */
+const audioToggle = document.querySelector<HTMLButtonElement>('#audio-toggle')!;
+const audioVolume = document.querySelector<HTMLInputElement>('#audio-volume')!;
+let audioContext: AudioContext | null = null;
+let masterGain: GainNode | null = null;
+let musicGain: GainNode | null = null;
+let musicTimer: number | null = null;
+let musicStep = 0;
+let soundEnabled = localStorage.getItem('kickers-sound-enabled') !== 'false';
+let soundVolume = Number(localStorage.getItem('kickers-sound-volume') || '35') / 100;
+audioVolume.value = String(Math.round(soundVolume * 100));
+function updateAudioUI() {
+  audioToggle.textContent = soundEnabled ? 'SOUND ON' : 'SOUND OFF';
+  audioToggle.classList.toggle('muted', !soundEnabled);
+  audioToggle.setAttribute('aria-pressed', String(soundEnabled));
+}
+function ensureAudio() {
+  if (!soundEnabled) return;
+  if (!audioContext) {
+    const AudioContextClass = window.AudioContext;
+    audioContext = new AudioContextClass();
+    masterGain = audioContext.createGain();
+    masterGain.gain.value = soundVolume;
+    masterGain.connect(audioContext.destination);
+    musicGain = audioContext.createGain();
+    musicGain.gain.value = 0.16;
+    musicGain.connect(masterGain);
+  }
+  if (audioContext.state === 'suspended') void audioContext.resume();
+  startArcadeMusic();
+}
+function tone(frequency: number, duration: number, type: OscillatorType = 'sine', volume = 0.25, slideTo?: number) {
+  if (!soundEnabled) return;
+  ensureAudio();
+  if (!audioContext || !masterGain) return;
+  const osc = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  const now = audioContext.currentTime;
+  osc.type = type;
+  osc.frequency.setValueAtTime(Math.max(1, frequency), now);
+  if (slideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(1, slideTo), now + duration);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), now + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+  osc.connect(gain); gain.connect(masterGain);
+  osc.start(now); osc.stop(now + duration + 0.03);
+}
+function noiseBurst(duration = 0.16, volume = 0.2, filterFrequency = 900) {
+  if (!soundEnabled) return;
+  ensureAudio();
+  if (!audioContext || !masterGain) return;
+  const length = Math.max(1, Math.floor(audioContext.sampleRate * duration));
+  const buffer = audioContext.createBuffer(1, length, audioContext.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / length);
+  const source = audioContext.createBufferSource();
+  const filter = audioContext.createBiquadFilter();
+  const gain = audioContext.createGain();
+  filter.type = 'lowpass'; filter.frequency.value = filterFrequency;
+  gain.gain.setValueAtTime(volume, audioContext.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + duration);
+  source.buffer = buffer; source.connect(filter); filter.connect(gain); gain.connect(masterGain);
+  source.start(); source.stop(audioContext.currentTime + duration);
+}
+function playSound(kind: 'kick' | 'impact' | 'dance' | 'pose' | 'fall' | 'victory' | 'ui' | 'countdown') {
+  if (!soundEnabled) return;
+  ensureAudio();
+  if (!audioContext) return;
+  if (kind === 'kick') { tone(170, 0.13, 'triangle', 0.22, 65); noiseBurst(0.09, 0.09, 1500); }
+  if (kind === 'impact') { tone(105, 0.2, 'sawtooth', 0.3, 42); noiseBurst(0.17, 0.26, 650); }
+  if (kind === 'dance') { tone(520, 0.11, 'square', 0.11, 760); window.setTimeout(() => tone(680, 0.13, 'square', 0.1, 920), 90); }
+  if (kind === 'pose') { tone(420, 0.16, 'sine', 0.13, 180); window.setTimeout(() => tone(240, 0.2, 'triangle', 0.12, 520), 110); }
+  if (kind === 'fall') { tone(360, 0.55, 'sawtooth', 0.16, 55); noiseBurst(0.28, 0.12, 500); }
+  if (kind === 'victory') { [523, 659, 784, 1047].forEach((note, i) => window.setTimeout(() => tone(note, 0.42, 'triangle', 0.16), i * 145)); window.setTimeout(() => tone(1318, 0.65, 'sine', 0.14), 620); }
+  if (kind === 'ui') { tone(620, 0.08, 'sine', 0.09, 840); }
+  if (kind === 'countdown') { tone(880, 0.12, 'square', 0.13); }
+}
+function startArcadeMusic() {
+  if (!audioContext || !musicGain || musicTimer !== null || !soundEnabled) return;
+  const notes = [110, 164.81, 220, 164.81, 130.81, 196, 261.63, 196, 98, 146.83, 196, 146.83, 123.47, 185, 246.94, 185];
+  musicTimer = window.setInterval(() => {
+    if (!audioContext || !musicGain || !soundEnabled || audioContext.state !== 'running') return;
+    const now = audioContext.currentTime;
+    const root = notes[musicStep % notes.length];
+    const osc = audioContext.createOscillator();
+    const env = audioContext.createGain();
+    const filter = audioContext.createBiquadFilter();
+    osc.type = 'triangle'; osc.frequency.value = root;
+    filter.type = 'lowpass'; filter.frequency.value = 520;
+    env.gain.setValueAtTime(0.0001, now);
+    env.gain.exponentialRampToValueAtTime(0.11, now + 0.025);
+    env.gain.exponentialRampToValueAtTime(0.0001, now + 0.27);
+    osc.connect(filter); filter.connect(env); env.connect(musicGain);
+    osc.start(now); osc.stop(now + 0.29);
+    if (musicStep % 4 === 0) {
+      const sub = audioContext.createOscillator();
+      const subEnv = audioContext.createGain();
+      sub.type = 'sine'; sub.frequency.value = root / 2;
+      subEnv.gain.setValueAtTime(0.0001, now);
+      subEnv.gain.exponentialRampToValueAtTime(0.16, now + 0.015);
+      subEnv.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+      sub.connect(subEnv); subEnv.connect(musicGain); sub.start(now); sub.stop(now + 0.24);
+    }
+    musicStep++;
+  }, 300);
+}
+audioToggle.addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem('kickers-sound-enabled', String(soundEnabled));
+  if (soundEnabled) { ensureAudio(); playSound('ui'); }
+  else if (audioContext && musicGain) { musicGain.gain.setTargetAtTime(0, audioContext.currentTime, 0.08); }
+  updateAudioUI();
+});
+audioVolume.addEventListener('input', () => {
+  soundVolume = Number(audioVolume.value) / 100;
+  localStorage.setItem('kickers-sound-volume', String(Math.round(soundVolume * 100)));
+  if (masterGain && audioContext) masterGain.gain.setTargetAtTime(soundVolume, audioContext.currentTime, 0.04);
+});
+window.addEventListener('pointerdown', () => { if (soundEnabled) ensureAudio(); }, { once: true });
+window.addEventListener('keydown', () => { if (soundEnabled) ensureAudio(); }, { once: true });
+updateAudioUI();
+
+
 type AvatarConfig = {
   characterType: 'human' | 'robot'; skin: string; outfit: string; shoes: string; hairColor: string; hairStyle: string; accessory: string;
   bodyWidth: number; bodyHeight: number; headSize: number; legLength: number; shirtImage?: string;
@@ -463,6 +586,7 @@ function connectToRoom(room: string) {
     networkReady = true;
     sendNetwork({ type: 'hello', name: playerDisplayName, walletAddress: playerWalletAddress, avatar: { ...config, shirtImage: undefined } });
     setOnlineMessage('CONNECTED — WAITING FOR PLAYERS');
+    playSound('ui');
     roomDisplay.hidden = false;
     roomCodeText.textContent = room;
     rivals.forEach(rival => { rival.visible = false; });
@@ -532,10 +656,10 @@ function joinOnlineRoom() {
   try { connectToRoom(room); }
   catch (error) { setOnlineMessage(error instanceof Error ? error.message : 'COULD NOT JOIN ROOM'); }
 }
-onlineToggle.addEventListener('click', () => onlinePanel.classList.toggle('open'));
-createRoomButton.addEventListener('click', createOnlineRoom);
-joinRoomButton.addEventListener('click', joinOnlineRoom);
-leaveRoomButton.addEventListener('click', () => socket?.close(1000, 'Player left'));
+onlineToggle.addEventListener('click', () => { onlinePanel.classList.toggle('open'); playSound('ui'); });
+createRoomButton.addEventListener('click', () => { playSound('ui'); createOnlineRoom(); });
+joinRoomButton.addEventListener('click', () => { playSound('ui'); joinOnlineRoom(); });
+leaveRoomButton.addEventListener('click', () => { playSound('ui'); socket?.close(1000, 'Player left'); });
 
 function rebuildPlayer() {
   scene.remove(player);
@@ -687,6 +811,7 @@ function beginVictory() {
   victoryTime = 0;
   moveX = 0; moveZ = 0;
   statusEl.textContent = 'CHAMPION!';
+  playSound('victory');
   trophy.visible = false;
 }
 function formatMatchTime(seconds: number) {
@@ -698,6 +823,7 @@ addEventListener('keydown', (event) => { keys.add(event.key.toLowerCase()); if (
 addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
 function playDance() {
   if (roundOver) return;
+  playSound('dance');
   if (tauntTime > 0 || mockTime > 0 || kickTime > 0) return;
   tauntTime = 1.35;
   if (networkReady) sendNetwork({ type: 'taunt' });
@@ -708,6 +834,7 @@ function playDance() {
 danceButton.addEventListener('pointerdown', playDance);
 function funnyStyle() {
   if (roundOver) return;
+  playSound('pose');
   if (mockTime > 0 || tauntTime > 0 || kickTime > 0) return;
   mockTime = 1.6;
   if (networkReady) sendNetwork({ type: 'mock' });
@@ -718,6 +845,7 @@ function funnyStyle() {
 styleButton.addEventListener('pointerdown', funnyStyle);
 function kick() {
   if (roundOver) return;
+  playSound('kick');
   if (kickTime > 0 || tauntTime > 0 || mockTime > 0) return;
   kickTime = 0.48;
   kickHitDone = false;
@@ -775,6 +903,7 @@ function animate() {
       baseTile.position.y = height / 2 - 0.065;
       player.position.y = height - 0.065;
       if (victoryTime > 4.05) {
+        if (!trophy.visible) playSound('victory');
         trophy.visible = true;
         trophy.position.set(0, player.position.y + 3.35 + Math.sin(victoryTime * 3) * 0.08, 0);
         trophy.rotation.y += delta * 0.8;
@@ -811,6 +940,7 @@ function animate() {
     player.position.z += inputZ / length * 5 * delta;
     if (Math.hypot(player.position.x, player.position.z) > 8.78) {
       player.userData.fallen = true;
+      playSound('fall');
       player.userData.fallVelocity = 0;
       statusEl.textContent = 'YOU FELL INTO THE ABYSS!';
       kickTime = 0; tauntTime = 0; mockTime = 0;
@@ -881,6 +1011,7 @@ function animate() {
           push.z += towardPlayer.z * (4.2 + index * 0.35);
           player.userData.botPush = push;
           statusEl.textContent = 'BOT HIT!';
+          playSound('impact');
         }
       }
       if (botAI.attackTime <= 0) leg.rotation.x = 0;
@@ -978,7 +1109,7 @@ function animate() {
           }
         }
       });
-      if (landedHit) statusEl.textContent = 'HIT!';
+      if (landedHit) { statusEl.textContent = 'HIT!'; playSound('impact'); }
     }
 
     if (kickTime <= 0) {
