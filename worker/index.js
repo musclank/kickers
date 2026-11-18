@@ -144,16 +144,16 @@ export class SocialRoom {
           legLength: Number.isFinite(a.legLength) ? Math.max(.7,Math.min(1.5,a.legLength)) : 1
         };
       }
-      if (Number.isFinite(data.x)) meta.x = Math.max(-6.4, Math.min(6.4, data.x));
-      if (Number.isFinite(data.z)) meta.z = Math.max(-6.4, Math.min(6.4, data.z));
+      if (Number.isFinite(data.x)) meta.x = Math.max(-7.55, Math.min(7.55, data.x));
+      if (Number.isFinite(data.z)) meta.z = Math.max(-7.55, Math.min(7.55, data.z));
       if (Number.isFinite(data.rotation)) meta.rotation = data.rotation;
       ws.serializeAttachment(meta);
       this.broadcastRoster();
       return;
     }
     if (data.type === "state") {
-      meta.x = Math.max(-6.4, Math.min(6.4, Number(data.x) || 0));
-      meta.z = Math.max(-6.4, Math.min(6.4, Number(data.z) || 0));
+      meta.x = Math.max(-7.55, Math.min(7.55, Number(data.x) || 0));
+      meta.z = Math.max(-7.55, Math.min(7.55, Number(data.z) || 0));
       meta.rotation = Number(data.rotation) || 0;
       meta.seated = data.seated === true;
       ws.serializeAttachment(meta);
