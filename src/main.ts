@@ -616,7 +616,7 @@ const socialChatForm = document.querySelector<HTMLFormElement>('#social-chat-for
 const socialChatInput = document.querySelector<HTMLInputElement>('#social-chat-input')!;
 let socialSocket: WebSocket | null = null;
 let socialConnected = false;
-let socialReconnectTimer = 0;
+let socialPausedOffline = false;
 function addSocialMessage(name: string, message: string, system = false) {
   const row = document.createElement('div');
   row.className = system ? 'social-message social-system-message' : 'social-message';
@@ -673,12 +673,14 @@ function connectSocialHub() {
 }
 function closeSocialHub() {
   socialHub.hidden=true; socialToggle.hidden=false;
+  if(socialPausedOffline){setGamePaused(false);socialPausedOffline=false;}
   document.body.classList.remove('social-hub-open');
   if(socialSocket){socialSocket.close(1000,'Leaving Social Hub');socialSocket=null;}
   socialConnected=false; socialStatus.textContent='OFFLINE';
 }
 function openSocialHub() {
   socialHub.hidden=false; socialToggle.hidden=true;
+  if(!networkReady&&!roundOver&&!gamePaused){setGamePaused(true);socialPausedOffline=true;}
   document.body.classList.add('social-hub-open');
   if(!socialSocket||socialSocket.readyState===WebSocket.CLOSED) connectSocialHub();
 }
