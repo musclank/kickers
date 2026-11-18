@@ -56,8 +56,10 @@ export class ArenaRoom {
     let data;
     try { data = JSON.parse(message); } catch { return; }
     const meta = ws.deserializeAttachment() || {};
-    if (data.type === "hello" && data.avatar && typeof data.avatar === "object") {
-      meta.avatar = data.avatar;
+    if (data.type === "hello") {
+      if (data.avatar && typeof data.avatar === "object") meta.avatar = data.avatar;
+      if (typeof data.name === "string") meta.name = data.name.replace(/[<>]/g, "").slice(0, 24) || "KICKERS Player";
+      if (typeof data.walletAddress === "string" && /^0x[a-fA-F0-9]{40}$/.test(data.walletAddress)) meta.walletAddress = data.walletAddress;
       ws.serializeAttachment(meta);
       this.broadcastRoster();
       return;
