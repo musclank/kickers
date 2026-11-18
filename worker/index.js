@@ -101,13 +101,14 @@ export class ArenaRoom {
 
 const SOCIAL_ROOM_CAPACITY = 20;
 function cleanSocialText(value, max = 220) {
-  return String(value || "").replace(/[<>]/g, "").replace(/[\\u0000-\\u001f\\u007f]/g, " ").replace(/\\s+/g, " ").trim().slice(0, max);
+  return String(value || "").replace(/[<>]/g, "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
 }
 export class SocialRoom {
   constructor(state) { this.state = state; }
   async fetch(request) {
     const url = new URL(request.url);
-    if (url.pathname !== "/ws" || request.headers.get("Upgrade") !== "websocket") return new Response("Expected WebSocket", { status: 426 });
+    if (url.pathname !== "/ws" && url.pathname !== "/social/ws") return new Response("Not found", { status: 404 });
+    if (request.headers.get("Upgrade") !== "websocket") return new Response("Expected WebSocket", { status: 426 });
     const sockets = this.state.getWebSockets();
     const id = url.searchParams.get("id") || "";
     if (!/^[a-zA-Z0-9-]{8,64}$/.test(id)) return new Response("Invalid player.", { status: 400 });
