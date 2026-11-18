@@ -2,7 +2,7 @@
 html, body, #app { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { background: #10152b; color: #fff; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
 #app { position: relative; isolation: isolate; }
-.game-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+.game-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
 .topbar { position: absolute; z-index: 2; top: max(18px, env(safe-area-inset-top)); left: 20px; right: 20px; display: flex; align-items: center; justify-content: space-between; pointer-events: none; }
 .brand { font-size: clamp(25px, 5vw, 38px); font-weight: 1000; letter-spacing: .12em; color: #fff; text-shadow: 0 3px 0 #59668e; }
 .round-label { font-size: 10px; letter-spacing: .15em; font-weight: 800; color: #aab6dc; text-align: right; }
@@ -405,7 +405,7 @@ body.social-hub-open .controls,body.social-hub-open .help,body.social-hub-open .
 body.customizing .social-toggle{display:none!important}
 
 /* 3D Social Hub scene is rendered behind the chat interface. */
-.social-hub{background:linear-gradient(180deg,rgba(5,14,29,.42),rgba(5,14,29,.72))}
+.social-hub{background:linear-gradient(180deg,rgba(5,14,29,.12),rgba(5,14,29,.30))}
 .social-room-scene{opacity:.08}
 .social-room-controls{position:fixed;z-index:4;left:max(14px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:5px;pointer-events:auto}
 .social-room-controls>div{display:flex;gap:5px}
