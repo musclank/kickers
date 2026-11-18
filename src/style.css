@@ -323,3 +323,40 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 @media (prefers-reduced-motion: reduce) {
   button, .photo-picker { transition: none; }
 }
+
+
+/* Gameplay expansion: compact special-move control and collectible status. */
+.special-button {
+  width: 76px; height: 76px;
+  border: 1px solid rgba(255,255,255,.34);
+  border-radius: 50%;
+  color: #071d2b;
+  background: linear-gradient(145deg, #83f4e7, #299fba);
+  font-size: 9px; font-weight: 1000; letter-spacing: .035em;
+  box-shadow: 0 6px 0 #17647a, 0 10px 22px rgba(0,0,0,.28);
+  touch-action: manipulation;
+}
+.special-button:active, .special-button.pressed {
+  transform: translateY(4px) scale(.96);
+  box-shadow: 0 2px 0 #17647a;
+}
+.powerup-status {
+  position: absolute; z-index: 2;
+  left: 50%; top: max(76px, calc(env(safe-area-inset-top) + 68px));
+  transform: translateX(-50%);
+  padding: 7px 12px;
+  border: 1px solid rgba(101,231,217,.35);
+  border-radius: 999px;
+  background: rgba(13,23,43,.82);
+  color: #8ff4e8;
+  font-size: 9px; font-weight: 900; letter-spacing: .09em;
+  white-space: nowrap; pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+@media (max-width: 600px) {
+  .special-button { width: clamp(50px, 14vw, 60px); height: clamp(50px, 14vw, 60px); font-size: 7px; }
+  .powerup-status { top: max(65px, calc(env(safe-area-inset-top) + 58px)); font-size: 8px; padding: 6px 9px; }
+}
+@media (max-width: 390px) {
+  .special-button { width: 48px; height: 48px; font-size: 6px; }
+}
