@@ -13,11 +13,11 @@ const savedLabel = document.querySelector<HTMLSpanElement>('#saved-label')!;
 const fullscreenButton = document.querySelector<HTMLButtonElement>('#fullscreen-toggle')!;
 
 type AvatarConfig = {
-  skin: string; outfit: string; shoes: string; hairColor: string; hairStyle: string; accessory: string;
+  characterType: 'human' | 'robot'; skin: string; outfit: string; shoes: string; hairColor: string; hairStyle: string; accessory: string;
   bodyWidth: number; bodyHeight: number; headSize: number; legLength: number; shirtImage?: string;
 };
 const defaults: AvatarConfig = {
-  skin: '#4de2d0', outfit: '#ffb84d', shoes: '#24243a', hairColor: '#26314d', hairStyle: 'smooth',
+  characterType: 'human', skin: '#4de2d0', outfit: '#ffb84d', shoes: '#24243a', hairColor: '#26314d', hairStyle: 'smooth',
   accessory: 'none', bodyWidth: 1, bodyHeight: 1, headSize: 1, legLength: 1
 };
 let config: AvatarConfig = { ...defaults };
@@ -86,6 +86,93 @@ function addMesh(parent: THREE.Group, geometry: THREE.BufferGeometry, color: str
 }
 function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = true) {
   const group = new THREE.Group();
+  if (cfg.characterType === 'robot') {
+    const green = '#35ad43', greenDark = '#176b32', cream = '#e8d5b6';
+    const red = '#df5b42', navy = '#28233f', metal = '#51463b', black = '#10131a';
+    // Compact tracked robot body, with layered armor plates.
+    addMesh(group, new THREE.BoxGeometry(1.12, 0.92, 0.72), navy, 0, 1.28, 0);
+    addMesh(group, new THREE.BoxGeometry(0.92, 0.16, 0.76), cream, 0, 0.82, 0);
+    addMesh(group, new THREE.BoxGeometry(0.72, 0.10, 0.05), metal, 0, 1.04, -0.39);
+    addMesh(group, new THREE.BoxGeometry(0.28, 0.12, 0.06), '#1689d8', 0, 1.47, -0.39);
+    // Pixel-like Base-inspired chest mark.
+    const pixels = [
+      [-0.12, 1.72, '#f28a25'], [0, 1.61, '#f28a25'], [0, 1.50, '#e9e8d8'],
+      [-0.12, 1.39, '#9bd83b'], [0, 1.39, '#9bd83b'], [0.12, 1.39, '#9bd83b'],
+      [-0.24, 1.28, '#9bd83b'], [-0.12, 1.28, '#9bd83b'], [0, 1.28, '#9bd83b'], [0.12, 1.28, '#9bd83b'],
+      [-0.24, 1.17, '#258de0'], [-0.12, 1.17, '#258de0'], [0, 1.17, '#258de0'], [0.12, 1.17, '#258de0'], [0.24, 1.17, '#258de0']
+    ] as Array<[number, number, string]>;
+    for (const [px, py, color] of pixels) addMesh(group, new THREE.BoxGeometry(0.115, 0.105, 0.035), color, px, py, -0.385);
+    // Large green square head.
+    addMesh(group, new THREE.BoxGeometry(1.42, 1.12, 0.92), green, 0, 2.42, 0);
+    addMesh(group, new THREE.BoxGeometry(1.28, 0.12, 0.94), greenDark, 0, 1.88, 0);
+    // Red square goggle frames with cream and dark inset lenses.
+    for (const side of [-1, 1]) {
+      const eye = new THREE.Group();
+      eye.position.set(side * 0.36, 2.48, -0.49);
+      addMesh(eye, new THREE.BoxGeometry(0.58, 0.62, 0.13), red, 0, 0, 0);
+      addMesh(eye, new THREE.BoxGeometry(0.43, 0.47, 0.045), cream, 0, 0, -0.085);
+      addMesh(eye, new THREE.BoxGeometry(0.19, 0.40, 0.025), black, side * 0.095, 0, -0.115);
+      group.add(eye);
+    }
+    addMesh(group, new THREE.BoxGeometry(0.74, 0.07, 0.06), black, 0, 1.99, -0.49);
+    // Antenna and round green tip.
+    addMesh(group, new THREE.CylinderGeometry(0.035, 0.05, 0.48, 10), metal, -0.43, 3.08, 0);
+    addMesh(group, new THREE.SphereGeometry(0.16, 16, 12), green, -0.43, 3.39, 0);
+    addMesh(group, new THREE.SphereGeometry(0.055, 10, 8), '#a7f5a1', -0.48, 3.45, -0.10);
+    // Side ear / sensor pods.
+    for (const side of [-1, 1]) {
+      const pod = addMesh(group, new THREE.CylinderGeometry(0.23, 0.23, 0.20, 16), cream, side * 0.76, 2.30, 0);
+      pod.rotation.z = Math.PI / 2;
+      addMesh(group, new THREE.TorusGeometry(0.16, 0.035, 8, 16), metal, side * 0.88, 2.30, 0);
+    }
+    // Articulated arms; upper and lower sections swing with the walk cycle.
+    const makeArm = (side: number) => {
+      const pivot = new THREE.Group();
+      pivot.position.set(side * 0.72, 1.55, 0);
+      const upper = addMesh(pivot, new THREE.CapsuleGeometry(0.17, 0.38, 5, 10), cream, side * 0.12, -0.22, 0);
+      upper.rotation.z = side * -0.18;
+      addMesh(pivot, new THREE.BoxGeometry(0.27, 0.23, 0.30), green, side * 0.16, -0.48, 0);
+      addMesh(pivot, new THREE.CapsuleGeometry(0.14, 0.30, 4, 8), cream, side * 0.20, -0.70, 0);
+      const hand = addMesh(pivot, new THREE.SphereGeometry(0.19, 12, 10), green, side * 0.20, -0.94, -0.02);
+      for (let finger = -1; finger <= 1; finger++) {
+        const digit = addMesh(pivot, new THREE.CapsuleGeometry(0.055, 0.13, 4, 6), cream,
+          side * (0.20 + finger * 0.11), -1.12, -0.04);
+        digit.rotation.z = finger * 0.22;
+        addMesh(pivot, new THREE.SphereGeometry(0.06, 8, 6), green, side * (0.20 + finger * 0.11), -1.22, -0.04);
+      }
+      group.add(pivot);
+      return pivot;
+    };
+    const leftArm = makeArm(-1), rightArm = makeArm(1);
+    // Two articulated legs ending in tank-track feet.
+    const makeTrackLeg = (side: number) => {
+      const leg = new THREE.Group();
+      leg.position.set(side * 0.36, 0.78, 0.04);
+      addMesh(leg, new THREE.CapsuleGeometry(0.14, 0.30, 4, 8), metal, 0, -0.20, 0);
+      addMesh(leg, new THREE.SphereGeometry(0.18, 12, 10), cream, 0, -0.38, 0);
+      const tread = addMesh(leg, new THREE.CapsuleGeometry(0.34, 0.42, 8, 14), black, 0, -0.68, 0.02);
+      tread.rotation.z = Math.PI / 2;
+      tread.scale.set(1, 1, 0.88);
+      for (const wheelX of [-0.22, 0, 0.22]) {
+        const wheel = addMesh(leg, new THREE.CylinderGeometry(0.19, 0.19, 0.12, 16), metal, wheelX, -0.68, -0.04);
+        wheel.rotation.x = Math.PI / 2;
+        addMesh(leg, new THREE.CylinderGeometry(0.075, 0.075, 0.13, 12), '#b58a50', wheelX, -0.68, -0.12).rotation.x = Math.PI / 2;
+      }
+      group.add(leg);
+      return leg;
+    };
+    const leftLeg = makeTrackLeg(-1), kickLeg = makeTrackLeg(1);
+    const kickShin = new THREE.Group();
+    kickLeg.add(kickShin);
+    group.userData.leftLeg = leftLeg;
+    group.userData.kickLeg = kickLeg;
+    group.userData.kickShin = kickShin;
+    group.userData.leftArm = leftArm;
+    group.userData.rightArm = rightArm;
+    group.position.set(x, 0, z);
+    scene.add(group);
+    return group;
+  }
   const bodyY = 0.85 * cfg.bodyHeight;
   addMesh(group, new THREE.CapsuleGeometry(0.48 * cfg.bodyWidth, 0.55 * cfg.bodyHeight, 6, 12), cfg.outfit, 0, bodyY, 0);
   addMesh(group, new THREE.SphereGeometry(0.39 * cfg.headSize, 20, 16), cfg.skin, 0, bodyY + 0.82 * cfg.headSize, 0);
@@ -209,6 +296,7 @@ const rivals = [
 
 type RemotePlayer = { mesh: THREE.Group; targetX: number; targetZ: number; targetRotation: number; };
 const remotePlayers = new Map<string, RemotePlayer>();
+const characterTypeInput = document.querySelector<HTMLSelectElement>('#character-type')!;
 const onlinePanel = document.querySelector<HTMLDivElement>('#online-panel')!;
 const onlineToggle = document.querySelector<HTMLButtonElement>('#online-toggle')!;
 const roomCodeInput = document.querySelector<HTMLInputElement>('#room-code')!;
@@ -364,6 +452,12 @@ function bindColor(id: string, key: keyof AvatarConfig) {
   input.value = String(config[key]);
   input.addEventListener('input', () => { (config[key] as string) = input.value; rebuildPlayer(); });
 }
+characterTypeInput.value = config.characterType;
+characterTypeInput.addEventListener('change', () => {
+  config.characterType = characterTypeInput.value as AvatarConfig['characterType'];
+  rebuildPlayer();
+  savedLabel.textContent = config.characterType === 'robot' ? 'ROBOT FIGHTER SELECTED — SAVE TO KEEP IT' : 'HUMAN FIGHTER SELECTED — SAVE TO KEEP IT';
+});
 bindColor('skin-color', 'skin'); bindColor('outfit-color', 'outfit'); bindColor('shoe-color', 'shoes'); bindColor('hair-color', 'hairColor');
 
 const shirtImageInput = document.querySelector<HTMLInputElement>('#shirt-image')!;
@@ -468,6 +562,7 @@ try {
   const saved = localStorage.getItem('kickers-avatar-v1');
   if (saved) {
     config = { ...defaults, ...JSON.parse(saved) as Partial<AvatarConfig> };
+    characterTypeInput.value = config.characterType;
     if (config.shirtImage) applyShirtImage(config.shirtImage);
     rebuildPlayer();
     for (const id of ['skin-color','outfit-color','shoe-color','hair-color']) (document.querySelector<HTMLInputElement>('#'+id)!).value = String(config[id === 'skin-color' ? 'skin' : id === 'outfit-color' ? 'outfit' : id === 'shoe-color' ? 'shoes' : 'hairColor']);
