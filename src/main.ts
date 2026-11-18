@@ -855,7 +855,7 @@ function setCustomizationOpen(open: boolean) {
   customizing = open;
   creator.classList.toggle('open', open);
   document.body.classList.toggle('customizing', open);
-  creatorToggle.textContent = open ? 'LANJUTKAN' : 'KARAKTER';
+  creatorToggle.textContent = open ? 'CONTINUE' : 'CUSTOMIZE';
   if (open) {
     releaseStick();
     keys.clear();
