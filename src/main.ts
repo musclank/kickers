@@ -84,12 +84,12 @@ function addMesh(parent: THREE.Group, geometry: THREE.BufferGeometry, color: str
   const mesh = new THREE.Mesh(geometry, material(color));
   mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
 }
-function makeAvatar(cfg: AvatarConfig, x: number, z: number) {
+function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = true) {
   const group = new THREE.Group();
   const bodyY = 0.85 * cfg.bodyHeight;
   addMesh(group, new THREE.CapsuleGeometry(0.48 * cfg.bodyWidth, 0.55 * cfg.bodyHeight, 6, 12), cfg.outfit, 0, bodyY, 0);
   addMesh(group, new THREE.SphereGeometry(0.39 * cfg.headSize, 20, 16), cfg.skin, 0, bodyY + 0.82 * cfg.headSize, 0);
-  if (shirtTexture) {
+  if (shirtTexture && useShirtTexture) {
     // Curved UV patches follow the capsule torso instead of floating as flat planes.
     const makeShirtPatch = (back: boolean) => {
       const columns = 24, rows = 28;
@@ -206,7 +206,149 @@ const rivals = [
   makeAvatar({ ...defaults, skin: '#ffc857', outfit: '#4b5f9a', hairStyle: 'spiky' }, 4, -3),
   makeAvatar({ ...defaults, skin: '#9b83ff', outfit: '#3d725f', accessory: 'crown' }, 1, -6)
 ];
-function rebuildPlayer() {
+
+type RemotePlayer = { mesh: THREE.Group; targetX: number; targetZ: number; targetRotation: number; };
+const remotePlayers = new Map<string, RemotePlayer>();
+const onlinePanel = document.querySelector<HTMLDivElement>('#online-panel')!;
+const onlineToggle = document.querySelector<HTMLButtonElement>('#online-toggle')!;
+const workerUrlInput = document.querySelector<HTMLInputElement>('#worker-url')!;
+const roomCodeInput = document.querySelector<HTMLInputElement>('#room-code')!;
+const createRoomButton = document.querySelector<HTMLButtonElement>('#create-room')!;
+const joinRoomButton = document.querySelector<HTMLButtonElement>('#join-room')!;
+const leaveRoomButton = document.querySelector<HTMLButtonElement>('#leave-room')!;
+const onlineMessage = document.querySelector<HTMLSpanElement>('#online-message')!;
+const roomDisplay = document.querySelector<HTMLDivElement>('#room-display')!;
+const roomCodeText = document.querySelector<HTMLElement>('#room-code-value')!;
+const playerCountText = document.querySelector<HTMLElement>('#player-count')!;
+let socket: WebSocket | null = null;
+let localPlayerId = localStorage.getItem('kickers-online-id') || crypto.randomUUID();
+localStorage.setItem('kickers-online-id', localPlayerId);
+let activeRoom = '';
+let networkSendClock = 0;
+let networkReady = false;
+const savedWorkerUrl = localStorage.getItem('kickers-worker-url') || '';
+workerUrlInput.value = savedWorkerUrl;
+function setOnlineMessage(message: string) { onlineMessage.textContent = message; }
+function getWorkerBase() {
+  const value = workerUrlInput.value.trim().replace(/\/$/, '');
+  if (!/^https:\/\//i.test(value)) throw new Error('Enter your HTTPS Worker URL first.');
+  localStorage.setItem('kickers-worker-url', value);
+  return value;
+}
+function updateRoster(players: Array<{ id: string; name?: string; avatar?: Partial<AvatarConfig>; x?: number; z?: number; rotation?: number }>) {
+  const activeIds = new Set(players.filter(p => p.id !== localPlayerId).map(p => p.id));
+  for (const [id, remote] of remotePlayers) {
+    if (!activeIds.has(id)) {
+      scene.remove(remote.mesh);
+      remote.mesh.traverse(obj => {
+        if (obj instanceof THREE.Mesh) {
+          obj.geometry.dispose();
+          if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+          else obj.material.dispose();
+        }
+      });
+      remotePlayers.delete(id);
+    }
+  }
+  for (const item of players) {
+    if (item.id === localPlayerId) continue;
+    let remote = remotePlayers.get(item.id);
+    if (!remote) {
+      const look = { ...defaults, ...(item.avatar || {}) };
+      const mesh = makeAvatar(look, item.x ?? 0, item.z ?? 0, false);
+      remote = { mesh, targetX: item.x ?? 0, targetZ: item.z ?? 0, targetRotation: item.rotation ?? 0 };
+      remotePlayers.set(item.id, remote);
+    } else if (typeof item.x === 'number') {
+      remote.targetX = item.x;
+      remote.targetZ = item.z ?? remote.targetZ;
+      remote.targetRotation = item.rotation ?? remote.targetRotation;
+    }
+  }
+  playerCountText.textContent = `${players.length}/4 PLAYERS`;
+}
+function sendNetwork(payload: Record<string, unknown>) {
+  if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(payload));
+}
+function connectToRoom(room: string) {
+  const base = getWorkerBase();
+  const url = new URL(base);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  url.pathname = '/ws';
+  url.search = new URLSearchParams({ room, id: localPlayerId, name: 'KICKERS Player' }).toString();
+  activeRoom = room;
+  const ws = new WebSocket(url);
+  socket = ws;
+  setOnlineMessage('CONNECTING TO ROOM...');
+  ws.addEventListener('open', () => {
+    networkReady = true;
+    sendNetwork({ type: 'hello', avatar: { ...config, shirtImage: undefined } });
+    setOnlineMessage('CONNECTED — WAITING FOR PLAYERS');
+    roomDisplay.hidden = false;
+    roomCodeText.textContent = room;
+    rivals.forEach(rival => { rival.visible = false; });
+    statusEl.textContent = 'ONLINE';
+    createRoomButton.disabled = true;
+    joinRoomButton.disabled = true;
+    leaveRoomButton.disabled = false;
+  });
+  ws.addEventListener('message', event => {
+    try {
+      const data = JSON.parse(String(event.data)) as { type: string; players?: Array<{ id: string; name?: string; avatar?: Partial<AvatarConfig>; x?: number; z?: number; rotation?: number }>; id?: string; x?: number; z?: number; rotation?: number };
+      if (data.type === 'roster' && data.players) updateRoster(data.players);
+      if (data.type === 'state' && data.id && data.id !== localPlayerId) {
+        const remote = remotePlayers.get(data.id);
+        if (remote && typeof data.x === 'number') {
+          remote.targetX = data.x;
+          remote.targetZ = data.z ?? remote.targetZ;
+          remote.targetRotation = data.rotation ?? remote.targetRotation;
+        }
+      }
+      if (data.type === 'kick' && data.id && data.id !== localPlayerId) {
+        const remote = remotePlayers.get(data.id);
+        if (remote) remote.mesh.userData.remoteKickTime = 0.48;
+      }
+    } catch (error) { console.warn('Invalid multiplayer message', error); }
+  });
+  ws.addEventListener('close', () => {
+    if (socket !== ws) return;
+    networkReady = false;
+    socket = null;
+    activeRoom = '';
+    remotePlayers.forEach(remote => scene.remove(remote.mesh));
+    remotePlayers.clear();
+    rivals.forEach(rival => { rival.visible = true; });
+    roomDisplay.hidden = true;
+    createRoomButton.disabled = false;
+    joinRoomButton.disabled = false;
+    leaveRoomButton.disabled = true;
+    playerCountText.textContent = '1/4 PLAYERS';
+    statusEl.textContent = 'OFFLINE';
+    setOnlineMessage('DISCONNECTED FROM ROOM');
+  });
+  ws.addEventListener('error', () => setOnlineMessage('CONNECTION ERROR — CHECK WORKER URL'));
+}
+async function createOnlineRoom() {
+  try {
+    const response = await fetch(`${getWorkerBase()}/api/rooms`, { method: 'POST' });
+    if (!response.ok) throw new Error((await response.text()) || 'Could not create room.');
+    const data = await response.json() as { room: string };
+    roomCodeInput.value = data.room;
+    connectToRoom(data.room);
+  } catch (error) {
+    setOnlineMessage(error instanceof Error ? error.message : 'ROOM CREATION FAILED');
+  }
+}
+function joinOnlineRoom() {
+  const room = roomCodeInput.value.trim().toUpperCase();
+  if (!/^[A-Z0-9]{6}$/.test(room)) { setOnlineMessage('ENTER A 6-CHARACTER ROOM CODE'); return; }
+  try { connectToRoom(room); }
+  catch (error) { setOnlineMessage(error instanceof Error ? error.message : 'COULD NOT JOIN ROOM'); }
+}
+onlineToggle.addEventListener('click', () => onlinePanel.classList.toggle('open'));
+createRoomButton.addEventListener('click', createOnlineRoom);
+joinRoomButton.addEventListener('click', joinOnlineRoom);
+leaveRoomButton.addEventListener('click', () => socket?.close(1000, 'Player left'));
+\nfunction rebuildPlayer() {
   scene.remove(player);
   player.traverse((obj) => { if (obj instanceof THREE.Mesh) { obj.geometry.dispose(); if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose()); else obj.material.dispose(); } });
   player = makeAvatar(config, player.position.x, player.position.z);
@@ -363,7 +505,7 @@ joystick.addEventListener('pointerup', releaseStick); joystick.addEventListener(
 
 function animate() {
   requestAnimationFrame(animate);
-  const delta = Math.min(clock.getDelta(), 0.04);
+  const delta = Math.min(clock.getDelta(), 0.04);\n  networkSendClock += delta;\n  if (networkReady && networkSendClock >= 0.05) {\n    networkSendClock = 0;\n    sendNetwork({ type: 'state', x: player.position.x, z: player.position.z, rotation: player.rotation.y });\n  }
   const x = (keys.has('d') || keys.has('arrowright') ? 1 : 0) - (keys.has('a') || keys.has('arrowleft') ? 1 : 0);
   const z = (keys.has('s') || keys.has('arrowdown') ? 1 : 0) - (keys.has('w') || keys.has('arrowup') ? 1 : 0);
   const inputX = x || moveX, inputZ = z || moveZ, length = Math.hypot(inputX, inputZ) || 1;
@@ -430,7 +572,7 @@ function animate() {
       statusEl.textContent = 'READY';
     }
   }
-  rivals.forEach((rival, i) => {
+  remotePlayers.forEach(remote => {\n    remote.mesh.position.x += (remote.targetX - remote.mesh.position.x) * Math.min(1, delta * 14);\n    remote.mesh.position.z += (remote.targetZ - remote.mesh.position.z) * Math.min(1, delta * 14);\n    remote.mesh.rotation.y += (remote.targetRotation - remote.mesh.rotation.y) * Math.min(1, delta * 12);\n    const remoteKick = Number(remote.mesh.userData.remoteKickTime || 0);\n    if (remoteKick > 0) {\n      remote.mesh.userData.remoteKickTime = Math.max(0, remoteKick - delta);\n      const leg = remote.mesh.userData.kickLeg as THREE.Group;\n      leg.rotation.x = Math.sin((1 - remoteKick / 0.48) * Math.PI) * 0.9;\n    } else { (remote.mesh.userData.kickLeg as THREE.Group).rotation.x = 0; }\n  });\n  if (!networkReady) rivals.forEach((rival, i) => {
     const velocity = (rival.userData.knockback as THREE.Vector3 | undefined) ?? new THREE.Vector3();
     velocity.y -= 13 * delta;
     rival.position.addScaledVector(velocity, delta);
