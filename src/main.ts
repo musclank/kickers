@@ -100,13 +100,13 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number) {
   // Separate articulated legs: the right leg is the actual kicking leg.
   const legScale = cfg.legLength;
   const leftLeg = new THREE.Group();
-  leftLeg.position.set(-0.22 * cfg.bodyWidth, 0.48 * legScale, 0);
+  leftLeg.position.set(-0.22 * cfg.bodyWidth, 0.34 * legScale, 0);
   addMesh(leftLeg, new THREE.CapsuleGeometry(0.15, 0.28 * legScale, 4, 8), cfg.skin, 0, -0.16 * legScale, 0);
   addMesh(leftLeg, new THREE.BoxGeometry(0.34, 0.2, 0.5), cfg.shoes, 0, -0.34 * legScale, -0.13);
   group.add(leftLeg);
 
   const kickLeg = new THREE.Group();
-  kickLeg.position.set(0.22 * cfg.bodyWidth, 0.48 * legScale, 0);
+  kickLeg.position.set(0.22 * cfg.bodyWidth, 0.34 * legScale, 0);
   addMesh(kickLeg, new THREE.CapsuleGeometry(0.15, 0.28 * legScale, 4, 8), cfg.skin, 0, -0.16 * legScale, 0);
   const knee = addMesh(kickLeg, new THREE.SphereGeometry(0.15, 12, 10), cfg.skin, 0, -0.29 * legScale, 0);
   const shin = new THREE.Group();
@@ -115,8 +115,11 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number) {
   addMesh(shin, new THREE.BoxGeometry(0.36, 0.2, 0.54), cfg.shoes, 0, -0.29 * legScale, -0.16);
   kickLeg.add(shin);
   group.add(kickLeg);
+  group.userData.leftLeg = leftLeg;
   group.userData.kickLeg = kickLeg;
   group.userData.kickShin = shin;
+  group.userData.leftArm = leftArm;
+  group.userData.rightArm = rightArm;
   // Hair options
   if (cfg.hairStyle !== 'none') {
     if (cfg.hairStyle === 'spiky') {
@@ -201,7 +204,7 @@ try {
   }
 } catch { /* Ignore an invalid local saved design. */ }
 
-let moveX = 0, moveZ = 0, kickTime = 0;
+let moveX = 0, moveZ = 0, kickTime = 0, walkTime = 0;
 const keys = new Set<string>();
 const clock = new THREE.Clock();
 addEventListener('keydown', (event) => { keys.add(event.key.toLowerCase()); if (event.code === 'Space') { event.preventDefault(); kick(); } });
@@ -236,10 +239,24 @@ function animate() {
   const x = (keys.has('d') || keys.has('arrowright') ? 1 : 0) - (keys.has('a') || keys.has('arrowleft') ? 1 : 0);
   const z = (keys.has('s') || keys.has('arrowdown') ? 1 : 0) - (keys.has('w') || keys.has('arrowup') ? 1 : 0);
   const inputX = x || moveX, inputZ = z || moveZ, length = Math.hypot(inputX, inputZ) || 1;
+  const moving = Math.abs(inputX) + Math.abs(inputZ) > 0.05;
   player.position.x = THREE.MathUtils.clamp(player.position.x + inputX / length * 5 * delta, -8, 8);
   player.position.z = THREE.MathUtils.clamp(player.position.z + inputZ / length * 5 * delta, -8, 8);
-  // Avatar's face points along local -Z, so rotate toward the actual movement vector.
-  if (Math.abs(inputX) + Math.abs(inputZ) > 0.05) player.rotation.y = Math.atan2(inputX, -inputZ);
+  // Alternate legs and counter-swing arms for a grounded walk cycle.
+  if (moving) player.rotation.y = Math.atan2(inputX, -inputZ);
+  walkTime += delta * (moving ? 10 : 3);
+  const stride = moving ? Math.sin(walkTime) * 0.48 : 0;
+  const leftLeg = player.userData.leftLeg as THREE.Group;
+  const rightLeg = player.userData.kickLeg as THREE.Group;
+  const leftArm = player.userData.leftArm as THREE.Mesh;
+  const rightArm = player.userData.rightArm as THREE.Mesh;
+  if (kickTime <= 0) {
+    leftLeg.rotation.x = stride;
+    rightLeg.rotation.x = -stride;
+  }
+  leftArm.rotation.x = moving ? -stride * 0.45 : 0;
+  rightArm.rotation.x = moving ? stride * 0.45 : 0;
+  player.position.y = moving ? Math.abs(Math.sin(walkTime * 2)) * 0.025 : 0;
   if (kickTime > 0) {
     kickTime = Math.max(0, kickTime - delta);
     const progress = 1 - kickTime / 0.48;
