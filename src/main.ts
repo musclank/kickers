@@ -10,6 +10,7 @@ const creator = document.querySelector<HTMLDivElement>('#creator')!;
 const creatorToggle = document.querySelector<HTMLButtonElement>('#creator-toggle')!;
 const saveButton = document.querySelector<HTMLButtonElement>('#save-character')!;
 const savedLabel = document.querySelector<HTMLSpanElement>('#saved-label')!;
+const fullscreenButton = document.querySelector<HTMLButtonElement>('#fullscreen-toggle')!;
 
 type AvatarConfig = {
   skin: string; outfit: string; shoes: string; hairColor: string; hairStyle: string; accessory: string;
@@ -181,6 +182,26 @@ function bindRange(id: string, key: keyof AvatarConfig) {
   input.addEventListener('input', () => { (config[key] as number) = Number(input.value); output.value = Number(input.value).toFixed(1); rebuildPlayer(); });
 }
 bindRange('body-width', 'bodyWidth'); bindRange('body-height', 'bodyHeight'); bindRange('head-size', 'headSize'); bindRange('leg-length', 'legLength');
+
+fullscreenButton.addEventListener('click', async () => {
+  try {
+    if (!document.fullscreenElement) {
+      await app.requestFullscreen();
+      // Supported Android browsers may also allow orientation locking from this gesture.
+      try { await screen.orientation.lock('landscape'); } catch { /* Browser may not support orientation locking. */ }
+    } else {
+      await document.exitFullscreen();
+    }
+  } catch (error) {
+    statusEl.textContent = 'FULLSCREEN UNAVAILABLE';
+    console.warn('Fullscreen request failed:', error);
+  }
+});
+document.addEventListener('fullscreenchange', () => {
+  const active = Boolean(document.fullscreenElement);
+  fullscreenButton.textContent = active ? 'EXIT FULL' : 'FULL SCREEN';
+  fullscreenButton.setAttribute('aria-label', active ? 'Exit fullscreen' : 'Enter fullscreen');
+});
 
 creatorToggle.addEventListener('click', () => {
   creator.classList.toggle('open');
