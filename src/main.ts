@@ -724,8 +724,8 @@ function animate() {
     }
   });
   const botPush = (player.userData.botPush as THREE.Vector3 | undefined) ?? new THREE.Vector3();
-  player.position.x = THREE.MathUtils.clamp(player.position.x + botPush.x * delta, -8.2, 8.2);
-  player.position.z = THREE.MathUtils.clamp(player.position.z + botPush.z * delta, -8.2, 8.2);
+  player.position.x += botPush.x * delta;
+  player.position.z += botPush.z * delta;
   botPush.multiplyScalar(Math.exp(-4.5 * delta));
   if (Math.abs(botPush.x) + Math.abs(botPush.z) < 0.05) botPush.set(0, 0, 0);
   player.userData.botPush = botPush;
@@ -779,7 +779,7 @@ function animate() {
       player.rotation.z = 0; statusEl.textContent = 'READY';
     }
   }
-  if (mockTime <= 0 && tauntTime <= 0) player.position.y = moving ? Math.abs(Math.sin(walkTime * 2)) * 0.025 : 0;
+  if (mockTime <= 0 && tauntTime <= 0 && !player.userData.fallen) player.position.y = moving ? Math.abs(Math.sin(walkTime * 2)) * 0.025 : 0;
   if (kickTime > 0) {
     kickTime = Math.max(0, kickTime - delta);
     const progress = 1 - kickTime / 0.48;
