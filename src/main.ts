@@ -95,6 +95,7 @@ function addMesh(parent: THREE.Group, geometry: THREE.BufferGeometry, color: str
 }
 function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = true) {
   const group = new THREE.Group();
+  group.userData.remoteRobot = cfg.characterType === 'robot';
   if (cfg.characterType === 'robot') {
     const green = '#35ad43', greenDark = '#176b32', cream = '#e8d5b6';
     const red = '#df5b42', navy = '#28233f', metal = '#51463b', black = '#10131a';
