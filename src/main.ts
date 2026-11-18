@@ -875,9 +875,7 @@ function animate() {
       velocity.z = 0;
     }
     rival.userData.knockback = velocity;
-    const botAI = rival.userData.botAI as { attackTime: number } | undefined;
-    if (!botAI || botAI.attackTime <= 0) rival.rotation.y = Math.atan2(player.position.x - rival.position.x, player.position.z - rival.position.z) + Math.PI;
-    rival.rotation.y += delta * (i % 2 ? 0.02 : -0.02);
+    // Bot facing is controlled by its chase AI above.
   });
   // Wider, higher follow camera keeps more of the arena visible on mobile.
   const cameraTargetX = player.position.x * 0.22;
