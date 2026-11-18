@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   PrivyProvider,
@@ -15,6 +15,7 @@ function WalletPanel() {
   const { ready, authenticated, user, login, logout } = usePrivy();
   const { connectWallet } = useConnectWallet();
   const { wallets } = useWallets();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const twitterAccount = user?.linkedAccounts?.find((account) => account.type === 'twitter_oauth');
   const twitterName = twitterAccount && 'username' in twitterAccount
@@ -36,34 +37,61 @@ function WalletPanel() {
   }, [authenticated, displayName, walletAddress]);
 
   if (!ready) {
-    return <div className="privy-bar"><span className="privy-status">CONNECTING PRIVY…</span></div>;
+    return <div className="connect-nav"><span className="privy-status">CONNECTING…</span></div>;
   }
 
   return (
-    <div className="privy-bar">
-      {authenticated ? (
-        <>
-          <span className="privy-status">{twitterName ? displayName : 'PLAYER CONNECTED'}</span>
-          {walletAddress && <span className="privy-address">{walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}</span>}
-          <button type="button" className="privy-button secondary" onClick={() => connectWallet()}>
-            CONNECT WALLET
-          </button>
-          <button type="button" className="privy-button secondary" onClick={() => logout()}>
-            LOG OUT
-          </button>
-        </>
-      ) : (
-        <>
-          <span className="privy-status">PLAYER ID + EVM WALLET</span>
-          <button type="button" className="privy-button" onClick={() => login()}>
-            LOGIN WITH X
-          </button>
-          <button type="button" className="privy-button secondary" onClick={() => connectWallet()}>
-            CONNECT EVM WALLET
-          </button>
-        </>
+    <nav className="connect-nav" aria-label="Account and wallet navigation">
+      <button
+        type="button"
+        className={`connect-nav-trigger${menuOpen ? ' active' : ''}`}
+        aria-expanded={menuOpen}
+        aria-controls="connect-nav-menu"
+        onClick={() => setMenuOpen((open) => !open)}
+      >
+        <span className="connect-nav-dot" />
+        {authenticated ? 'ACCOUNT' : 'CONNECT'}
+        <span className="connect-nav-chevron">{menuOpen ? '▲' : '▼'}</span>
+      </button>
+      {menuOpen && (
+        <div className="connect-nav-menu" id="connect-nav-menu">
+          <div className="connect-nav-heading">
+            <strong>{authenticated ? 'PLAYER ACCOUNT' : 'CONNECT YOUR ACCOUNT'}</strong>
+            <span>BASE NETWORK</span>
+          </div>
+          {authenticated && (
+            <div className="connect-nav-identity">
+              <span>{displayName}</span>
+              <small>{walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}` : 'NO WALLET CONNECTED'}</small>
+            </div>
+          )}
+          {!authenticated && (
+            <button type="button" className="connect-nav-item x-login" onClick={() => { setMenuOpen(false); login(); }}>
+              <span className="connect-nav-icon">𝕏</span>
+              <span><strong>CONNECT WITH X</strong><small>Sign in with your X account</small></span>
+            </button>
+          )}
+          {!walletAddress && (
+            <button type="button" className="connect-nav-item" onClick={() => { setMenuOpen(false); connectWallet(); }}>
+              <span className="connect-nav-icon">◈</span>
+              <span><strong>CONNECT EVM WALLET</strong><small>MetaMask and other EVM wallets</small></span>
+            </button>
+          )}
+          {authenticated && walletAddress && (
+            <button type="button" className="connect-nav-item" onClick={() => { setMenuOpen(false); connectWallet(); }}>
+              <span className="connect-nav-icon">◈</span>
+              <span><strong>CHANGE / ADD WALLET</strong><small>Connect another EVM wallet</small></span>
+            </button>
+          )}
+          <div className="connect-nav-network"><span className="connect-nav-dot" /> Ethereum Virtual Machine · Base</div>
+          {authenticated && (
+            <button type="button" className="connect-nav-logout" onClick={() => { setMenuOpen(false); logout(); }}>
+              LOG OUT
+            </button>
+          )}
+        </div>
       )}
-    </div>
+    </nav>
   );
 }
 
