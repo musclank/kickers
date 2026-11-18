@@ -348,7 +348,8 @@ onlineToggle.addEventListener('click', () => onlinePanel.classList.toggle('open'
 createRoomButton.addEventListener('click', createOnlineRoom);
 joinRoomButton.addEventListener('click', joinOnlineRoom);
 leaveRoomButton.addEventListener('click', () => socket?.close(1000, 'Player left'));
-\nfunction rebuildPlayer() {
+
+function rebuildPlayer() {
   scene.remove(player);
   player.traverse((obj) => { if (obj instanceof THREE.Mesh) { obj.geometry.dispose(); if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose()); else obj.material.dispose(); } });
   player = makeAvatar(config, player.position.x, player.position.z);
@@ -482,6 +483,7 @@ function kick() {
   if (kickTime > 0) return;
   kickTime = 0.48;
   kickHitDone = false;
+  if (networkReady) sendNetwork({ type: 'kick' });
   statusEl.textContent = 'FOOT KICK!';
   kickButton.classList.add('pressed');
   setTimeout(() => kickButton.classList.remove('pressed'), 160);
@@ -505,7 +507,12 @@ joystick.addEventListener('pointerup', releaseStick); joystick.addEventListener(
 
 function animate() {
   requestAnimationFrame(animate);
-  const delta = Math.min(clock.getDelta(), 0.04);\n  networkSendClock += delta;\n  if (networkReady && networkSendClock >= 0.05) {\n    networkSendClock = 0;\n    sendNetwork({ type: 'state', x: player.position.x, z: player.position.z, rotation: player.rotation.y });\n  }
+  const delta = Math.min(clock.getDelta(), 0.04);
+  networkSendClock += delta;
+  if (networkReady && networkSendClock >= 0.05) {
+    networkSendClock = 0;
+    sendNetwork({ type: 'state', x: player.position.x, z: player.position.z, rotation: player.rotation.y });
+  }
   const x = (keys.has('d') || keys.has('arrowright') ? 1 : 0) - (keys.has('a') || keys.has('arrowleft') ? 1 : 0);
   const z = (keys.has('s') || keys.has('arrowdown') ? 1 : 0) - (keys.has('w') || keys.has('arrowup') ? 1 : 0);
   const inputX = x || moveX, inputZ = z || moveZ, length = Math.hypot(inputX, inputZ) || 1;
@@ -572,7 +579,18 @@ function animate() {
       statusEl.textContent = 'READY';
     }
   }
-  remotePlayers.forEach(remote => {\n    remote.mesh.position.x += (remote.targetX - remote.mesh.position.x) * Math.min(1, delta * 14);\n    remote.mesh.position.z += (remote.targetZ - remote.mesh.position.z) * Math.min(1, delta * 14);\n    remote.mesh.rotation.y += (remote.targetRotation - remote.mesh.rotation.y) * Math.min(1, delta * 12);\n    const remoteKick = Number(remote.mesh.userData.remoteKickTime || 0);\n    if (remoteKick > 0) {\n      remote.mesh.userData.remoteKickTime = Math.max(0, remoteKick - delta);\n      const leg = remote.mesh.userData.kickLeg as THREE.Group;\n      leg.rotation.x = Math.sin((1 - remoteKick / 0.48) * Math.PI) * 0.9;\n    } else { (remote.mesh.userData.kickLeg as THREE.Group).rotation.x = 0; }\n  });\n  if (!networkReady) rivals.forEach((rival, i) => {
+  remotePlayers.forEach(remote => {
+    remote.mesh.position.x += (remote.targetX - remote.mesh.position.x) * Math.min(1, delta * 14);
+    remote.mesh.position.z += (remote.targetZ - remote.mesh.position.z) * Math.min(1, delta * 14);
+    remote.mesh.rotation.y += (remote.targetRotation - remote.mesh.rotation.y) * Math.min(1, delta * 12);
+    const remoteKick = Number(remote.mesh.userData.remoteKickTime || 0);
+    if (remoteKick > 0) {
+      remote.mesh.userData.remoteKickTime = Math.max(0, remoteKick - delta);
+      const leg = remote.mesh.userData.kickLeg as THREE.Group;
+      leg.rotation.x = Math.sin((1 - remoteKick / 0.48) * Math.PI) * 0.9;
+    } else { (remote.mesh.userData.kickLeg as THREE.Group).rotation.x = 0; }
+  });
+  if (!networkReady) rivals.forEach((rival, i) => {
     const velocity = (rival.userData.knockback as THREE.Vector3 | undefined) ?? new THREE.Vector3();
     velocity.y -= 13 * delta;
     rival.position.addScaledVector(velocity, delta);
