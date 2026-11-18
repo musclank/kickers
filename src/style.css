@@ -82,3 +82,16 @@ body { background: #10152b; color: #fff; font-family: Inter, ui-sans-serif, syst
 .mock-button { width:76px; height:76px; border:2px solid #ffffff55; border-radius:50%; color:#35200a; background:linear-gradient(145deg,#ffe58a,#ff9a4b); font-weight:1000; font-size:11px; letter-spacing:.04em; box-shadow:0 6px 0 #a85d34,0 10px 22px #0005; touch-action:manipulation; }
 .mock-button.pressed { transform:translateY(4px) scale(.96); box-shadow:0 2px 0 #a85d34; }
 @media (max-width:600px) { .action-buttons { gap:7px; } .taunt-button,.mock-button { width:58px; height:58px; font-size:9px; } .kick-button { width:78px; height:78px; } }
+
+.match-clock { display:flex; align-items:center; gap:7px; padding:8px 11px; border:1px solid #65e7d966; border-radius:10px; background:#111a30dd; color:#aab6dc; font-size:9px; font-weight:900; letter-spacing:.12em; white-space:nowrap; }
+.match-clock strong { color:#65e7d9; font-size:15px; font-variant-numeric:tabular-nums; letter-spacing:.06em; }
+.match-clock strong.urgent { color:#ff777f; animation:match-pulse .8s ease-in-out infinite alternate; }
+@keyframes match-pulse { from { opacity:1; } to { opacity:.55; } }
+.match-over { position:absolute; z-index:20; inset:0; display:grid; place-items:center; padding:20px; background:#080d1bd9; backdrop-filter:blur(10px); }
+.match-over[hidden] { display:none; }
+.match-over-card { width:min(360px,100%); padding:28px 22px; border:1px solid #65e7d977; border-radius:20px; background:#111a30f5; box-shadow:0 20px 70px #0009; text-align:center; }
+.match-over-eyebrow { color:#65e7d9; font-size:10px; font-weight:900; letter-spacing:.2em; }
+.match-over-card h2 { margin:10px 0; color:#fff; font-size:36px; letter-spacing:.08em; }
+.match-over-card p { color:#aab6dc; font-size:13px; line-height:1.5; }
+.match-over-card button { margin-top:12px; padding:13px 22px; border:0; border-radius:10px; background:#65e7d9; color:#10152b; font-size:11px; font-weight:1000; letter-spacing:.1em; }
+@media (max-width:600px) { .topbar-actions { gap:6px; } .match-clock { padding:7px 8px; font-size:8px; } .match-clock strong { font-size:13px; } }
