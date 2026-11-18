@@ -163,17 +163,35 @@ scene.fog = new THREE.Fog(0x10152b, 24, 58);
 const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.1, 120);
 camera.position.set(0, 14, 20);
 camera.lookAt(0, 0, 0);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+// High Quality preset with a mobile-safe pixel ratio cap.
+const getQualityPixelRatio = () => Math.min(devicePixelRatio || 1, innerWidth < 700 ? 1.5 : 2);
+renderer.setPixelRatio(getQualityPixelRatio());
 renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 app.prepend(renderer.domElement);
 renderer.domElement.className = 'game-canvas';
 
-scene.add(new THREE.HemisphereLight(0xb8d7ff, 0x24203b, 2));
-const sun = new THREE.DirectionalLight(0xffffff, 3);
-sun.position.set(-5, 12, 7); sun.castShadow = true; scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xb8d7ff, 0x24203b, 2.15));
+const sun = new THREE.DirectionalLight(0xffffff, 3.1);
+sun.position.set(-5, 12, 7);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.left = -14; sun.shadow.camera.right = 14;
+sun.shadow.camera.top = 14; sun.shadow.camera.bottom = -14;
+sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 42;
+sun.shadow.normalBias = 0.035;
+sun.shadow.bias = -0.00012;
+scene.add(sun);
+// Soft fill and warm front lighting add depth without changing the robot silhouette.
+const fillLight = new THREE.DirectionalLight(0xb8d8ff, 0.85);
+fillLight.position.set(8, 6, -8); scene.add(fillLight);
+const frontLight = new THREE.DirectionalLight(0xffe2bd, 0.45);
+frontLight.position.set(2, 5, 10); scene.add(frontLight);
 // Deep circular chasm surrounds the arena. The dark floor is far below the platform,
 // while the inner rock wall makes the drop-off clearly visible from the camera.
 const abyssFloor = new THREE.Mesh(new THREE.CylinderGeometry(42, 42, 0.5, 64), new THREE.MeshStandardMaterial({ color: 0x080d1b, roughness: 1 }));
@@ -239,7 +257,7 @@ baseTextureLoader.load(
   (error) => console.error('Base floor mark failed to load:', error)
 );
 
-function material(color: string) { return new THREE.MeshStandardMaterial({ color, roughness: 0.68 }); }
+function material(color: string) { return new THREE.MeshStandardMaterial({ color, roughness: 0.56, metalness: 0.12 }); }
 function addMesh(parent: THREE.Group, geometry: THREE.BufferGeometry, color: string, x: number, y: number, z: number) {
   const mesh = new THREE.Mesh(geometry, material(color));
   mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
@@ -1309,4 +1327,4 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
-addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); if (customizing) frameCharacterPreview(); });
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(getQualityPixelRatio()); if (customizing) frameCharacterPreview(); });
