@@ -25,7 +25,7 @@ export default {
       const name = url.searchParams.get("name") || "KICKERS Player";
       if (!/^[A-Z0-9]{6}$/.test(room) || !/^[a-zA-Z0-9-]{8,64}$/.test(playerId)) return json({ error: "Invalid room or player." }, 400);
       const id = env.ROOMS.idFromName(room);
-      return env.ROOMS.get(id).fetch(new Request("https://room.internal/connect?id=" + encodeURIComponent(playerId) + "&name=" + encodeURIComponent(name), { method: "GET", headers: request.headers }));
+      return env.ROOMS.get(id).fetch(request);
     }
     return json({ service: "KICKERS Multiplayer", status: "ready", maxPlayersPerRoom: 4 });
   }
@@ -38,7 +38,7 @@ export class ArenaRoom {
   async fetch(request) {
     const url = new URL(request.url);
     if (url.pathname === "/init") return new Response("OK");
-    if (url.pathname !== "/connect" || request.headers.get("Upgrade") !== "websocket") return new Response("Expected WebSocket", { status: 426 });
+    if (url.pathname !== "/ws" || request.headers.get("Upgrade") !== "websocket") return new Response("Expected WebSocket", { status: 426 });
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     const id = url.searchParams.get("id");
