@@ -70,6 +70,7 @@ export class ArenaRoom {
       this.broadcast({ type: "state", id: meta.id, x: meta.x, z: meta.z, rotation: meta.rotation }, ws);
     }
     if (data.type === "kick") this.broadcast({ type: "kick", id: meta.id }, ws);
+    if (data.type === "taunt") this.broadcast({ type: "taunt", id: meta.id }, ws);
   }
   webSocketClose(ws) {
     const meta = ws.deserializeAttachment() || {};
