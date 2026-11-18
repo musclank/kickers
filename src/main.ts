@@ -42,7 +42,7 @@ const floor = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 0.7, 64), new THRE
 floor.position.y = -0.45; floor.receiveShadow = true; scene.add(floor);
 const rim = new THREE.Mesh(new THREE.TorusGeometry(9, 0.22, 12, 80), new THREE.MeshStandardMaterial({ color: 0xffc857, metalness: 0.35, roughness: 0.45 }));
 rim.rotation.x = Math.PI / 2; rim.position.y = -0.05; scene.add(rim);
-const grid = new THREE.GridHelper(17, 17, 0x7184b8, 0x46527c); grid.position.y = -0.08; scene.add(grid);
+const grid = new THREE.GridHelper(17, 17, 0x7184b8, 0x46527c); grid.position.y = -0.085; scene.add(grid);
 
 // Official Base brand mark on the arena floor.
 // Assets are sourced from Base's public brand kit and kept in their original colors.
@@ -54,8 +54,8 @@ baseTextureLoader.load('/base-square-blue.svg', (texture) => {
     new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false })
   );
   tile.rotation.x = -Math.PI / 2;
-  tile.position.set(0, -0.082, 0);
-  tile.renderOrder = 2;
+  tile.position.set(0, -0.045, 0);
+  tile.renderOrder = 20;
   scene.add(tile);
 });
 baseTextureLoader.load('/base-basemark-white.svg', (texture) => {
@@ -65,8 +65,8 @@ baseTextureLoader.load('/base-basemark-white.svg', (texture) => {
     new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false })
   );
   mark.rotation.x = -Math.PI / 2;
-  mark.position.set(0, -0.068, 0);
-  mark.renderOrder = 3;
+  mark.position.set(0, -0.03, 0);
+  mark.renderOrder = 21;
   scene.add(mark);
 });
 
