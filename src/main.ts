@@ -211,7 +211,6 @@ type RemotePlayer = { mesh: THREE.Group; targetX: number; targetZ: number; targe
 const remotePlayers = new Map<string, RemotePlayer>();
 const onlinePanel = document.querySelector<HTMLDivElement>('#online-panel')!;
 const onlineToggle = document.querySelector<HTMLButtonElement>('#online-toggle')!;
-const workerUrlInput = document.querySelector<HTMLInputElement>('#worker-url')!;
 const roomCodeInput = document.querySelector<HTMLInputElement>('#room-code')!;
 const createRoomButton = document.querySelector<HTMLButtonElement>('#create-room')!;
 const joinRoomButton = document.querySelector<HTMLButtonElement>('#join-room')!;
@@ -226,15 +225,9 @@ localStorage.setItem('kickers-online-id', localPlayerId);
 let activeRoom = '';
 let networkSendClock = 0;
 let networkReady = false;
-const savedWorkerUrl = localStorage.getItem('kickers-worker-url') || '';
-workerUrlInput.value = savedWorkerUrl;
+const MULTIPLAYER_SERVER_URL = 'https://kickers-multiplayer.papahjahat9999.workers.dev';
 function setOnlineMessage(message: string) { onlineMessage.textContent = message; }
-function getWorkerBase() {
-  const value = workerUrlInput.value.trim().replace(/\/$/, '');
-  if (!/^https:\/\//i.test(value)) throw new Error('Enter your HTTPS Worker URL first.');
-  localStorage.setItem('kickers-worker-url', value);
-  return value;
-}
+function getWorkerBase() { return MULTIPLAYER_SERVER_URL; }
 function updateRoster(players: Array<{ id: string; name?: string; avatar?: Partial<AvatarConfig>; x?: number; z?: number; rotation?: number }>) {
   const activeIds = new Set(players.filter(p => p.id !== localPlayerId).map(p => p.id));
   for (const [id, remote] of remotePlayers) {
@@ -337,7 +330,7 @@ function connectToRoom(room: string) {
     statusEl.textContent = 'OFFLINE';
     setOnlineMessage('DISCONNECTED FROM ROOM');
   });
-  ws.addEventListener('error', () => setOnlineMessage('CONNECTION ERROR — CHECK WORKER URL'));
+  ws.addEventListener('error', () => setOnlineMessage('CONNECTION ERROR — TRY AGAIN'));
 }
 async function createOnlineRoom() {
   try {
