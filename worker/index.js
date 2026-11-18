@@ -71,6 +71,7 @@ export class ArenaRoom {
     }
     if (data.type === "kick") this.broadcast({ type: "kick", id: meta.id }, ws);
     if (data.type === "taunt") this.broadcast({ type: "taunt", id: meta.id }, ws);
+    if (data.type === "mock") this.broadcast({ type: "mock", id: meta.id }, ws);
   }
   webSocketClose(ws) {
     const meta = ws.deserializeAttachment() || {};
