@@ -778,10 +778,54 @@ document.addEventListener('fullscreenchange', () => {
   fullscreenButton.setAttribute('aria-label', active ? 'Exit fullscreen' : 'Enter fullscreen');
 });
 
-creatorToggle.addEventListener('click', () => {
-  creator.classList.toggle('open');
-  creatorToggle.textContent = creator.classList.contains('open') ? 'CLOSE CREATOR' : 'CUSTOMIZE';
-});
+let customizing = false;
+let customizationSnapshot: {
+  playerPosition: THREE.Vector3; playerRotation: THREE.Euler; playerVisible: boolean;
+  cameraPosition: THREE.Vector3; rivalVisibility: boolean[]; remoteVisibility: boolean[];
+} | null = null;
+function setCustomizationOpen(open: boolean) {
+  if (open === customizing) return;
+  if (open && roundOver) return;
+  customizing = open;
+  creator.classList.toggle('open', open);
+  document.body.classList.toggle('customizing', open);
+  creatorToggle.textContent = open ? 'CLOSE CREATOR' : 'CUSTOMIZE';
+  if (open) {
+    releaseStick();
+    keys.clear();
+    customizationSnapshot = {
+      playerPosition: player.position.clone(),
+      playerRotation: player.rotation.clone(),
+      playerVisible: player.visible,
+      cameraPosition: camera.position.clone(),
+      rivalVisibility: rivals.map(bot => bot.visible),
+      remoteVisibility: Array.from(remotePlayers.values(), remote => remote.mesh.visible)
+    };
+    player.position.set(0, 0, 0);
+    player.rotation.set(0, 0, 0);
+    player.visible = true;
+    rivals.forEach(bot => { bot.visible = false; });
+    remotePlayers.forEach(remote => { remote.mesh.visible = false; });
+    camera.position.set(0, 4.8, 9.5);
+    camera.lookAt(0, 1.55, 0);
+    statusEl.textContent = 'CHARACTER PREVIEW';
+  } else {
+    if (customizationSnapshot) {
+      player.position.copy(customizationSnapshot.playerPosition);
+      player.rotation.copy(customizationSnapshot.playerRotation);
+      player.visible = customizationSnapshot.playerVisible;
+      rivals.forEach((bot, index) => { bot.visible = customizationSnapshot!.rivalVisibility[index]; });
+      Array.from(remotePlayers.values()).forEach((remote, index) => {
+        remote.mesh.visible = customizationSnapshot!.remoteVisibility[index] ?? true;
+      });
+      camera.position.copy(customizationSnapshot.cameraPosition);
+      camera.lookAt(player.position.x * 0.15, 0, player.position.z * 0.2);
+    }
+    customizationSnapshot = null;
+    statusEl.textContent = networkReady ? 'ONLINE' : (gamePaused ? 'PAUSED' : 'READY');
+  }
+}
+creatorToggle.addEventListener('click', () => setCustomizationOpen(!customizing));
 saveButton.addEventListener('click', () => {
   try { localStorage.setItem('kickers-avatar-v1', JSON.stringify(config)); savedLabel.textContent = 'CHARACTER SAVED ON THIS DEVICE'; }
   catch { savedLabel.textContent = 'SAVE NOT AVAILABLE'; }
@@ -899,7 +943,7 @@ joystick.addEventListener('pointerup', releaseStick); joystick.addEventListener(
 function animate() {
   requestAnimationFrame(animate);
   const delta = Math.min(clock.getDelta(), 0.04);
-  if (gamePaused && !networkReady) { renderer.render(scene, camera); return; }
+  if ((gamePaused && !networkReady) || customizing) { renderer.render(scene, camera); return; }
   if (!roundOver) {
     matchTimeRemaining = Math.max(0, matchTimeRemaining - delta);
     matchTimeEl.textContent = formatMatchTime(matchTimeRemaining);
