@@ -602,6 +602,98 @@ window.addEventListener('kickers:identity', (event) => {
   setNameLabel(player, playerDisplayName);
   if (networkReady) sendNetwork({ type: 'hello', name: playerDisplayName, walletAddress: playerWalletAddress, avatar: { ...config, shirtImage: undefined } });
 });
+
+/* Separate real-time Social Hub connection; it never reuses the arena socket. */
+const socialToggle = document.querySelector<HTMLButtonElement>('#social-toggle')!;
+const socialHub = document.querySelector<HTMLElement>('#social-hub')!;
+const socialClose = document.querySelector<HTMLButtonElement>('#social-close')!;
+const socialLeave = document.querySelector<HTMLButtonElement>('#social-leave')!;
+const socialStatus = document.querySelector<HTMLElement>('#social-status')!;
+const socialMessages = document.querySelector<HTMLElement>('#social-messages')!;
+const socialPlayerList = document.querySelector<HTMLElement>('#social-player-list')!;
+const socialPlayerCount = document.querySelector<HTMLElement>('#social-player-count')!;
+const socialChatForm = document.querySelector<HTMLFormElement>('#social-chat-form')!;
+const socialChatInput = document.querySelector<HTMLInputElement>('#social-chat-input')!;
+let socialSocket: WebSocket | null = null;
+let socialConnected = false;
+let socialReconnectTimer = 0;
+function addSocialMessage(name: string, message: string, system = false) {
+  const row = document.createElement('div');
+  row.className = system ? 'social-message social-system-message' : 'social-message';
+  if (!system) {
+    const who = document.createElement('strong'); who.textContent = name;
+    const body = document.createElement('span'); body.textContent = message;
+    row.append(who, body);
+  } else row.textContent = message;
+  socialMessages.append(row);
+  while (socialMessages.children.length > 80) socialMessages.firstElementChild?.remove();
+  socialMessages.scrollTop = socialMessages.scrollHeight;
+}
+function renderSocialPlayers(players: Array<{id:string;name?:string}>) {
+  socialPlayerCount.textContent = Math.min(players.length,20) + '/20';
+  socialPlayerList.replaceChildren();
+  if (!players.length) {
+    const empty = document.createElement('p'); empty.className='social-system-message'; empty.textContent='No players yet. Be the first!';
+    socialPlayerList.append(empty); return;
+  }
+  for (const person of players.slice(0,20)) {
+    const item=document.createElement('div'); item.className='social-player';
+    const avatar=document.createElement('span'); avatar.className='social-player-avatar'; avatar.textContent=(person.name||'K').replace(/^@/,'').charAt(0).toUpperCase()||'K';
+    const name=document.createElement('span'); name.className='social-player-name'; name.textContent=person.name||'KICKERS Player';
+    const dot=document.createElement('i'); dot.className='social-player-dot';
+    item.append(avatar,name,dot); socialPlayerList.append(item);
+  }
+}
+function connectSocialHub() {
+  if (socialSocket && (socialSocket.readyState===WebSocket.OPEN || socialSocket.readyState===WebSocket.CONNECTING)) return;
+  socialStatus.textContent='CONNECTING…';
+  const url=new URL(MULTIPLAYER_SERVER_URL);
+  url.protocol=url.protocol==='https:'?'wss:':'ws:'; url.pathname='/social/ws';
+  url.search=new URLSearchParams({id:localPlayerId}).toString();
+  const ws=new WebSocket(url); socialSocket=ws;
+  ws.addEventListener('open',()=>{
+    socialConnected=true; socialStatus.textContent='CONNECTED';
+    ws.send(JSON.stringify({type:'hello',name:playerDisplayName}));
+    addSocialMessage('KICKERS','You joined the public lobby.',true);
+  });
+  ws.addEventListener('message',(event)=>{
+    try {
+      const data=JSON.parse(String(event.data)) as {type:string;players?:Array<{id:string;name?:string}>;name?:string;message?:string};
+      if(data.type==='roster'&&data.players) renderSocialPlayers(data.players);
+      if(data.type==='chat'&&typeof data.message==='string') addSocialMessage(data.name||'KICKERS Player',data.message);
+      if(data.type==='system'&&typeof data.message==='string') addSocialMessage('KICKERS',data.message,true);
+    } catch { /* Ignore malformed social messages. */ }
+  });
+  ws.addEventListener('close',()=>{
+    socialConnected=false; socialStatus.textContent='DISCONNECTED';
+    if(!socialHub.hidden) addSocialMessage('KICKERS','Connection closed. Tap Social Hub to reconnect.',true);
+    socialSocket=null;
+  });
+  ws.addEventListener('error',()=>{socialStatus.textContent='CONNECTION ERROR';});
+}
+function closeSocialHub() {
+  socialHub.hidden=true; socialToggle.hidden=false;
+  document.body.classList.remove('social-hub-open');
+  if(socialSocket){socialSocket.close(1000,'Leaving Social Hub');socialSocket=null;}
+  socialConnected=false; socialStatus.textContent='OFFLINE';
+}
+function openSocialHub() {
+  socialHub.hidden=false; socialToggle.hidden=true;
+  document.body.classList.add('social-hub-open');
+  if(!socialSocket||socialSocket.readyState===WebSocket.CLOSED) connectSocialHub();
+}
+socialToggle.addEventListener('click',openSocialHub);
+socialClose.addEventListener('click',closeSocialHub);
+socialLeave.addEventListener('click',closeSocialHub);
+socialChatForm.addEventListener('submit',(event)=>{
+  event.preventDefault();
+  const message=socialChatInput.value.trim();
+  if(!message||!socialSocket||socialSocket.readyState!==WebSocket.OPEN) return;
+  socialSocket.send(JSON.stringify({type:'chat',message}));
+  socialChatInput.value='';
+  socialChatInput.focus();
+});
+socialHub.hidden=true;
 function sendNetwork(payload: Record<string, unknown>) {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(payload));
 }
