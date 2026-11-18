@@ -642,3 +642,13 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 .start-primary { border:0; background:linear-gradient(110deg,#7af2e5,#65c9e7); color:#07152b; box-shadow:0 5px 0 #247b87,0 12px 28px #0005; }
 .start-secondary { border:1px solid #65e7d977; background:#ffffff08; color:#aaf8ef; }
 .start-hint { display:block; margin-top:22px; color:#8292b5; font-size:8px; font-weight:800; letter-spacing:.13em; line-height:1.6; }
+
+
+/* Start menu quick guide */
+.start-guide{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:20px}
+.start-guide-item{display:grid;gap:5px;padding:11px 5px;border:1px solid #7da9d52b;border-radius:11px;background:#08132988}
+.start-guide-item strong{color:#75e9df;font-size:9px;letter-spacing:.12em}
+.start-guide-item span{color:#aebed9;font-size:9px;line-height:1.35}
+.start-tip{margin:12px 0 0!important;padding:10px 12px;max-width:none!important;border-left:2px solid #65e7d9;background:#65e7d90d;color:#aebed9!important;font-size:10px!important;text-align:left}
+.start-tip strong{display:block;margin-bottom:4px;color:#65e7d9;font-size:8px;letter-spacing:.16em}
+@media(max-height:650px){.start-screen{overflow-y:auto;align-items:start}.start-card{margin:auto 0;padding-top:22px;padding-bottom:22px}.start-card p{margin-bottom:18px}.start-guide{margin-top:14px}.start-hint{margin-top:14px}}
