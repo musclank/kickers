@@ -25,7 +25,7 @@ export default {
       const name = url.searchParams.get("name") || "KICKERS Player";
       if (!/^[A-Z0-9]{6}$/.test(room) || !/^[a-zA-Z0-9-]{8,64}$/.test(playerId)) return json({ error: "Invalid room or player." }, 400);
       const id = env.ROOMS.idFromName(room);
-      return env.ROOMS.get(id).fetch(new Request("https://room.internal/connect?id=" + encodeURIComponent(playerId) + "&name=" + encodeURIComponent(name), request));
+      return env.ROOMS.get(id).fetch(new Request("https://room.internal/connect?id=" + encodeURIComponent(playerId) + "&name=" + encodeURIComponent(name), { method: "GET", headers: request.headers }));
     }
     return json({ service: "KICKERS Multiplayer", status: "ready", maxPlayersPerRoom: 4 });
   }
