@@ -142,3 +142,5 @@ body { background: #10152b; color: #fff; font-family: Inter, ui-sans-serif, syst
   .volume-control input { width:38px; }
   #audio-toggle { font-size:8px; }
 }
+
+@media (max-width:480px) { .volume-control { display:none; } }
