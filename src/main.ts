@@ -251,7 +251,7 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = t
     // Robot parts use the same live creator values as the human model.
     const bw = cfg.bodyWidth, bh = cfg.bodyHeight, hs = cfg.headSize, ll = cfg.legLength;
     const bodyY = 0.86 * bh;
-    const torso = addMesh(group, new THREE.BoxGeometry(1.12 * bw, 0.92 * bh, 0.72 * bw), cfg.outfit, 0, bodyY, 0);
+    addMesh(group, new THREE.BoxGeometry(1.12 * bw, 0.92 * bh, 0.72 * bw), cfg.outfit, 0, bodyY, 0);
     addMesh(group, new THREE.BoxGeometry(0.96 * bw, 0.14 * bh, 0.76 * bw), cfg.shoes, 0, bodyY - 0.43 * bh, 0);
     addMesh(group, new THREE.BoxGeometry(0.72 * bw, 0.09 * bh, 0.035), cfg.shoes, 0, bodyY - 0.20 * bh, -0.37 * bw);
     // Custom shirt artwork is mapped to both chest and back, not left as a floating UI-only preview.
@@ -276,7 +276,7 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = t
     }
     addMesh(group, new THREE.BoxGeometry(0.38 * hs, 0.055, 0.035), cfg.shoes, 0, headY - 0.40 * hs, -0.46 * hs);
     // Antenna and side sensors.
-    const antenna = addMesh(group, new THREE.CylinderGeometry(0.035 * hs, 0.045 * hs, 0.34 * hs, 10), cfg.shoes, -0.36 * hs, headY + 0.68 * hs, 0);
+    addMesh(group, new THREE.CylinderGeometry(0.035 * hs, 0.045 * hs, 0.34 * hs, 10), cfg.shoes, -0.36 * hs, headY + 0.68 * hs, 0);
     addMesh(group, new THREE.SphereGeometry(0.12 * hs, 14, 10), cfg.hairColor, -0.36 * hs, headY + 0.91 * hs, 0);
     for (const side of [-1, 1]) {
       const pod = addMesh(group, new THREE.CylinderGeometry(0.17 * hs, 0.17 * hs, 0.16 * hs, 14), cfg.shoes, side * 0.68 * hs, headY, 0);
@@ -673,6 +673,8 @@ function rebuildPlayer() {
   player.traverse((obj) => { if (obj instanceof THREE.Mesh) { obj.geometry.dispose(); if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose()); else obj.material.dispose(); } });
   player = makeAvatar(config, player.position.x, player.position.z);
   setNameLabel(player, playerDisplayName);
+  // Keep the current appearance in sync when a player edits their fighter mid-session.
+  if (networkReady) sendNetwork({ type: 'hello', name: playerDisplayName, walletAddress: playerWalletAddress, avatar: { ...config, shirtImage: undefined } });
 }
 function bindColor(id: string, key: keyof AvatarConfig) {
   const input = document.querySelector<HTMLInputElement>('#' + id)!;
