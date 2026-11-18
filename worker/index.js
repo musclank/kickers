@@ -116,7 +116,7 @@ export class SocialRoom {
     if (sockets.some(ws => (ws.deserializeAttachment() || {}).id === id)) return new Response("Already connected.", { status: 409 });
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
-    server.serializeAttachment({ id, name: "KICKERS Player", lastChatAt: 0, x: 0, z: 2, rotation: 0, avatar: null });
+    server.serializeAttachment({ id, name: "KICKERS Player", lastChatAt: 0, x: 0, z: 2, rotation: 0, seated: false, avatar: null });
     this.state.acceptWebSocket(server);
     server.send(JSON.stringify({ type: "system", message: "Welcome to the KICKERS public lobby." }));
     this.broadcastRoster();
@@ -155,8 +155,9 @@ export class SocialRoom {
       meta.x = Math.max(-6.4, Math.min(6.4, Number(data.x) || 0));
       meta.z = Math.max(-6.4, Math.min(6.4, Number(data.z) || 0));
       meta.rotation = Number(data.rotation) || 0;
+      meta.seated = data.seated === true;
       ws.serializeAttachment(meta);
-      this.broadcast({ type: "state", id: meta.id, x: meta.x, z: meta.z, rotation: meta.rotation }, ws);
+      this.broadcast({ type: "state", id: meta.id, x: meta.x, z: meta.z, rotation: meta.rotation, seated: meta.seated }, ws);
       return;
     }
     if (data.type === "chat") {
@@ -174,7 +175,7 @@ export class SocialRoom {
   broadcastRoster() {
     const players = this.state.getWebSockets().map(ws => {
       const meta = ws.deserializeAttachment() || {};
-      return { id: meta.id, name: meta.name || "KICKERS Player", avatar: meta.avatar || null, x: meta.x || 0, z: meta.z || 0, rotation: meta.rotation || 0 };
+      return { id: meta.id, name: meta.name || "KICKERS Player", avatar: meta.avatar || null, x: meta.x || 0, z: meta.z || 0, rotation: meta.rotation || 0, seated: meta.seated === true };
     });
     this.broadcast({ type: "roster", players });
   }
