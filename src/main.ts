@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import './style.css';
-import './auth';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 const statusEl = document.querySelector<HTMLSpanElement>('#status')!;
