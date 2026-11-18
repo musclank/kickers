@@ -75,3 +75,8 @@ body { background: #10152b; color: #fff; font-family: Inter, ui-sans-serif, syst
 @media (max-width:600px) { .online-toggle { top:118px; left:14px; padding:10px 12px; font-size:9px; } .online-panel { top:160px; left:10px; width:min(340px,calc(100vw - 20px)); padding:13px; } }
 
 .room-display[hidden] { display: none; }
+
+.action-buttons { display:flex; align-items:end; gap:12px; pointer-events:auto; }
+.taunt-button { width:76px; height:76px; border:2px solid #ffffff55; border-radius:50%; color:#fff; background:linear-gradient(145deg,#9d72f5,#6045bd); font-weight:1000; font-size:12px; letter-spacing:.06em; box-shadow:0 6px 0 #392b78,0 10px 22px #0005; touch-action:manipulation; }
+.taunt-button.pressed { transform:translateY(4px) scale(.96); box-shadow:0 2px 0 #392b78; }
+@media (max-width:600px) { .action-buttons { gap:8px; } .taunt-button { width:66px; height:66px; font-size:10px; } }
