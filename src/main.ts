@@ -14,6 +14,9 @@ const creatorToggle = document.querySelector<HTMLButtonElement>('#creator-toggle
 const saveButton = document.querySelector<HTMLButtonElement>('#save-character')!;
 const savedLabel = document.querySelector<HTMLSpanElement>('#saved-label')!;
 const fullscreenButton = document.querySelector<HTMLButtonElement>('#fullscreen-toggle')!;
+const matchTimeEl = document.querySelector<HTMLElement>('#match-time')!;
+const matchOverEl = document.querySelector<HTMLDivElement>('#match-over')!;
+const playAgainButton = document.querySelector<HTMLButtonElement>('#play-again')!;
 
 type AvatarConfig = {
   characterType: 'human' | 'robot'; skin: string; outfit: string; shoes: string; hairColor: string; hairStyle: string; accessory: string;
@@ -648,9 +651,18 @@ try {
 let moveX = 0, moveZ = 0, kickTime = 0, tauntTime = 0, mockTime = 0, walkTime = 0, kickHitDone = false;
 const keys = new Set<string>();
 const clock = new THREE.Clock();
+const MATCH_DURATION = 180;
+let matchTimeRemaining = MATCH_DURATION;
+let roundOver = false;
+function formatMatchTime(seconds: number) {
+  const whole = Math.max(0, Math.ceil(seconds));
+  return `${String(Math.floor(whole / 60)).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;
+}
+playAgainButton.addEventListener('click', () => location.reload());
 addEventListener('keydown', (event) => { keys.add(event.key.toLowerCase()); if (event.code === 'Space') { event.preventDefault(); kick(); } });
 addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
 function taunt() {
+  if (roundOver) return;
   if (tauntTime > 0 || mockTime > 0 || kickTime > 0) return;
   tauntTime = 1.35;
   if (networkReady) sendNetwork({ type: 'taunt' });
@@ -660,6 +672,7 @@ function taunt() {
 }
 tauntButton.addEventListener('pointerdown', taunt);
 function mockEnemy() {
+  if (roundOver) return;
   if (mockTime > 0 || tauntTime > 0 || kickTime > 0) return;
   mockTime = 1.6;
   if (networkReady) sendNetwork({ type: 'mock' });
@@ -669,6 +682,7 @@ function mockEnemy() {
 }
 mockButton.addEventListener('pointerdown', mockEnemy);
 function kick() {
+  if (roundOver) return;
   if (kickTime > 0 || tauntTime > 0 || mockTime > 0) return;
   kickTime = 0.48;
   kickHitDone = false;
@@ -697,6 +711,21 @@ joystick.addEventListener('pointerup', releaseStick); joystick.addEventListener(
 function animate() {
   requestAnimationFrame(animate);
   const delta = Math.min(clock.getDelta(), 0.04);
+  if (!roundOver) {
+    matchTimeRemaining = Math.max(0, matchTimeRemaining - delta);
+    matchTimeEl.textContent = formatMatchTime(matchTimeRemaining);
+    matchTimeEl.classList.toggle('urgent', matchTimeRemaining <= 30);
+    if (matchTimeRemaining <= 0) {
+      roundOver = true;
+      statusEl.textContent = 'TIME UP';
+      matchOverEl.hidden = false;
+      matchOverEl.setAttribute('aria-hidden', 'false');
+    }
+  }
+  if (roundOver) {
+    renderer.render(scene, camera);
+    return;
+  }
   networkSendClock += delta;
   if (networkReady && networkSendClock >= 0.05) {
     networkSendClock = 0;
