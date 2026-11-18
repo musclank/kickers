@@ -160,8 +160,19 @@ body.customizing .online-toggle,
 body.customizing .online-panel,
 body.customizing .pause-toggle,
 body.customizing .desktop-hint,
-body.customizing .topbar,
-body.customizing .creator-toggle { display: none !important; }
+body.customizing .topbar { display: none !important; }
+body.customizing .creator-toggle {
+  display: block !important;
+  position: absolute;
+  z-index: 8;
+  top: max(12px, env(safe-area-inset-top));
+  right: 12px;
+  padding: 10px 14px;
+  background: #65e7d9;
+  color: #10152b;
+  border-color: #65e7d9;
+  box-shadow: 0 4px 18px #0006;
+}
 body.customizing .creator-panel {
   display: block;
   top: auto;
