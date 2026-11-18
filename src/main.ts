@@ -38,7 +38,7 @@ renderer.domElement.className = 'game-canvas';
 scene.add(new THREE.HemisphereLight(0xb8d7ff, 0x24203b, 2));
 const sun = new THREE.DirectionalLight(0xffffff, 3);
 sun.position.set(-5, 12, 7); sun.castShadow = true; scene.add(sun);
-const floor = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 0.7, 64), new THREE.MeshStandardMaterial({ color: 0x303b62, roughness: 0.85 }));
+const floor = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 0.7, 64), new THREE.MeshStandardMaterial({ color: 0xf2f4f8, roughness: 0.85 }));
 floor.position.y = -0.45; floor.receiveShadow = true; scene.add(floor);
 const rim = new THREE.Mesh(new THREE.TorusGeometry(9, 0.22, 12, 80), new THREE.MeshStandardMaterial({ color: 0xffc857, metalness: 0.35, roughness: 0.45 }));
 rim.rotation.x = Math.PI / 2; rim.position.y = -0.05; scene.add(rim);
