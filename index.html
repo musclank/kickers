@@ -29,6 +29,16 @@
         <button id="leave-room" class="leave-room" type="button" disabled>LEAVE ROOM</button>
         <span id="online-message" class="online-message">READY — CREATE OR JOIN A ROOM</span>
       </section>
+      <button id="social-toggle" class="social-toggle" type="button">SOCIAL HUB</button>
+      <section id="social-hub" class="social-hub" aria-label="KICKERS Social Hub" hidden>
+        <div class="social-room-scene" aria-hidden="true"><div class="social-room-orb"></div><div class="social-room-floor"></div><div class="social-room-lights"></div></div>
+        <header class="social-header"><div><span class="social-eyebrow">KICKERS COMMUNITY</span><h2>SOCIAL HUB</h2><p>Meet players. Chat. Get ready to play.</p></div><button id="social-close" type="button" aria-label="Close Social Hub">CLOSE</button></header>
+        <div class="social-content">
+          <section class="social-chat-panel"><div class="social-panel-title"><strong>PUBLIC LOBBY CHAT</strong><span id="social-status">CONNECTING…</span></div><div id="social-messages" class="social-messages" role="log" aria-live="polite"><p class="social-system-message">Welcome to KICKERS Social Hub.</p></div><form id="social-chat-form" class="social-chat-form"><input id="social-chat-input" type="text" maxlength="220" autocomplete="off" placeholder="Write a message…" aria-label="Chat message"><button id="social-send" type="submit">SEND</button></form><small class="social-chat-note">Be respectful. Keep personal information private.</small></section>
+          <aside class="social-players-panel"><div class="social-panel-title"><strong>PLAYERS HERE</strong><span id="social-player-count">0/20</span></div><div id="social-player-list" class="social-player-list"><p class="social-system-message">Loading players…</p></div><div class="social-online-indicator"><span></span> PUBLIC ROOM</div></aside>
+        </div>
+        <footer class="social-footer"><span>PUBLIC ROOM · UP TO 20 PLAYERS</span><button id="social-leave" type="button">LEAVE ROOM</button></footer>
+      </section>
       <button id="creator-toggle" class="creator-toggle">CUSTOMIZE</button>
       <section id="creator" class="creator-panel">
         <div class="creator-heading"><div><span class="eyebrow">FIGHTER LAB</span><h2>CREATE YOUR CHARACTER</h2></div><span class="live-tag">LIVE 3D PREVIEW</span></div>
