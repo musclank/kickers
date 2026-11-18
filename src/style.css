@@ -403,3 +403,12 @@ body.social-hub-open .controls,body.social-hub-open .help,body.social-hub-open .
 @media(max-width:390px){.social-hub{padding-left:10px;padding-right:10px}.social-chat-panel,.social-players-panel{padding:11px}.social-header h2{font-size:22px}.social-chat-form input{height:42px}}
 
 body.customizing .social-toggle{display:none!important}
+
+/* 3D Social Hub scene is rendered behind the chat interface. */
+.social-hub{background:linear-gradient(180deg,rgba(5,14,29,.42),rgba(5,14,29,.72))}
+.social-room-scene{opacity:.08}
+.social-room-controls{position:fixed;z-index:4;left:max(14px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:5px;pointer-events:auto}
+.social-room-controls>div{display:flex;gap:5px}
+.social-room-controls button{width:42px;height:38px;border:1px solid #72e7dd88;border-radius:10px;background:#0b2035dd;color:#dffffb;font-weight:900;touch-action:none}
+.social-room-controls>span{font-size:8px;letter-spacing:.14em;color:#9cece5;text-shadow:0 1px 5px #000}
+@media(max-width:650px){.social-room-controls{bottom:max(12px,env(safe-area-inset-bottom));left:10px}.social-room-controls button{width:38px;height:34px}.social-content{padding-bottom:124px}}
