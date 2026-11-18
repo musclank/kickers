@@ -67,3 +67,22 @@ The browser client supports room creation/joining and real-time player position/
 Alternatively, deploy from a computer with `npx wrangler login` followed by `npx wrangler deploy` from the repository root.
 
 Cloudflare Pages continues to host the game frontend. The Worker is a separate service. The first multiplayer phase synchronizes player presence, movement, direction, and kick animation; authoritative hit detection, matchmaking, and persistence are subsequent phases.
+
+## Privy authentication and EVM wallets
+
+KICKERS uses Privy for player sign-in and EVM wallet onboarding.
+
+- Privy App ID is configured in `src/auth.tsx` (public client identifier only).
+- X/Twitter is the social login method.
+- Privy creates an embedded Ethereum wallet automatically for users who log in without an existing wallet.
+- Players can also connect an external EVM wallet, such as MetaMask.
+- Base Mainnet (chain ID `8453`) is configured as the default and supported network.
+- The player's X username (when available) or wallet-shortened identity is shown above their fighter and shared with other clients in the room.
+
+In the Privy Dashboard, ensure X/Twitter login is enabled and the allowed origin includes:
+
+```text
+https://kickers-dnf.pages.dev
+```
+
+Never put a Privy App Secret, wallet private key, or recovery phrase in frontend code or GitHub. The current room name broadcast is a display feature; server-side verification of Privy access tokens must be added before using names or wallet addresses for rewards, rankings, or other security-sensitive actions.
