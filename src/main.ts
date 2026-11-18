@@ -187,8 +187,6 @@ fullscreenButton.addEventListener('click', async () => {
   try {
     if (!document.fullscreenElement) {
       await app.requestFullscreen();
-      // Supported Android browsers may also allow orientation locking from this gesture.
-      try { await screen.orientation.lock('landscape'); } catch { /* Browser may not support orientation locking. */ }
     } else {
       await document.exitFullscreen();
     }
