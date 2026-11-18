@@ -16,7 +16,7 @@ function WalletPanel() {
   const { connectWallet } = useConnectWallet();
   const { wallets } = useWallets();
 
-  const twitterAccount = user?.linkedAccounts?.find((account) => account.type === 'twitter');
+  const twitterAccount = user?.linkedAccounts?.find((account) => account.type === 'twitter_oauth');
   const twitterName = twitterAccount && 'username' in twitterAccount
     ? twitterAccount.username
     : undefined;
