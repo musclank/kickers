@@ -12,7 +12,7 @@
       <div id="auth-root"></div>
       <div class="topbar">
         <div class="brand-block"><div class="brand">KICKERS</div><a class="x-social-link" href="https://x.com/kickerszone" target="_blank" rel="noopener noreferrer" aria-label="Follow KICKERS on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3L12 14.6 5.5 22H2.3l7.3-8.4L1.8 2h6.5l4.5 6.8L18.9 2Zm-1.1 18h1.7L7.3 3.9H5.5L17.8 20Z"/></svg><span>@kickerszone</span></a><div class="contract-box"><label for="contract-address">CONTRACT ADDRESS</label><div class="contract-field"><input id="contract-address" type="text" placeholder="COMING SOON" aria-label="Token contract address" readonly><button id="copy-contract" type="button" disabled>COPY</button></div></div></div>
-        <div class="topbar-actions"><div class="sound-controls"><button id="audio-toggle" type="button" aria-label="Toggle sound">SOUND ON</button><label class="volume-control" aria-label="Volume"><span>VOL</span><input id="audio-volume" type="range" min="0" max="100" value="35"></label></div><div class="round-label">ARENA PROTOTYPE <span id="status">READY</span></div><div class="match-clock" aria-label="Time remaining">TIME LEFT <strong id="match-time">05:00</strong></div><button id="pause-toggle" class="pause-toggle" type="button" aria-label="Pause offline game">PAUSE</button><button id="fullscreen-toggle" class="fullscreen-toggle" type="button" aria-label="Enter fullscreen">FULL SCREEN</button></div>
+        <div class="topbar-actions"><div class="sound-controls"><button id="audio-toggle" type="button" aria-label="Toggle sound">SOUND ON</button><label class="volume-control" aria-label="Volume"><span>VOL</span><input id="audio-volume" type="range" min="0" max="100" value="35"></label></div><div class="round-label">ARENA PROTOTYPE <span id="status">READY</span></div><button id="pause-toggle" class="pause-toggle" type="button" aria-label="Pause offline game">PAUSE</button><button id="fullscreen-toggle" class="fullscreen-toggle" type="button" aria-label="Enter fullscreen">FULL SCREEN</button></div>
       </div>
       <div class="help">Build your fighter, then test the arena.</div>
       <div id="powerup-status" class="powerup-status" aria-live="polite">POWER-UP READY</div>
@@ -30,6 +30,7 @@
         <span id="online-message" class="online-message">READY — CREATE OR JOIN A ROOM</span>
       </section>
       <button id="creator-toggle" class="creator-toggle">CUSTOMIZE</button>
+      <div class="match-clock" aria-label="Time remaining">TIME LEFT <strong id="match-time">05:00</strong></div>
       <section id="creator" class="creator-panel">
         <div class="creator-heading"><div><span class="eyebrow">FIGHTER LAB</span><h2>CREATE YOUR CHARACTER</h2></div><span class="live-tag">LIVE 3D PREVIEW</span></div>
         <div class="creator-grid"><label>Character type<select id="character-type"><option value="human">Human fighter</option><option value="robot">Tank robot</option></select></label></div>
