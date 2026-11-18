@@ -592,3 +592,26 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
   .x-social-link { gap: 6px; padding: 6px 9px; font-size: 9px; }
   .x-social-link svg { width: 12px; height: 12px; }
 }
+
+
+/* Center the match timer directly below PLAY ONLINE and CUSTOMIZE. */
+.match-clock {
+  position: absolute;
+  z-index: 4;
+  top: 166px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+@media (max-width: 700px) {
+  .match-clock {
+    top: max(174px, calc(env(safe-area-inset-top) + 164px));
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (max-width: 390px) {
+  .match-clock {
+    top: max(170px, calc(env(safe-area-inset-top) + 160px));
+  }
+}
