@@ -5,8 +5,8 @@ import './auth';
 const app = document.querySelector<HTMLDivElement>('#app')!;
 const statusEl = document.querySelector<HTMLSpanElement>('#status')!;
 const kickButton = document.querySelector<HTMLButtonElement>('#kick')!;
-const tauntButton = document.querySelector<HTMLButtonElement>('#taunt')!;
-const mockButton = document.querySelector<HTMLButtonElement>('#mock')!;
+const danceButton = document.querySelector<HTMLButtonElement>('#taunt')!;
+const styleButton = document.querySelector<HTMLButtonElement>('#mock')!;
 const joystick = document.querySelector<HTMLDivElement>('#joystick')!;
 const stick = document.querySelector<HTMLDivElement>('#stick')!;
 const creator = document.querySelector<HTMLDivElement>('#creator')!;
@@ -696,26 +696,26 @@ function formatMatchTime(seconds: number) {
 playAgainButton.addEventListener('click', () => location.reload());
 addEventListener('keydown', (event) => { keys.add(event.key.toLowerCase()); if (event.code === 'Space') { event.preventDefault(); kick(); } });
 addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
-function taunt() {
+function playDance() {
   if (roundOver) return;
   if (tauntTime > 0 || mockTime > 0 || kickTime > 0) return;
   tauntTime = 1.35;
   if (networkReady) sendNetwork({ type: 'taunt' });
-  statusEl.textContent = 'SILLY SHOWTIME!';
-  tauntButton.classList.add('pressed');
-  setTimeout(() => tauntButton.classList.remove('pressed'), 180);
+  statusEl.textContent = 'DANCE TIME!';
+  danceButton.classList.add('pressed');
+  setTimeout(() => danceButton.classList.remove('pressed'), 180);
 }
-tauntButton.addEventListener('pointerdown', taunt);
-function mockEnemy() {
+danceButton.addEventListener('pointerdown', taunt);
+function funnyStyle() {
   if (roundOver) return;
   if (mockTime > 0 || tauntTime > 0 || kickTime > 0) return;
   mockTime = 1.6;
   if (networkReady) sendNetwork({ type: 'mock' });
-  statusEl.textContent = 'NICE TRY!';
-  mockButton.classList.add('pressed');
-  setTimeout(() => mockButton.classList.remove('pressed'), 180);
+  statusEl.textContent = 'FUNNY STYLE!';
+  styleButton.classList.add('pressed');
+  setTimeout(() => styleButton.classList.remove('pressed'), 180);
 }
-mockButton.addEventListener('pointerdown', mockEnemy);
+styleButton.addEventListener('pointerdown', mockEnemy);
 function kick() {
   if (roundOver) return;
   if (kickTime > 0 || tauntTime > 0 || mockTime > 0) return;
