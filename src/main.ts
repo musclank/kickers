@@ -23,9 +23,9 @@ let config: AvatarConfig = { ...defaults };
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x10152b);
-scene.fog = new THREE.Fog(0x10152b, 18, 42);
-const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 100);
-camera.position.set(0, 11, 15);
+scene.fog = new THREE.Fog(0x10152b, 24, 58);
+const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.1, 120);
+camera.position.set(0, 14, 20);
 camera.lookAt(0, 0, 0);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -322,8 +322,13 @@ function animate() {
     rival.userData.knockback = velocity;
     rival.rotation.y += delta * (i % 2 ? 0.35 : -0.3);
   });
-  camera.position.x += (player.position.x * 0.22 - camera.position.x) * 0.04;
-  camera.lookAt(player.position.x * 0.15, 0, 0);
+  // Wider, higher follow camera keeps more of the arena visible on mobile.
+  const cameraTargetX = player.position.x * 0.22;
+  const cameraTargetZ = player.position.z + 20;
+  camera.position.x += (cameraTargetX - camera.position.x) * 0.04;
+  camera.position.y += (14 - camera.position.y) * 0.04;
+  camera.position.z += (cameraTargetZ - camera.position.z) * 0.04;
+  camera.lookAt(player.position.x * 0.15, 0, player.position.z * 0.2);
   renderer.render(scene, camera);
 }
 animate();
