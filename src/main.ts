@@ -170,6 +170,32 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'hi
 const getQualityPixelRatio = () => Math.min(devicePixelRatio || 1, innerWidth < 700 ? 1.5 : 2);
 renderer.setPixelRatio(getQualityPixelRatio());
 renderer.setSize(innerWidth, innerHeight);
+const socialScene = new THREE.Scene();
+socialScene.background = new THREE.Color(0x071525);
+socialScene.fog = new THREE.Fog(0x071525, 22, 48);
+const socialCamera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 100);
+socialCamera.position.set(0, 13, 19);
+socialCamera.lookAt(0, 0.8, 0);
+const socialAmbient = new THREE.HemisphereLight(0x9eeeff, 0x17233c, 2.0);
+socialScene.add(socialAmbient);
+const socialKey = new THREE.DirectionalLight(0xffffff, 2.2);
+socialKey.position.set(-6, 12, 8); socialKey.castShadow = true; socialKey.shadow.mapSize.set(1024, 1024);
+socialScene.add(socialKey);
+const socialFloor = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 0.7, 64), new THREE.MeshStandardMaterial({ color: 0x152c43, metalness: 0.48, roughness: 0.42 }));
+socialFloor.position.y = -0.42; socialFloor.receiveShadow = true; socialScene.add(socialFloor);
+const socialFloorRing = new THREE.Mesh(new THREE.TorusGeometry(8.7, 0.12, 10, 80), new THREE.MeshStandardMaterial({ color: 0x55e9df, emissive: 0x126d77, emissiveIntensity: 1.1, metalness: 0.7, roughness: 0.25 }));
+socialFloorRing.rotation.x = Math.PI / 2; socialFloorRing.position.y = -0.04; socialScene.add(socialFloorRing);
+const socialCenter = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.35, 0.18, 48), new THREE.MeshStandardMaterial({ color: 0x244a66, metalness: 0.55, roughness: 0.35 }));
+socialCenter.position.y = -0.02; socialScene.add(socialCenter);
+const socialCenterRing = new THREE.Mesh(new THREE.TorusGeometry(1.9, 0.045, 8, 48), new THREE.MeshStandardMaterial({ color: 0xffd36a, emissive: 0x8c5b1b, emissiveIntensity: 0.6 }));
+socialCenterRing.rotation.x = Math.PI / 2; socialCenterRing.position.y = 0.09; socialScene.add(socialCenterRing);
+for (let i = 0; i < 8; i++) {
+  const angle = i / 8 * Math.PI * 2;
+  const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.34, 5.4, 8), new THREE.MeshStandardMaterial({ color: 0x24435e, metalness: 0.65, roughness: 0.32, emissive: 0x092d43, emissiveIntensity: 0.55 }));
+  pillar.position.set(Math.cos(angle) * 8.1, 2.25, Math.sin(angle) * 8.1); socialScene.add(pillar);
+  const beacon = new THREE.PointLight(i % 2 ? 0x8b7cff : 0x50e8dc, 1.2, 7);
+  beacon.position.set(Math.cos(angle) * 7.7, 4.3, Math.sin(angle) * 7.7); socialScene.add(beacon);
+}
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.12;
@@ -264,7 +290,7 @@ function addMesh(parent: THREE.Group, geometry: THREE.BufferGeometry, color: str
   const mesh = new THREE.Mesh(geometry, material(color));
   mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
 }
-function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = true) {
+function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = true, targetScene: THREE.Scene = scene) {
   const group = new THREE.Group();
   group.userData.remoteRobot = cfg.characterType === 'robot';
   if (cfg.characterType === 'robot') {
@@ -349,7 +375,7 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = t
     group.userData.leftArm = leftArm;
     group.userData.rightArm = rightArm;
     group.position.set(x, 0, z);
-    scene.add(group);
+    targetScene.add(group);
     return group;
   }
   const bodyY = 0.85 * cfg.bodyHeight;
@@ -464,7 +490,7 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = t
       horn.rotation.z = side * -0.35;
     }
   }
-  group.position.set(x, 0, z); scene.add(group); return group;
+  group.position.set(x, 0, z); targetScene.add(group); return group;
 }
 function setNameLabel(mesh: THREE.Group, name: string) {
   const safeName = (name || 'KICKERS Player').replace(/[<>]/g, '').slice(0, 24);
@@ -617,6 +643,36 @@ const socialChatInput = document.querySelector<HTMLInputElement>('#social-chat-i
 let socialSocket: WebSocket | null = null;
 let socialConnected = false;
 let socialPausedOffline = false;
+let socialLocalAvatar: THREE.Group | null = null;
+let socialLocalX = 0, socialLocalZ = 0, socialSendClock = 0;
+const socialRemoteAvatars = new Map<string, { mesh: THREE.Group; signature: string; targetX: number; targetZ: number; targetRotation: number }>();
+const socialMove = { up: false, down: false, left: false, right: false };
+function clearSocialAvatars() {
+  if (socialLocalAvatar) { socialScene.remove(socialLocalAvatar); socialLocalAvatar = null; }
+  for (const remote of socialRemoteAvatars.values()) socialScene.remove(remote.mesh);
+  socialRemoteAvatars.clear();
+}
+function syncSocialAvatars(players: Array<{id:string;name?:string;avatar?:Partial<AvatarConfig>;x?:number;z?:number;rotation?:number}>) {
+  const ids = new Set(players.filter(p => p.id !== localPlayerId).map(p => p.id));
+  for (const [id, remote] of socialRemoteAvatars) if (!ids.has(id)) { socialScene.remove(remote.mesh); socialRemoteAvatars.delete(id); }
+  for (const item of players) {
+    if (item.id === localPlayerId) continue;
+    const look = { ...defaults, ...(item.avatar || {}) };
+    const signature = JSON.stringify(look);
+    let remote = socialRemoteAvatars.get(item.id);
+    if (!remote || remote.signature !== signature) {
+      if (remote) socialScene.remove(remote.mesh);
+      const mesh = makeAvatar(look, item.x ?? 0, item.z ?? 0, false, socialScene);
+      setNameLabel(mesh, item.name || 'KICKERS Player');
+      remote = { mesh, signature, targetX: item.x ?? 0, targetZ: item.z ?? 0, targetRotation: item.rotation ?? 0 };
+      socialRemoteAvatars.set(item.id, remote);
+    } else setNameLabel(remote.mesh, item.name || 'KICKERS Player');
+    remote.targetX = item.x ?? remote.targetX;
+    remote.targetZ = item.z ?? remote.targetZ;
+    remote.targetRotation = item.rotation ?? remote.targetRotation;
+  }
+}
+function setSocialMove(direction: keyof typeof socialMove, active: boolean) { socialMove[direction] = active; }
 function addSocialMessage(name: string, message: string, system = false) {
   const row = document.createElement('div');
   row.className = system ? 'social-message social-system-message' : 'social-message';
@@ -629,7 +685,8 @@ function addSocialMessage(name: string, message: string, system = false) {
   while (socialMessages.children.length > 80) socialMessages.firstElementChild?.remove();
   socialMessages.scrollTop = socialMessages.scrollHeight;
 }
-function renderSocialPlayers(players: Array<{id:string;name?:string}>) {
+function renderSocialPlayers(players: Array<{id:string;name?:string;avatar?:Partial<AvatarConfig>;x?:number;z?:number;rotation?:number}>) {
+  syncSocialAvatars(players);
   socialPlayerCount.textContent = Math.min(players.length,20) + '/20';
   socialPlayerList.replaceChildren();
   if (!players.length) {
@@ -653,13 +710,17 @@ function connectSocialHub() {
   const ws=new WebSocket(url); socialSocket=ws;
   ws.addEventListener('open',()=>{
     socialConnected=true; socialStatus.textContent='CONNECTED';
-    ws.send(JSON.stringify({type:'hello',name:playerDisplayName}));
+    ws.send(JSON.stringify({type:'hello',name:playerDisplayName,avatar:{...config,shirtImage:undefined},x:socialLocalX,z:socialLocalZ,rotation:0}));
     addSocialMessage('KICKERS','You joined the public lobby.',true);
   });
   ws.addEventListener('message',(event)=>{
     try {
-      const data=JSON.parse(String(event.data)) as {type:string;players?:Array<{id:string;name?:string}>;name?:string;message?:string};
+      const data=JSON.parse(String(event.data)) as {type:string;players?:Array<{id:string;name?:string;avatar?:Partial<AvatarConfig>;x?:number;z?:number;rotation?:number}>;id?:string;x?:number;z?:number;rotation?:number;name?:string;message?:string};
       if(data.type==='roster'&&data.players) renderSocialPlayers(data.players);
+      if(data.type==='state'&&data.id&&data.id!==localPlayerId) {
+        const remote=socialRemoteAvatars.get(data.id);
+        if(remote){remote.targetX=Number(data.x)||0;remote.targetZ=Number(data.z)||0;remote.targetRotation=Number(data.rotation)||0;}
+      }
       if(data.type==='chat'&&typeof data.message==='string') addSocialMessage(data.name||'KICKERS Player',data.message);
       if(data.type==='system'&&typeof data.message==='string') addSocialMessage('KICKERS',data.message,true);
     } catch { /* Ignore malformed social messages. */ }
@@ -673,6 +734,8 @@ function connectSocialHub() {
 }
 function closeSocialHub() {
   socialHub.hidden=true; socialToggle.hidden=false;
+  clearSocialAvatars();
+  Object.keys(socialMove).forEach(key => { socialMove[key as keyof typeof socialMove] = false; });
   if(socialPausedOffline){setGamePaused(false);socialPausedOffline=false;}
   document.body.classList.remove('social-hub-open');
   if(socialSocket){socialSocket.close(1000,'Leaving Social Hub');socialSocket=null;}
@@ -680,6 +743,10 @@ function closeSocialHub() {
 }
 function openSocialHub() {
   socialHub.hidden=false; socialToggle.hidden=true;
+  clearSocialAvatars();
+  socialLocalX=0; socialLocalZ=2; socialSendClock=0;
+  socialLocalAvatar=makeAvatar({...defaults,...config},socialLocalX,socialLocalZ,false,socialScene);
+  setNameLabel(socialLocalAvatar,playerDisplayName);
   if(!networkReady&&!roundOver&&!gamePaused){setGamePaused(true);socialPausedOffline=true;}
   document.body.classList.add('social-hub-open');
   if(!socialSocket||socialSocket.readyState===WebSocket.CLOSED) connectSocialHub();
@@ -696,6 +763,12 @@ socialChatForm.addEventListener('submit',(event)=>{
   socialChatInput.focus();
 });
 socialHub.hidden=true;
+for (const button of Array.from(socialHub.querySelectorAll<HTMLButtonElement>('[data-social-move]'))) {
+  const direction = button.dataset.socialMove as keyof typeof socialMove;
+  button.addEventListener('pointerdown', event => { event.preventDefault(); setSocialMove(direction,true); });
+  const release = () => setSocialMove(direction,false);
+  button.addEventListener('pointerup',release); button.addEventListener('pointercancel',release); button.addEventListener('pointerleave',release);
+}
 function sendNetwork(payload: Record<string, unknown>) {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(payload));
 }
@@ -1135,6 +1208,49 @@ joystick.addEventListener('pointerup', releaseStick); joystick.addEventListener(
 function animate() {
   requestAnimationFrame(animate);
   const delta = Math.min(clock.getDelta(), 0.04);
+  if (!socialHub.hidden) {
+    if (socialLocalAvatar) {
+      const keyUp = keys.has('w') || keys.has('arrowup');
+      const keyDown = keys.has('s') || keys.has('arrowdown');
+      const keyLeft = keys.has('a') || keys.has('arrowleft');
+      const keyRight = keys.has('d') || keys.has('arrowright');
+      const dx = Number(socialMove.right || keyRight) - Number(socialMove.left || keyLeft);
+      const dz = Number(socialMove.down || keyDown) - Number(socialMove.up || keyUp);
+      const length = Math.hypot(dx,dz) || 1;
+      const moving = Math.abs(dx)+Math.abs(dz)>0;
+      if (moving) {
+        socialLocalX = THREE.MathUtils.clamp(socialLocalX + dx/length*4.1*delta,-6.4,6.4);
+        socialLocalZ = THREE.MathUtils.clamp(socialLocalZ + dz/length*4.1*delta,-6.4,6.4);
+        socialLocalAvatar.rotation.y = Math.atan2(-dx,-dz);
+        const walk = Math.sin(clock.elapsedTime*10)*0.28;
+        const leftLeg=socialLocalAvatar.userData.leftLeg as THREE.Group|undefined;
+        const kickLeg=socialLocalAvatar.userData.kickLeg as THREE.Group|undefined;
+        if(leftLeg) leftLeg.rotation.x=walk;
+        if(kickLeg) kickLeg.rotation.x=-walk;
+      } else {
+        const leftLeg=socialLocalAvatar.userData.leftLeg as THREE.Group|undefined;
+        const kickLeg=socialLocalAvatar.userData.kickLeg as THREE.Group|undefined;
+        if(leftLeg) leftLeg.rotation.x=0;
+        if(kickLeg) kickLeg.rotation.x=0;
+      }
+      socialLocalAvatar.position.set(socialLocalX,Math.sin(clock.elapsedTime*2)*0.025,socialLocalZ);
+      socialSendClock += delta;
+      if(socialConnected && socialSocket?.readyState===WebSocket.OPEN && socialSendClock>=0.10) {
+        socialSendClock=0;
+        socialSocket.send(JSON.stringify({type:'state',x:socialLocalX,z:socialLocalZ,rotation:socialLocalAvatar.rotation.y}));
+      }
+    }
+    for(const remote of socialRemoteAvatars.values()) {
+      remote.mesh.position.x += (remote.targetX-remote.mesh.position.x)*Math.min(1,delta*8);
+      remote.mesh.position.z += (remote.targetZ-remote.mesh.position.z)*Math.min(1,delta*8);
+      remote.mesh.rotation.y += (remote.targetRotation-remote.mesh.rotation.y)*Math.min(1,delta*8);
+      remote.mesh.position.y = Math.sin(clock.elapsedTime*2+remote.targetX)*0.025;
+    }
+    socialFloorRing.rotation.z += delta*0.08;
+    socialCenterRing.rotation.z -= delta*0.12;
+    renderer.render(socialScene,socialCamera);
+    return;
+  }
   if ((gamePaused && !networkReady) || customizing) { renderer.render(scene, camera); return; }
   if (!roundOver) {
     matchTimeRemaining = Math.max(0, matchTimeRemaining - delta);
@@ -1501,4 +1617,4 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
-addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(getQualityPixelRatio()); if (customizing) frameCharacterPreview(); });
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); socialCamera.aspect = innerWidth / innerHeight; socialCamera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(getQualityPixelRatio()); if (customizing) frameCharacterPreview(); });
