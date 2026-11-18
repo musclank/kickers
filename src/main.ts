@@ -825,7 +825,7 @@ function formatMatchTime(seconds: number) {
   return `${String(Math.floor(whole / 60)).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;
 }
 function setGamePaused(paused: boolean) {
-  if (networkReady || roundOver || gamePaused === paused) return;
+  if (((networkReady || roundOver) && paused) || gamePaused === paused) return;
   gamePaused = paused;
   pauseOverlay.hidden = !paused;
   pauseOverlay.setAttribute('aria-hidden', String(!paused));
