@@ -21,7 +21,7 @@ const defaults: AvatarConfig = {
   accessory: 'none', bodyWidth: 1, bodyHeight: 1, headSize: 1, legLength: 1
 };
 let config: AvatarConfig = { ...defaults };
-let faceTexture: THREE.Texture | null = null;
+let shirtTexture: THREE.Texture | null = null;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x10152b);
@@ -89,14 +89,20 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number) {
   const bodyY = 0.85 * cfg.bodyHeight;
   addMesh(group, new THREE.CapsuleGeometry(0.48 * cfg.bodyWidth, 0.55 * cfg.bodyHeight, 6, 12), cfg.outfit, 0, bodyY, 0);
   addMesh(group, new THREE.SphereGeometry(0.39 * cfg.headSize, 20, 16), cfg.skin, 0, bodyY + 0.82 * cfg.headSize, 0);
-  if (faceTexture) {
-    const photoFace = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.52 * cfg.headSize, 0.52 * cfg.headSize),
-      new THREE.MeshBasicMaterial({ map: faceTexture, transparent: true, depthWrite: false, side: THREE.DoubleSide })
-    );
-    photoFace.position.set(0, bodyY + 0.82 * cfg.headSize, -0.405 * cfg.headSize);
-    photoFace.renderOrder = 5;
-    group.add(photoFace);
+  if (shirtTexture) {
+    // Print the selected gallery image on both sides of the outfit, never on the face.
+    const shirtMaterial = new THREE.MeshBasicMaterial({
+      map: shirtTexture, transparent: true, depthWrite: false, side: THREE.DoubleSide
+    });
+    const frontPrint = new THREE.Mesh(new THREE.PlaneGeometry(0.62 * cfg.bodyWidth, 0.72 * cfg.bodyHeight), shirtMaterial);
+    frontPrint.position.set(0, bodyY, -0.485 * cfg.bodyWidth);
+    frontPrint.renderOrder = 4;
+    group.add(frontPrint);
+    const backPrint = new THREE.Mesh(new THREE.PlaneGeometry(0.62 * cfg.bodyWidth, 0.72 * cfg.bodyHeight), shirtMaterial.clone());
+    backPrint.position.set(0, bodyY, 0.485 * cfg.bodyWidth);
+    backPrint.rotation.y = Math.PI;
+    backPrint.renderOrder = 4;
+    group.add(backPrint);
   }
   // Eyes and smile sit on the front (-Z).
   addMesh(group, new THREE.SphereGeometry(0.055, 12, 10), '#172033', -0.14 * cfg.headSize, bodyY + 0.9 * cfg.headSize, -0.34 * cfg.headSize);
@@ -180,39 +186,38 @@ function bindColor(id: string, key: keyof AvatarConfig) {
 }
 bindColor('skin-color', 'skin'); bindColor('outfit-color', 'outfit'); bindColor('shoe-color', 'shoes'); bindColor('hair-color', 'hairColor');
 
-const faceImageInput = document.querySelector<HTMLInputElement>('#face-image')!;
-const removeFaceButton = document.querySelector<HTMLButtonElement>('#remove-face-image')!;
-function applyFaceImage(dataUrl: string) {
+const shirtImageInput = document.querySelector<HTMLInputElement>('#face-image')!;
+const removeShirtImageButton = document.querySelector<HTMLButtonElement>('#remove-face-image')!;
+function applyShirtImage(dataUrl: string) {
   const image = new Image();
   image.onload = () => {
     const canvas = document.createElement('canvas');
     canvas.width = 512; canvas.height = 512;
     const context = canvas.getContext('2d');
     if (!context) { savedLabel.textContent = 'IMAGE PROCESSING FAILED'; return; }
-    // Center-crop the gallery image into a clean circular face portrait.
+    // Center-crop the gallery image into a square shirt print.
     const size = Math.min(image.width, image.height);
     const sx = (image.width - size) / 2, sy = (image.height - size) / 2;
     context.clearRect(0, 0, 512, 512);
-    context.save(); context.beginPath(); context.arc(256, 256, 254, 0, Math.PI * 2); context.clip();
-    context.drawImage(image, sx, sy, size, size, 0, 0, 512, 512); context.restore();
+    context.drawImage(image, sx, sy, size, size, 0, 0, 512, 512);
     const textureCanvas = canvas;
     const nextTexture = new THREE.CanvasTexture(textureCanvas);
     nextTexture.colorSpace = THREE.SRGBColorSpace;
-    const previousTexture = faceTexture;
-    faceTexture = nextTexture;
+    const previousTexture = shirtTexture;
+    shirtTexture = nextTexture;
     config.faceImage = dataUrl;
     rebuildPlayer();
     previousTexture?.dispose();
-    savedLabel.textContent = 'PHOTO APPLIED — SAVE TO KEEP IT';
+    savedLabel.textContent = 'SHIRT PRINT APPLIED — SAVE TO KEEP IT';
   };
   image.onerror = () => { savedLabel.textContent = 'COULD NOT LOAD THAT IMAGE'; };
   image.src = dataUrl;
 }
-faceImageInput.addEventListener('change', () => {
-  const file = faceImageInput.files?.[0];
+shirtImageInput.addEventListener('change', () => {
+  const file = shirtImageInput.files?.[0];
   if (!file) return;
   if (!file.type.startsWith('image/')) { savedLabel.textContent = 'PLEASE CHOOSE AN IMAGE'; return; }
-  if (file.size > 12 * 1024 * 1024) { savedLabel.textContent = 'IMAGE TOO LARGE — MAX 12 MB'; faceImageInput.value = ''; return; }
+  if (file.size > 12 * 1024 * 1024) { savedLabel.textContent = 'IMAGE TOO LARGE — MAX 12 MB'; shirtImageInput.value = ''; return; }
   const reader = new FileReader();
   reader.onload = () => {
     if (typeof reader.result !== 'string') return;
@@ -225,18 +230,18 @@ faceImageInput.addEventListener('change', () => {
       if (!ctx) return;
       const size = Math.min(source.width, source.height);
       ctx.drawImage(source, (source.width - size) / 2, (source.height - size) / 2, size, size, 0, 0, 512, 512);
-      applyFaceImage(canvas.toDataURL('image/jpeg', 0.82));
+      applyShirtImage(canvas.toDataURL('image/jpeg', 0.82));
     };
     source.src = reader.result;
   };
   reader.readAsDataURL(file);
 });
-removeFaceButton.addEventListener('click', () => {
-  const previousTexture = faceTexture;
-  faceTexture = null; delete config.faceImage;
+removeShirtImageButton.addEventListener('click', () => {
+  const previousTexture = shirtTexture;
+  shirtTexture = null; delete config.faceImage;
   rebuildPlayer(); previousTexture?.dispose();
-  faceImageInput.value = '';
-  savedLabel.textContent = 'PHOTO REMOVED — SAVE TO KEEP IT';
+  shirtImageInput.value = '';
+  savedLabel.textContent = 'SHIRT PRINT REMOVED — SAVE TO KEEP IT';
 });
 function bindSelect(id: string, key: keyof AvatarConfig) {
   const input = document.querySelector<HTMLSelectElement>('#' + id)!;
@@ -282,7 +287,7 @@ try {
   const saved = localStorage.getItem('kickers-avatar-v1');
   if (saved) {
     config = { ...defaults, ...JSON.parse(saved) as Partial<AvatarConfig> };
-    if (config.faceImage) applyFaceImage(config.faceImage);
+    if (config.faceImage) applyShirtImage(config.faceImage);
     rebuildPlayer();
     for (const id of ['skin-color','outfit-color','shoe-color','hair-color']) (document.querySelector<HTMLInputElement>('#'+id)!).value = String(config[id === 'skin-color' ? 'skin' : id === 'outfit-color' ? 'outfit' : id === 'shoe-color' ? 'shoes' : 'hairColor']);
     for (const id of ['hair-style','accessory']) (document.querySelector<HTMLSelectElement>('#'+id)!).value = String(config[id === 'hair-style' ? 'hairStyle' : 'accessory']);
