@@ -401,3 +401,32 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
   .contract-field input { font-size:6.5px; padding:0 5px; }
   .contract-field button { min-width:43px; padding:0 5px; font-size:6.5px; }
 }
+
+
+/* Power-up HUD: keep the status clear of the header and touch controls. */
+.powerup-status {
+  top: auto;
+  bottom: max(132px, calc(env(safe-area-inset-bottom) + 124px));
+  left: 50%;
+  z-index: 4;
+  max-width: calc(100vw - 28px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+@media (max-width: 700px) {
+  .powerup-status {
+    bottom: max(108px, calc(env(safe-area-inset-bottom) + 102px));
+    padding: 6px 10px;
+    font-size: 8px;
+    letter-spacing: .07em;
+  }
+}
+@media (max-width: 390px) {
+  .powerup-status {
+    bottom: max(102px, calc(env(safe-area-inset-bottom) + 96px));
+    max-width: calc(100vw - 20px);
+    padding: 5px 8px;
+    font-size: 7px;
+  }
+}
