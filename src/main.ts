@@ -648,6 +648,61 @@ function animate() {
   const moving = Math.abs(inputX) + Math.abs(inputZ) > 0.05;
   player.position.x = THREE.MathUtils.clamp(player.position.x + inputX / length * 5 * delta, -8, 8);
   player.position.z = THREE.MathUtils.clamp(player.position.z + inputZ / length * 5 * delta, -8, 8);
+
+  // Solo arena bots actively hunt the player, close the distance, and launch timed kicks.
+  if (!networkReady) rivals.forEach((bot, index) => {
+    const velocity = (bot.userData.knockback as THREE.Vector3 | undefined) ?? new THREE.Vector3();
+    const botAI = (bot.userData.botAI as { cooldown: number; attackTime: number; hitDone: boolean } | undefined)
+      ?? { cooldown: 0.5 + index * 0.55, attackTime: 0, hitDone: false };
+    bot.userData.botAI = botAI;
+    botAI.cooldown = Math.max(0, botAI.cooldown - delta);
+    botAI.attackTime = Math.max(0, botAI.attackTime - delta);
+    const dx = player.position.x - bot.position.x;
+    const dz = player.position.z - bot.position.z;
+    const distance = Math.hypot(dx, dz);
+    if (distance > 0.001 && bot.position.y < 0.2) {
+      bot.rotation.y = Math.atan2(-dx, -dz);
+      if (distance > 1.55 && botAI.attackTime <= 0) {
+        const speed = index === 1 ? 2.65 : 2.25;
+        bot.position.x += dx / distance * speed * delta;
+        bot.position.z += dz / distance * speed * delta;
+        const walk = Math.sin(clock.elapsedTime * 9 + index) * 0.38;
+        (bot.userData.leftLeg as THREE.Group).rotation.x = walk;
+        (bot.userData.kickLeg as THREE.Group).rotation.x = -walk;
+      } else if (distance <= 1.95 && botAI.cooldown <= 0 && botAI.attackTime <= 0) {
+        botAI.attackTime = 0.52;
+        botAI.cooldown = 1.65 + index * 0.28;
+        botAI.hitDone = false;
+      }
+    }
+    if (botAI.attackTime > 0) {
+      const progress = 1 - botAI.attackTime / 0.52;
+      const leg = bot.userData.kickLeg as THREE.Group;
+      leg.rotation.x = Math.sin(progress * Math.PI) * 1.05;
+      if (!botAI.hitDone && progress >= 0.42 && progress <= 0.72) {
+        botAI.hitDone = true;
+        const hitDx = player.position.x - bot.position.x;
+        const hitDz = player.position.z - bot.position.z;
+        const hitDistance = Math.hypot(hitDx, hitDz);
+        const facing = new THREE.Vector3(0, 0, -1).applyQuaternion(bot.quaternion);
+        const towardPlayer = new THREE.Vector3(hitDx, 0, hitDz).normalize();
+        if (hitDistance < 2.15 && facing.dot(towardPlayer) > 0.35) {
+          const push = (player.userData.botPush as THREE.Vector3 | undefined) ?? new THREE.Vector3();
+          push.x += towardPlayer.x * (4.2 + index * 0.35);
+          push.z += towardPlayer.z * (4.2 + index * 0.35);
+          player.userData.botPush = push;
+          statusEl.textContent = 'BOT HIT!';
+        }
+      }
+      if (botAI.attackTime <= 0) leg.rotation.x = 0;
+    }
+  });
+  const botPush = (player.userData.botPush as THREE.Vector3 | undefined) ?? new THREE.Vector3();
+  player.position.x = THREE.MathUtils.clamp(player.position.x + botPush.x * delta, -8.2, 8.2);
+  player.position.z = THREE.MathUtils.clamp(player.position.z + botPush.z * delta, -8.2, 8.2);
+  botPush.multiplyScalar(Math.exp(-4.5 * delta));
+  if (Math.abs(botPush.x) + Math.abs(botPush.z) < 0.05) botPush.set(0, 0, 0);
+  player.userData.botPush = botPush;
   // Alternate legs and counter-swing arms for a grounded walk cycle.
   // Face the actual travel direction. Three.js forward is local -Z, so X needs the opposite sign here.
   if (moving) player.rotation.y = Math.atan2(-inputX, -inputZ);
@@ -820,7 +875,9 @@ function animate() {
       velocity.z = 0;
     }
     rival.userData.knockback = velocity;
-    rival.rotation.y += delta * (i % 2 ? 0.35 : -0.3);
+    const botAI = rival.userData.botAI as { attackTime: number } | undefined;
+    if (!botAI || botAI.attackTime <= 0) rival.rotation.y = Math.atan2(player.position.x - rival.position.x, player.position.z - rival.position.z) + Math.PI;
+    rival.rotation.y += delta * (i % 2 ? 0.02 : -0.02);
   });
   // Wider, higher follow camera keeps more of the arena visible on mobile.
   const cameraTargetX = player.position.x * 0.22;
