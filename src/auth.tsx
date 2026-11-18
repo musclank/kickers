@@ -6,6 +6,7 @@ import {
   useConnectWallet,
   useWallets
 } from '@privy-io/react-auth';
+import { base } from 'viem/chains';
 import './privy.css';
 
 const APP_ID = 'cmwlztaxg00v10hjym9n52hop';
@@ -69,6 +70,8 @@ function AuthApp() {
     <PrivyProvider
       appId={APP_ID}
       config={{
+        defaultChain: base,
+        supportedChains: [base],
         loginMethods: ['twitter', 'wallet'],
         appearance: {
           theme: 'dark',
