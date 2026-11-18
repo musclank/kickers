@@ -17,6 +17,12 @@
       <button id="creator-toggle" class="creator-toggle">CUSTOMIZE</button>
       <section id="creator" class="creator-panel">
         <div class="creator-heading"><div><span class="eyebrow">FIGHTER LAB</span><h2>CREATE YOUR CHARACTER</h2></div><span class="live-tag">3D PREVIEW</span></div>
+        <div class="photo-upload">
+          <div><strong>USE PHOTO FROM PHONE</strong><span>Choose a gallery image for your fighter's face.</span></div>
+          <label class="photo-picker" for="face-image">CHOOSE PHOTO</label>
+          <input id="face-image" type="file" accept="image/*" />
+          <button id="remove-face-image" type="button">REMOVE</button>
+        </div>
         <div class="creator-grid">
           <label>Skin color<input id="skin-color" type="color" value="#4de2d0"></label>
           <label>Outfit color<input id="outfit-color" type="color" value="#ffb84d"></label>
