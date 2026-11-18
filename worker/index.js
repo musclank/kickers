@@ -116,7 +116,7 @@ export class SocialRoom {
     if (sockets.some(ws => (ws.deserializeAttachment() || {}).id === id)) return new Response("Already connected.", { status: 409 });
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
-    server.serializeAttachment({ id, name: "KICKERS Player", lastChatAt: 0 });
+    server.serializeAttachment({ id, name: "KICKERS Player", lastChatAt: 0, x: 0, z: 2, rotation: 0, avatar: null });
     this.state.acceptWebSocket(server);
     server.send(JSON.stringify({ type: "system", message: "Welcome to the KICKERS public lobby." }));
     this.broadcastRoster();
@@ -128,8 +128,35 @@ export class SocialRoom {
     const meta = ws.deserializeAttachment() || {};
     if (data.type === "hello") {
       meta.name = cleanSocialText(data.name, 24) || "KICKERS Player";
+      if (data.avatar && typeof data.avatar === "object") {
+        const a = data.avatar;
+        meta.avatar = {
+          characterType: a.characterType === "robot" ? "robot" : "human",
+          skin: typeof a.skin === "string" && /^#[0-9a-f]{6}$/i.test(a.skin) ? a.skin : "#4de2d0",
+          outfit: typeof a.outfit === "string" && /^#[0-9a-f]{6}$/i.test(a.outfit) ? a.outfit : "#ffb84d",
+          shoes: typeof a.shoes === "string" && /^#[0-9a-f]{6}$/i.test(a.shoes) ? a.shoes : "#24243a",
+          hairColor: typeof a.hairColor === "string" && /^#[0-9a-f]{6}$/i.test(a.hairColor) ? a.hairColor : "#26314d",
+          hairStyle: ["none","smooth","spiky","cap"].includes(a.hairStyle) ? a.hairStyle : "smooth",
+          accessory: ["none","glasses","crown","horns"].includes(a.accessory) ? a.accessory : "none",
+          bodyWidth: Number.isFinite(a.bodyWidth) ? Math.max(.7,Math.min(1.5,a.bodyWidth)) : 1,
+          bodyHeight: Number.isFinite(a.bodyHeight) ? Math.max(.7,Math.min(1.5,a.bodyHeight)) : 1,
+          headSize: Number.isFinite(a.headSize) ? Math.max(.7,Math.min(1.5,a.headSize)) : 1,
+          legLength: Number.isFinite(a.legLength) ? Math.max(.7,Math.min(1.5,a.legLength)) : 1
+        };
+      }
+      if (Number.isFinite(data.x)) meta.x = Math.max(-6.4, Math.min(6.4, data.x));
+      if (Number.isFinite(data.z)) meta.z = Math.max(-6.4, Math.min(6.4, data.z));
+      if (Number.isFinite(data.rotation)) meta.rotation = data.rotation;
       ws.serializeAttachment(meta);
       this.broadcastRoster();
+      return;
+    }
+    if (data.type === "state") {
+      meta.x = Math.max(-6.4, Math.min(6.4, Number(data.x) || 0));
+      meta.z = Math.max(-6.4, Math.min(6.4, Number(data.z) || 0));
+      meta.rotation = Number(data.rotation) || 0;
+      ws.serializeAttachment(meta);
+      this.broadcast({ type: "state", id: meta.id, x: meta.x, z: meta.z, rotation: meta.rotation }, ws);
       return;
     }
     if (data.type === "chat") {
@@ -147,7 +174,7 @@ export class SocialRoom {
   broadcastRoster() {
     const players = this.state.getWebSockets().map(ws => {
       const meta = ws.deserializeAttachment() || {};
-      return { id: meta.id, name: meta.name || "KICKERS Player" };
+      return { id: meta.id, name: meta.name || "KICKERS Player", avatar: meta.avatar || null, x: meta.x || 0, z: meta.z || 0, rotation: meta.rotation || 0 };
     });
     this.broadcast({ type: "roster", players });
   }
