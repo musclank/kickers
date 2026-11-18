@@ -73,3 +73,5 @@ body { background: #10152b; color: #fff; font-family: Inter, ui-sans-serif, syst
 .room-display span { color:#fff; }
 .online-message { color:#ffd27b; font-size:9px; line-height:1.5; }
 @media (max-width:600px) { .online-toggle { top:118px; left:14px; padding:10px 12px; font-size:9px; } .online-panel { top:160px; left:10px; width:min(340px,calc(100vw - 20px)); padding:13px; } }
+
+.room-display[hidden] { display: none; }
