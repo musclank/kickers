@@ -615,3 +615,7 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
     top: max(170px, calc(env(safe-area-inset-top) + 160px));
   }
 }
+
+
+/* Legal links footer */
+.site-footer{position:relative;z-index:3;width:min(100% - 32px,900px);margin:24px auto 18px;padding:16px 18px;display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;border-top:1px solid rgba(90,160,220,.22);color:#8da8ca;font:700 10px/1.5 Arial,sans-serif;letter-spacing:1.1px;text-align:center}.site-footer nav{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap}.site-footer a{color:#9fc9ec;text-decoration:none}.site-footer a:hover{color:#56e7ff}
