@@ -193,3 +193,133 @@ body.customizing .creator-panel {
   body.customizing .creator-heading { margin-bottom: 10px; }
   body.customizing .creator-heading h2 { font-size: 13px; }
 }
+
+
+/* KICKERS UI refinement: consistent hierarchy, spacing, touch targets and states. */
+:root {
+  --ui-surface: rgba(13, 23, 43, .94);
+  --ui-surface-soft: rgba(24, 39, 65, .92);
+  --ui-line: rgba(126, 164, 210, .28);
+  --ui-accent: #65e7d9;
+  --ui-text: #f4f7ff;
+  --ui-muted: #aab6d2;
+}
+button, .photo-picker {
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease, filter .16s ease;
+}
+button { cursor: pointer; }
+button:focus-visible, .photo-picker:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 3px;
+}
+button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
+.fullscreen-toggle, .pause-toggle, .creator-toggle, .online-toggle,
+.photo-picker, .photo-upload button, .creator-footer button,
+.online-panel button, .match-over-card button {
+  min-height: 42px;
+  padding: 0 15px;
+  border: 1px solid var(--ui-line);
+  border-radius: 11px;
+  background: linear-gradient(180deg, #213553, #15243d);
+  color: var(--ui-text);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .075em;
+  box-shadow: 0 5px 14px rgba(0,0,0,.2), inset 0 1px rgba(255,255,255,.07);
+}
+.fullscreen-toggle:hover, .pause-toggle:hover, .creator-toggle:hover,
+.online-toggle:hover, .photo-picker:hover, .photo-upload button:hover,
+.creator-footer button:hover, .online-panel button:hover, .match-over-card button:hover {
+  border-color: var(--ui-accent);
+  filter: brightness(1.12);
+}
+.fullscreen-toggle:active, .pause-toggle:active, .creator-toggle:active,
+.online-toggle:active, .photo-picker:active, .photo-upload button:active,
+.creator-footer button:active, .online-panel button:active, .match-over-card button:active {
+  transform: translateY(1px) scale(.98);
+}
+.fullscreen-toggle, .pause-toggle { color: var(--ui-accent); border-color: rgba(101,231,217,.42); }
+.creator-toggle { color: var(--ui-accent); border-color: rgba(101,231,217,.48); }
+.online-toggle { color: #ffd27b; border-color: rgba(255,202,104,.42); }
+.topbar { left: clamp(12px, 2.2vw, 24px); right: clamp(12px, 2.2vw, 24px); gap: 16px; }
+.topbar-actions { gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.match-clock, .sound-controls {
+  min-height: 40px;
+  border: 1px solid var(--ui-line);
+  border-radius: 11px;
+  background: var(--ui-surface);
+  box-shadow: 0 5px 16px rgba(0,0,0,.18);
+}
+.match-clock { padding: 7px 12px; }
+.sound-controls { padding: 5px 10px; }
+#audio-toggle { min-height: 28px; padding: 4px 5px; }
+.pause-toggle { min-height: 40px; padding: 0 13px; }
+.creator-panel, .online-panel, .match-over-card {
+  border-color: var(--ui-line);
+  background: var(--ui-surface);
+  box-shadow: 0 20px 60px rgba(0,0,0,.42), inset 0 1px rgba(255,255,255,.045);
+}
+.creator-panel, .online-panel { border-radius: 18px; }
+.creator-panel input[type=color], .creator-panel select, .online-panel input {
+  min-height: 40px;
+  border-radius: 10px;
+  border-color: var(--ui-line);
+  background: var(--ui-surface-soft);
+}
+.creator-footer { gap: 12px; }
+.creator-footer button, .online-panel button:not(.leave-room), .match-over-card button {
+  background: linear-gradient(180deg, #83f4e7, #4bcbbb);
+  color: #0d1a2c;
+  border: 0;
+}
+.online-panel .leave-room { min-height: 40px; border-radius: 10px; }
+.online-actions { gap: 10px; }
+.controls { left: max(18px, env(safe-area-inset-left)); right: max(18px, env(safe-area-inset-right)); gap: 18px; }
+.action-buttons { gap: 12px; }
+.joystick { border-color: rgba(210,225,255,.38); background: rgba(15,27,49,.42); box-shadow: 0 10px 28px rgba(0,0,0,.2), inset 0 1px rgba(255,255,255,.12); }
+.stick { background: linear-gradient(145deg, #e4edff, #91a9d8); }
+.kick-button, .taunt-button, .mock-button {
+  border: 1px solid rgba(255,255,255,.3);
+  box-shadow: 0 5px 0 rgba(0,0,0,.28), 0 10px 24px rgba(0,0,0,.28);
+}
+.kick-button { color: #172035; }
+.taunt-button { background: linear-gradient(145deg, #b69aff, #7258d5); }
+.mock-button { background: linear-gradient(145deg, #ffe58a, #f5a34e); }
+.match-over-card button { min-width: 150px; min-height: 46px; }
+@media (max-width: 700px) {
+  .topbar { top: max(9px, env(safe-area-inset-top)); align-items: flex-start; gap: 8px; }
+  .brand { font-size: clamp(19px, 5vw, 27px); letter-spacing: .09em; white-space: nowrap; }
+  .topbar-actions { max-width: calc(100vw - 110px); gap: 6px; }
+  .round-label { display: none; }
+  .sound-controls { min-height: 36px; padding: 4px 7px; }
+  #audio-toggle { font-size: 8px; }
+  .match-clock { min-height: 36px; padding: 5px 8px; gap: 5px; }
+  .match-clock strong { font-size: 12px; }
+  .pause-toggle, .fullscreen-toggle { min-height: 36px; padding: 0 9px; font-size: 8px; }
+  .help { top: 70px; left: 14px; max-width: 170px; font-size: 10px; }
+  .online-toggle { top: 112px; left: 14px; min-height: 38px; }
+  .creator-toggle { top: 112px; right: 14px; min-height: 38px; }
+  .online-panel { top: 158px; left: 10px; }
+  .creator-panel { top: 158px; }
+  .controls { bottom: max(14px, env(safe-area-inset-bottom)); left: 14px; right: 14px; align-items: flex-end; }
+  .action-buttons { gap: clamp(6px, 2vw, 10px); }
+  .joystick { width: clamp(78px, 22vw, 94px); height: clamp(78px, 22vw, 94px); }
+  .stick { width: 42px; height: 42px; }
+  .kick-button { width: clamp(66px, 18vw, 78px); height: clamp(66px, 18vw, 78px); font-size: 14px; }
+  .taunt-button, .mock-button { width: clamp(50px, 14vw, 60px); height: clamp(50px, 14vw, 60px); font-size: 8px; }
+}
+@media (max-width: 390px) {
+  .topbar-actions { max-width: calc(100vw - 92px); gap: 4px; }
+  .brand { font-size: 18px; }
+  .sound-controls { padding: 3px 5px; }
+  .match-clock { padding: 4px 6px; }
+  .fullscreen-toggle, .pause-toggle { padding: 0 7px; font-size: 7px; }
+  .help { top: 62px; }
+  .online-toggle, .creator-toggle { top: 105px; padding: 0 10px; font-size: 8px; }
+  .action-buttons { gap: 5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  button, .photo-picker { transition: none; }
+}
