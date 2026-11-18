@@ -253,7 +253,7 @@ shirtImageInput.addEventListener('change', () => {
   const reader = new FileReader();
   reader.onload = () => {
     if (typeof reader.result !== 'string') return;
-    // Compress the selected image before storing it in this device's browser storage.
+    // Resize the selected image while preserving alpha transparency for PNG/WebP shirt artwork.
     const source = new Image();
     source.onload = () => {
       const canvas = document.createElement('canvas');
@@ -262,7 +262,8 @@ shirtImageInput.addEventListener('change', () => {
       if (!ctx) return;
       const size = Math.min(source.width, source.height);
       ctx.drawImage(source, (source.width - size) / 2, (source.height - size) / 2, size, size, 0, 0, 512, 512);
-      applyShirtImage(canvas.toDataURL('image/jpeg', 0.82));
+      // PNG keeps transparent pixels; JPEG would turn them into an opaque background.
+      applyShirtImage(canvas.toDataURL('image/png'));
     };
     source.src = reader.result;
   };
