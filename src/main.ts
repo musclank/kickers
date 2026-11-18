@@ -519,6 +519,17 @@ powerupRing.rotation.x = Math.PI / 2;
 powerup.add(powerupCore, powerupRing);
 powerup.position.set(-3.2, 0.85, 1.2);
 powerup.userData.respawn = 0;
+type PowerupKind = 'speed' | 'shield' | 'power';
+let nextPowerupKind: PowerupKind = 'speed';
+const powerupColors: Record<PowerupKind, number> = { speed: 0x65e7d9, shield: 0x69a7ff, power: 0xff786b };
+function setPowerupAppearance(kind: PowerupKind) {
+  nextPowerupKind = kind;
+  (powerupCore.material as THREE.MeshStandardMaterial).color.setHex(powerupColors[kind]);
+  (powerupCore.material as THREE.MeshStandardMaterial).emissive.setHex(powerupColors[kind]);
+  (powerupRing.material as THREE.MeshStandardMaterial).color.setHex(kind === 'power' ? 0xffd36a : powerupColors[kind]);
+  powerup.userData.kind = kind;
+}
+setPowerupAppearance('speed');
 scene.add(powerup);
 
 type RemotePlayer = { mesh: THREE.Group; targetX: number; targetZ: number; targetRotation: number; };
@@ -901,7 +912,7 @@ try {
 } catch { /* Ignore an invalid local saved design. */ }
 
 let moveX = 0, moveZ = 0, kickTime = 0, tauntTime = 0, mockTime = 0, walkTime = 0, kickHitDone = false;
-let speedBoostTime = 0, specialCooldown = 0, powerupRespawn = 0;
+let speedBoostTime = 0, shieldTime = 0, powerKickTime = 0, specialCooldown = 0, powerupRespawn = 0;
 let matchXpAwarded = false;
 const xpKey = 'kickers-progression-v1';
 function awardMatchXP(amount: number) {
@@ -1136,19 +1147,34 @@ function animate() {
   if (!networkReady && !victoryStarted) {
     specialCooldown = Math.max(0, specialCooldown - delta);
     speedBoostTime = Math.max(0, speedBoostTime - delta);
-    powerupStatus.textContent = speedBoostTime > 0 ? `SPEED BOOST ${speedBoostTime.toFixed(1)}s` : (specialCooldown > 0 ? `SPECIAL ${Math.ceil(specialCooldown)}s` : 'POWER-UP READY');
+    shieldTime = Math.max(0, shieldTime - delta);
+    powerKickTime = Math.max(0, powerKickTime - delta);
+    const activeEffect = speedBoostTime > 0 ? `SPEED BOOST ${speedBoostTime.toFixed(1)}s`
+      : shieldTime > 0 ? `SHIELD ${shieldTime.toFixed(1)}s`
+      : powerKickTime > 0 ? `POWER KICK ${powerKickTime.toFixed(1)}s`
+      : specialCooldown > 0 ? `SPECIAL ${Math.ceil(specialCooldown)}s` : 'POWER-UP READY';
+    powerupStatus.textContent = activeEffect;
     if (powerup.visible) {
       powerup.rotation.y += delta * 1.5;
       powerup.position.y = 0.82 + Math.sin(clock.elapsedTime * 2.8) * 0.12;
       if (!player.userData.fallen && Math.hypot(player.position.x - powerup.position.x, player.position.z - powerup.position.z) < 1.05) {
-        powerup.visible = false; speedBoostTime = 7; powerupRespawn = 10;
-        powerupStatus.textContent = 'SPEED BOOST 7.0s'; statusEl.textContent = 'POWER-UP COLLECTED!'; playSound('victory');
+        powerup.visible = false;
+        if (nextPowerupKind === 'speed') {
+          speedBoostTime = 7; powerupStatus.textContent = 'SPEED BOOST 7.0s'; statusEl.textContent = 'SPEED BOOST!';
+        } else if (nextPowerupKind === 'shield') {
+          shieldTime = 8; powerupStatus.textContent = 'SHIELD 8.0s'; statusEl.textContent = 'SHIELD ACTIVATED!';
+        } else {
+          powerKickTime = 8; powerupStatus.textContent = 'POWER KICK 8.0s'; statusEl.textContent = 'POWER KICK ACTIVATED!';
+        }
+        powerupRespawn = 10; playSound('victory');
       }
     } else if (powerupRespawn > 0) {
       powerupRespawn = Math.max(0, powerupRespawn - delta);
       if (powerupRespawn === 0) {
         const angle = Math.random() * Math.PI * 2, radius = 2.2 + Math.random() * 3.6;
         powerup.position.set(Math.cos(angle) * radius, 0.85, Math.sin(angle) * radius);
+        const kinds: PowerupKind[] = ['speed', 'shield', 'power'];
+        setPowerupAppearance(kinds[Math.floor(Math.random() * kinds.length)]);
         powerup.visible = true;
       }
     }
@@ -1197,7 +1223,7 @@ function animate() {
         const hitDistance = Math.hypot(hitDx, hitDz);
         const facing = new THREE.Vector3(0, 0, -1).applyQuaternion(bot.quaternion);
         const towardPlayer = new THREE.Vector3(hitDx, 0, hitDz).normalize();
-        if (hitDistance < 2.15 && facing.dot(towardPlayer) > 0.35) {
+        if (hitDistance < 2.15 && facing.dot(towardPlayer) > 0.35 && shieldTime <= 0) {
           const push = (player.userData.botPush as THREE.Vector3 | undefined) ?? new THREE.Vector3();
           push.x += towardPlayer.x * (4.2 + index * 0.35);
           push.z += towardPlayer.z * (4.2 + index * 0.35);
@@ -1293,9 +1319,10 @@ function animate() {
           const towardRival = offset.clone().normalize();
           if (forward.dot(towardRival) > 0.42) {
             const impulse = (rival.userData.knockback as THREE.Vector3 | undefined) ?? new THREE.Vector3();
-            impulse.x += towardRival.x * 8.5;
-            impulse.z += towardRival.z * 8.5;
-            impulse.y = Math.max(impulse.y, 4.8);
+            const kickForce = powerKickTime > 0 ? 12.5 : 8.5;
+            impulse.x += towardRival.x * kickForce;
+            impulse.z += towardRival.z * kickForce;
+            impulse.y = Math.max(impulse.y, powerKickTime > 0 ? 6.2 : 4.8);
             rival.userData.knockback = impulse;
             landedHit = true;
           }
