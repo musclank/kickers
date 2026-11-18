@@ -532,6 +532,31 @@ function setPowerupAppearance(kind: PowerupKind) {
 setPowerupAppearance('speed');
 scene.add(powerup);
 
+// Player-attached effect meshes stay hidden until their matching pickup is active.
+const speedAura = new THREE.Mesh(
+  new THREE.TorusGeometry(0.72, 0.045, 8, 32),
+  new THREE.MeshBasicMaterial({ color: 0x65e7d9, transparent: true, opacity: 0.9, depthWrite: false })
+);
+speedAura.rotation.x = Math.PI / 2;
+speedAura.position.y = 0.12;
+speedAura.visible = false;
+player.add(speedAura);
+const shieldAura = new THREE.Mesh(
+  new THREE.SphereGeometry(1.18, 20, 14),
+  new THREE.MeshBasicMaterial({ color: 0x69a7ff, wireframe: true, transparent: true, opacity: 0.42, depthWrite: false })
+);
+shieldAura.position.y = 1.05;
+shieldAura.visible = false;
+player.add(shieldAura);
+const powerKickAura = new THREE.Mesh(
+  new THREE.TorusGeometry(0.9, 0.075, 10, 32),
+  new THREE.MeshBasicMaterial({ color: 0xff786b, transparent: true, opacity: 0.9, depthWrite: false })
+);
+powerKickAura.rotation.x = Math.PI / 2;
+powerKickAura.position.y = 0.22;
+powerKickAura.visible = false;
+player.add(powerKickAura);
+
 type RemotePlayer = { mesh: THREE.Group; targetX: number; targetZ: number; targetRotation: number; };
 const remotePlayers = new Map<string, RemotePlayer>();
 const characterTypeInput = document.querySelector<HTMLSelectElement>('#character-type')!;
@@ -1149,6 +1174,16 @@ function animate() {
     speedBoostTime = Math.max(0, speedBoostTime - delta);
     shieldTime = Math.max(0, shieldTime - delta);
     powerKickTime = Math.max(0, powerKickTime - delta);
+    speedAura.visible = speedBoostTime > 0;
+    shieldAura.visible = shieldTime > 0;
+    powerKickAura.visible = powerKickTime > 0;
+    speedAura.rotation.z += delta * 2.4;
+    shieldAura.rotation.y += delta * 0.9;
+    powerKickAura.rotation.z -= delta * 2.8;
+    const auraPulse = 1 + Math.sin(clock.elapsedTime * 9) * 0.045;
+    shieldAura.scale.setScalar(auraPulse);
+    speedAura.scale.setScalar(1 + Math.sin(clock.elapsedTime * 12) * 0.08);
+    powerKickAura.scale.setScalar(1 + Math.sin(clock.elapsedTime * 14) * 0.1);
     const activeEffect = speedBoostTime > 0 ? `SPEED BOOST ${speedBoostTime.toFixed(1)}s`
       : shieldTime > 0 ? `SHIELD ${shieldTime.toFixed(1)}s`
       : powerKickTime > 0 ? `POWER KICK ${powerKickTime.toFixed(1)}s`
