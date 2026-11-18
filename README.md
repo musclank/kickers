@@ -1,6 +1,16 @@
 # KICKERS
 
-A free-first browser prototype for a cartoon arena brawler. Move around the arena, approach rivals, and kick them out. The current build is a visual movement prototype; combat physics, round logic, bots, and online play are planned next.
+A free-first browser prototype for a cartoon arena brawler. Move around the arena, customize a fighter, approach rivals, and kick them out.
+
+## Character Creator
+
+The live 3D character creator lets players customize:
+- Skin, outfit, shoe, and hair colors
+- Hair styles and accessories
+- Body width, body height, head size, and leg length
+- Save a character design locally in the current browser
+
+Character designs are currently stored on the player's device, not in an online account.
 
 ## Run locally
 
@@ -31,10 +41,11 @@ npm run preview
 ## Roadmap
 
 1. Arena and mobile movement prototype
-2. Kick hit detection, knockback, and elimination
-3. Match flow, winner screen, and restart
-4. Local bots and improved character animation
-5. Online multiplayer
-6. Optional Base Sepolia wallet/cosmetic experiments
+2. Character creator and local character saving
+3. Kick hit detection, knockback, and elimination
+4. Match flow, winner screen, and restart
+5. Local bots and improved character animation
+6. Online multiplayer
+7. Optional Base Sepolia wallet/cosmetic experiments
 
 Blockchain integration is optional and does not require a token. Online services may have usage limits or costs as the game scales.
