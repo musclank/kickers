@@ -17,6 +17,8 @@ const fullscreenButton = document.querySelector<HTMLButtonElement>('#fullscreen-
 const matchTimeEl = document.querySelector<HTMLElement>('#match-time')!;
 const matchOverEl = document.querySelector<HTMLDivElement>('#match-over')!;
 const playAgainButton = document.querySelector<HTMLButtonElement>('#play-again')!;
+const matchOverTitle = matchOverEl.querySelector<HTMLHeadingElement>('h2')!;
+const matchOverMessage = matchOverEl.querySelector<HTMLParagraphElement>('p')!;
 
 type AvatarConfig = {
   characterType: 'human' | 'robot'; skin: string; outfit: string; shoes: string; hairColor: string; hairStyle: string; accessory: string;
@@ -718,6 +720,8 @@ function animate() {
     if (matchTimeRemaining <= 0) {
       roundOver = true;
       statusEl.textContent = 'TIME UP';
+      matchOverTitle.textContent = 'TIME UP';
+      matchOverMessage.textContent = 'That round is over. Ready for another match?';
       matchOverEl.hidden = false;
       matchOverEl.setAttribute('aria-hidden', 'false');
     }
@@ -749,7 +753,17 @@ function animate() {
     player.userData.fallVelocity = Number(player.userData.fallVelocity || 0) - 18 * delta;
     player.position.y += Number(player.userData.fallVelocity) * delta;
     player.rotation.z += delta * 2.2;
-    if (player.position.y < -12) player.visible = false;
+    if (player.position.y < -12) {
+      player.visible = false;
+      if (!roundOver) {
+        roundOver = true;
+        statusEl.textContent = 'YOU FELL!';
+        matchOverTitle.textContent = 'YOU FELL!';
+        matchOverMessage.textContent = 'You fell into the abyss. Ready to try again?';
+        matchOverEl.hidden = false;
+        matchOverEl.setAttribute('aria-hidden', 'false');
+      }
+    }
   }
 
   // Solo arena bots actively hunt the player, close the distance, and launch timed kicks.
