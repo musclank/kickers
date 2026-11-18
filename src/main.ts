@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import './style.css';
+import './auth';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 const statusEl = document.querySelector<HTMLSpanElement>('#status')!;
@@ -295,12 +296,50 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = t
   }
   group.position.set(x, 0, z); scene.add(group); return group;
 }
+function setNameLabel(mesh: THREE.Group, name: string) {
+  const safeName = (name || 'KICKERS Player').replace(/[<>]/g, '').slice(0, 24);
+  let sprite = mesh.userData.nameSprite as THREE.Sprite | undefined;
+  if (sprite) {
+    const oldMap = sprite.material.map;
+    oldMap?.dispose();
+    sprite.material.dispose();
+    mesh.remove(sprite);
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.fillStyle = 'rgba(12, 20, 39, 0.88)';
+  ctx.beginPath();
+  ctx.roundRect(12, 14, 488, 100, 28);
+  ctx.fill();
+  ctx.strokeStyle = '#65e7d9';
+  ctx.lineWidth = 5;
+  ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 42px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(safeName, 256, 65, 450);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+  sprite = new THREE.Sprite(material);
+  sprite.scale.set(2.35, 0.59, 1);
+  sprite.position.set(0, mesh.userData.remoteRobot ? 4.0 : 2.35, 0);
+  sprite.renderOrder = 100;
+  mesh.add(sprite);
+  mesh.userData.nameSprite = sprite;
+}
+
 let player = makeAvatar(config, 0, 2);
+setNameLabel(player, 'KICKERS Player');
 const rivals = [
   makeAvatar({ ...defaults, skin: '#ff6b78', outfit: '#5d293d', accessory: 'horns' }, -4, -2),
   makeAvatar({ ...defaults, skin: '#ffc857', outfit: '#4b5f9a', hairStyle: 'spiky' }, 4, -3),
   makeAvatar({ ...defaults, skin: '#9b83ff', outfit: '#3d725f', accessory: 'crown' }, 1, -6)
 ];
+rivals.forEach((bot, index) => setNameLabel(bot, `BOT 0${index + 1}`));
 
 type RemotePlayer = { mesh: THREE.Group; targetX: number; targetZ: number; targetRotation: number; };
 const remotePlayers = new Map<string, RemotePlayer>();
@@ -324,7 +363,7 @@ let networkReady = false;
 const MULTIPLAYER_SERVER_URL = 'https://kickers-multiplayer.papahjahat9999.workers.dev';
 function setOnlineMessage(message: string) { onlineMessage.textContent = message; }
 function getWorkerBase() { return MULTIPLAYER_SERVER_URL; }
-function updateRoster(players: Array<{ id: string; name?: string; avatar?: Partial<AvatarConfig>; x?: number; z?: number; rotation?: number }>) {
+function updateRoster(players: Array<{ id: string; name?: string; walletAddress?: string | null; avatar?: Partial<AvatarConfig>; x?: number; z?: number; rotation?: number }>) {
   const activeIds = new Set(players.filter(p => p.id !== localPlayerId).map(p => p.id));
   for (const [id, remote] of remotePlayers) {
     if (!activeIds.has(id)) {
@@ -358,9 +397,13 @@ function updateRoster(players: Array<{ id: string; name?: string; avatar?: Parti
       const mesh = makeAvatar(look, item.x ?? 0, item.z ?? 0, false);
       mesh.userData.remoteAvatarLoaded = hasLook;
       mesh.userData.remoteRobot = look.characterType === 'robot';
+      setNameLabel(mesh, item.name || 'KICKERS Player');
       remote = { mesh, targetX: item.x ?? 0, targetZ: item.z ?? 0, targetRotation: item.rotation ?? 0 };
       remotePlayers.set(item.id, remote);
-    } else if (typeof item.x === 'number') {
+    } else {
+      setNameLabel(remote.mesh, item.name || 'KICKERS Player');
+    }
+    if (remote && typeof item.x === 'number') {
       remote.targetX = item.x;
       remote.targetZ = item.z ?? remote.targetZ;
       remote.targetRotation = item.rotation ?? remote.targetRotation;
@@ -368,6 +411,15 @@ function updateRoster(players: Array<{ id: string; name?: string; avatar?: Parti
   }
   playerCountText.textContent = `${players.length}/4 PLAYERS`;
 }
+let playerDisplayName = 'KICKERS Player';
+let playerWalletAddress: string | null = null;
+window.addEventListener('kickers:identity', (event) => {
+  const detail = (event as CustomEvent<{ displayName?: string; walletAddress?: string | null }>).detail;
+  playerDisplayName = detail?.displayName || 'KICKERS Player';
+  playerWalletAddress = detail?.walletAddress || null;
+  setNameLabel(player, playerDisplayName);
+  if (networkReady) sendNetwork({ type: 'hello', name: playerDisplayName, walletAddress: playerWalletAddress, avatar: { ...config, shirtImage: undefined } });
+});
 function sendNetwork(payload: Record<string, unknown>) {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(payload));
 }
@@ -383,7 +435,7 @@ function connectToRoom(room: string) {
   setOnlineMessage('CONNECTING TO ROOM...');
   ws.addEventListener('open', () => {
     networkReady = true;
-    sendNetwork({ type: 'hello', avatar: { ...config, shirtImage: undefined } });
+    sendNetwork({ type: 'hello', name: playerDisplayName, walletAddress: playerWalletAddress, avatar: { ...config, shirtImage: undefined } });
     setOnlineMessage('CONNECTED — WAITING FOR PLAYERS');
     roomDisplay.hidden = false;
     roomCodeText.textContent = room;
@@ -395,7 +447,7 @@ function connectToRoom(room: string) {
   });
   ws.addEventListener('message', event => {
     try {
-      const data = JSON.parse(String(event.data)) as { type: string; players?: Array<{ id: string; name?: string; avatar?: Partial<AvatarConfig>; x?: number; z?: number; rotation?: number }>; id?: string; x?: number; z?: number; rotation?: number };
+      const data = JSON.parse(String(event.data)) as { type: string; players?: Array<{ id: string; name?: string; walletAddress?: string | null; avatar?: Partial<AvatarConfig>; x?: number; z?: number; rotation?: number }>; id?: string; x?: number; z?: number; rotation?: number };
       if (data.type === 'roster' && data.players) updateRoster(data.players);
       if (data.type === 'state' && data.id && data.id !== localPlayerId) {
         const remote = remotePlayers.get(data.id);
@@ -463,6 +515,7 @@ function rebuildPlayer() {
   scene.remove(player);
   player.traverse((obj) => { if (obj instanceof THREE.Mesh) { obj.geometry.dispose(); if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose()); else obj.material.dispose(); } });
   player = makeAvatar(config, player.position.x, player.position.z);
+  setNameLabel(player, playerDisplayName);
 }
 function bindColor(id: string, key: keyof AvatarConfig) {
   const input = document.querySelector<HTMLInputElement>('#' + id)!;
