@@ -205,7 +205,8 @@ function animate() {
   const inputX = x || moveX, inputZ = z || moveZ, length = Math.hypot(inputX, inputZ) || 1;
   player.position.x = THREE.MathUtils.clamp(player.position.x + inputX / length * 5 * delta, -8, 8);
   player.position.z = THREE.MathUtils.clamp(player.position.z + inputZ / length * 5 * delta, -8, 8);
-  if (Math.abs(inputX) + Math.abs(inputZ) > 0.05) player.rotation.y = Math.atan2(inputX, inputZ);
+  // Avatar's face points along local -Z, so rotate toward the actual movement vector.
+  if (Math.abs(inputX) + Math.abs(inputZ) > 0.05) player.rotation.y = Math.atan2(inputX, -inputZ);
   if (kickTime > 0) {
     kickTime = Math.max(0, kickTime - delta);
     const progress = 1 - kickTime / 0.48;
