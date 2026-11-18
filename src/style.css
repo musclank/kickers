@@ -562,3 +562,33 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
     font-size: 12px;
   }
 }
+
+
+/* KICKERS official X profile link */
+.x-social-link {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  width: fit-content;
+  margin: 0 0 1px 2px;
+  padding: 7px 11px;
+  border: 1px solid #ffffff30;
+  border-radius: 999px;
+  background: #111a30e8;
+  color: #f4f7ff;
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  box-shadow: 0 5px 16px #0003;
+  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+  pointer-events: auto;
+}
+.x-social-link svg { width: 13px; height: 13px; fill: currentColor; flex: 0 0 auto; }
+.x-social-link:hover { border-color: #65e7d9aa; background: #1b2942f2; transform: translateY(-1px); }
+.x-social-link:focus-visible { outline: 2px solid #65e7d9; outline-offset: 3px; }
+@media (max-width: 600px) {
+  .x-social-link { gap: 6px; padding: 6px 9px; font-size: 9px; }
+  .x-social-link svg { width: 12px; height: 12px; }
+}
