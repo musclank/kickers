@@ -672,6 +672,8 @@ function rebuildPlayer() {
   player.traverse((obj) => { if (obj instanceof THREE.Mesh) { obj.geometry.dispose(); if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose()); else obj.material.dispose(); } });
   player = makeAvatar(config, player.position.x, player.position.z);
   setNameLabel(player, playerDisplayName);
+  // Reframe after every live edit so larger accessories/body settings stay visible.
+  if (customizing) frameCharacterPreview();
   // Keep the current appearance in sync when a player edits their fighter mid-session.
   if (networkReady) sendNetwork({ type: 'hello', name: playerDisplayName, walletAddress: playerWalletAddress, avatar: { ...config, shirtImage: undefined } });
 }
@@ -784,11 +786,12 @@ let customizationSnapshot: {
   cameraPosition: THREE.Vector3; rivalVisibility: boolean[]; remoteVisibility: boolean[];
 } | null = null;
 function frameCharacterPreview() {
-  // Fit the complete character bounds to the available viewport, including antenna,
-  // accessories, arms and feet. Hide the floating username while measuring.
+  // Frame the fighter in the unobstructed upper part of the screen on mobile.
+  // The robot's face/chest are on local -Z, so the preview camera must be in front.
   const nameSprite = player.userData.nameSprite as THREE.Sprite | undefined;
   const wasNameVisible = nameSprite?.visible ?? false;
   if (nameSprite) nameSprite.visible = false;
+  player.updateWorldMatrix(true, true);
   const bounds = new THREE.Box3().setFromObject(player);
   if (nameSprite) nameSprite.visible = wasNameVisible;
   if (bounds.isEmpty()) return;
@@ -797,9 +800,11 @@ function frameCharacterPreview() {
   const verticalFov = THREE.MathUtils.degToRad(camera.fov);
   const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * camera.aspect);
   const limitingHalfFov = Math.max(0.12, Math.min(verticalFov, horizontalFov) / 2);
-  const distance = Math.max(5.5, sphere.radius / Math.sin(limitingHalfFov) * 1.28);
-  camera.position.set(center.x, center.y + distance * 0.10, center.z + distance);
-  camera.lookAt(center.x, center.y, center.z);
+  // Extra breathing room keeps feet and antenna above the creator sheet.
+  const distance = Math.max(6.5, sphere.radius / Math.sin(limitingHalfFov) * 1.72);
+  camera.position.set(center.x, center.y + distance * 0.08, center.z - distance);
+  // Aim slightly below the character's center to shift the fighter upward on screen.
+  camera.lookAt(center.x, center.y - sphere.radius * 0.42, center.z);
   camera.updateProjectionMatrix();
 }
 function setCustomizationOpen(open: boolean) {
