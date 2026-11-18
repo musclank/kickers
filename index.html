@@ -12,7 +12,7 @@
       <div id="auth-root"></div>
       <div class="topbar">
         <div class="brand">KICKERS</div>
-        <div class="topbar-actions"><div class="round-label">ARENA PROTOTYPE <span id="status">READY</span></div><button id="fullscreen-toggle" class="fullscreen-toggle" type="button" aria-label="Enter fullscreen">FULL SCREEN</button></div>
+        <div class="topbar-actions"><div class="round-label">ARENA PROTOTYPE <span id="status">READY</span></div><div class="match-clock">MATCH <strong id="match-time">03:00</strong></div><button id="fullscreen-toggle" class="fullscreen-toggle" type="button" aria-label="Enter fullscreen">FULL SCREEN</button></div>
       </div>
       <div class="help">Build your fighter, then test the arena.</div>
       <button id="online-toggle" class="online-toggle" type="button">PLAY ONLINE</button>
@@ -61,6 +61,14 @@
         <div class="action-buttons"><button id="taunt" class="taunt-button" aria-label="Silly dance">TAUNT</button><button id="mock" class="mock-button" aria-label="Tease opponent">LEDEK</button><button id="kick" class="kick-button" aria-label="Kick">KICK</button></div>
       </div>
       <div class="desktop-hint">WASD / Arrow keys to move · Space to kick</div>
+      <section id="match-over" class="match-over" hidden aria-hidden="true">
+        <div class="match-over-card">
+          <span class="match-over-eyebrow">KICKERS ARENA</span>
+          <h2>TIME UP</h2>
+          <p>That round is over. Ready for another match?</p>
+          <button id="play-again" type="button">PLAY AGAIN</button>
+        </div>
+      </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
