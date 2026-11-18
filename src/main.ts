@@ -562,7 +562,7 @@ function animate() {
       kickHitDone = true;
       const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion).normalize();
       let landedHit = false;
-      rivals.forEach((rival) => {
+      if (!networkReady) rivals.forEach((rival) => {
         const offset = new THREE.Vector3(
           rival.position.x - player.position.x,
           0,
