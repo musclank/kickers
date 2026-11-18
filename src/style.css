@@ -95,3 +95,37 @@ body { background: #10152b; color: #fff; font-family: Inter, ui-sans-serif, syst
 .match-over-card p { color:#aab6dc; font-size:13px; line-height:1.5; }
 .match-over-card button { margin-top:12px; padding:13px 22px; border:0; border-radius:10px; background:#65e7d9; color:#10152b; font-size:11px; font-weight:1000; letter-spacing:.1em; }
 @media (max-width:600px) { .topbar-actions { gap:6px; } .match-clock { padding:7px 8px; font-size:8px; } .match-clock strong { font-size:13px; } }
+
+
+/* Subtle blockchain-inspired interface backdrop, layered above the 3D scene. */
+#app::before,
+#app::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+#app::before {
+  opacity: .34;
+  background-image:
+    radial-gradient(circle at 12% 22%, #62f6e8 0 1.5px, transparent 3px),
+    radial-gradient(circle at 29% 68%, #62f6e8 0 1.5px, transparent 3px),
+    radial-gradient(circle at 76% 18%, #62f6e8 0 1.5px, transparent 3px),
+    radial-gradient(circle at 88% 72%, #62f6e8 0 1.5px, transparent 3px),
+    radial-gradient(circle at 56% 84%, #8b7cff 0 1.5px, transparent 3px),
+    linear-gradient(28deg, transparent 49.7%, #4ce8df22 49.9%, #4ce8df22 50.1%, transparent 50.3%),
+    linear-gradient(148deg, transparent 49.7%, #4ce8df1c 49.9%, #4ce8df1c 50.1%, transparent 50.3%);
+  background-size: 100% 100%;
+}
+#app::after {
+  opacity: .2;
+  background-image:
+    linear-gradient(#68e8e8 1px, transparent 1px),
+    linear-gradient(90deg, #68e8e8 1px, transparent 1px),
+    radial-gradient(ellipse at 50% 50%, transparent 35%, #070b1a99 100%),
+    radial-gradient(ellipse at 15% 15%, #126b8a55, transparent 42%),
+    radial-gradient(ellipse at 88% 80%, #4935a855, transparent 42%);
+  background-size: 48px 48px, 48px 48px, 100% 100%, 100% 100%, 100% 100%;
+  mask-image: linear-gradient(to bottom, #000 0%, #000 60%, transparent 100%);
+}
