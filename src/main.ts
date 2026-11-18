@@ -70,6 +70,26 @@ baseTile.position.set(0, -0.065, 0);
 baseTile.renderOrder = 20;
 scene.add(baseTile);
 
+const trophy = new THREE.Group();
+const goldMaterial = new THREE.MeshStandardMaterial({ color: 0xffd447, metalness: 0.82, roughness: 0.2 });
+const trophyDark = new THREE.MeshStandardMaterial({ color: 0xc58a18, metalness: 0.75, roughness: 0.26 });
+const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.56, 0.62, 28, 1, false), goldMaterial);
+cup.position.y = 0.55; trophy.add(cup);
+const cupTop = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.055, 10, 28), goldMaterial);
+cupTop.rotation.x = Math.PI / 2; cupTop.position.y = 0.86; trophy.add(cupTop);
+for (const side of [-1, 1]) {
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.065, 10, 20, Math.PI), goldMaterial);
+  handle.position.set(side * 0.43, 0.61, 0);
+  handle.rotation.z = side === -1 ? Math.PI / 2 : -Math.PI / 2;
+  trophy.add(handle);
+}
+const trophyStem = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.13, 0.34, 16), trophyDark);
+trophyStem.position.y = 0.08; trophy.add(trophyStem);
+const trophyFoot = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 0.14, 20), goldMaterial);
+trophyFoot.position.y = -0.13; trophy.add(trophyFoot);
+trophy.visible = false;
+scene.add(trophy);
+
 const baseTextureLoader = new THREE.TextureLoader();
 baseTextureLoader.load(
   '/base-basemark-white.svg',
@@ -656,6 +676,19 @@ const clock = new THREE.Clock();
 const MATCH_DURATION = 180;
 let matchTimeRemaining = MATCH_DURATION;
 let roundOver = false;
+let victoryActive = false;
+let victoryTime = 0;
+let victoryStarted = false;
+const PODIUM_HEIGHT = 5.2;
+function beginVictory() {
+  if (victoryStarted || networkReady) return;
+  victoryStarted = true;
+  victoryActive = true;
+  victoryTime = 0;
+  moveX = 0; moveZ = 0;
+  statusEl.textContent = 'CHAMPION!';
+  trophy.visible = false;
+}
 function formatMatchTime(seconds: number) {
   const whole = Math.max(0, Math.ceil(seconds));
   return `${String(Math.floor(whole / 60)).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;
@@ -727,6 +760,40 @@ function animate() {
     }
   }
   if (roundOver) {
+    renderer.render(scene, camera);
+    return;
+  }
+  if (victoryActive) {
+    victoryTime += delta;
+    const approach = Math.min(1, victoryTime / 1.65);
+    player.position.x += (0 - player.position.x) * Math.min(1, delta * 2.8);
+    player.position.z += (0 - player.position.z) * Math.min(1, delta * 2.8);
+    player.rotation.y += (Math.PI - player.rotation.y) * Math.min(1, delta * 2.5);
+    if (victoryTime > 1.65) {
+      const rise = Math.min(1, (victoryTime - 1.65) / 2.15);
+      const height = 0.035 + (PODIUM_HEIGHT - 0.035) * rise;
+      baseTile.scale.y = height / 0.035;
+      baseTile.position.y = height / 2 - 0.065;
+      player.position.y = height - 0.065;
+      if (victoryTime > 4.05) {
+        trophy.visible = true;
+        trophy.position.set(0, player.position.y + 3.35 + Math.sin(victoryTime * 3) * 0.08, 0);
+        trophy.rotation.y += delta * 0.8;
+      }
+    }
+    camera.position.x += (0 - camera.position.x) * Math.min(1, delta * 1.8);
+    camera.position.y += (17 - camera.position.y) * Math.min(1, delta * 1.8);
+    camera.position.z += (20 - camera.position.z) * Math.min(1, delta * 1.8);
+    camera.lookAt(0, Math.min(PODIUM_HEIGHT, Math.max(0, player.position.y + 1.1)), 0);
+    if (victoryTime > 6.15) {
+      victoryActive = false;
+      roundOver = true;
+      statusEl.textContent = 'CHAMPION!';
+      matchOverTitle.textContent = 'YOU ARE THE CHAMPION!';
+      matchOverMessage.textContent = 'All rivals eliminated. The arena belongs to you!';
+      matchOverEl.hidden = false;
+      matchOverEl.setAttribute('aria-hidden', 'false');
+    }
     renderer.render(scene, camera);
     return;
   }
@@ -1005,6 +1072,10 @@ function animate() {
     rival.userData.knockback = velocity;
     // Bot facing is controlled by its chase AI above.
   });
+  // Victory begins only after every solo rival has completed its fall and disappeared.
+  if (!networkReady && !victoryStarted && rivals.every(rival => Boolean(rival.userData.fallen) && !rival.visible)) {
+    beginVictory();
+  }
   // Wider, higher follow camera keeps more of the arena visible on mobile.
   const cameraTargetX = player.position.x * 0.22;
   const cameraTargetZ = player.position.z + 20;
