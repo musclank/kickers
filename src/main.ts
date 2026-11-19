@@ -1082,6 +1082,7 @@ function renderPlayerStats() {
 playerStatsButton.addEventListener('click', () => { renderPlayerStats(); playerStatsPanel.hidden = false; });
 closePlayerStatsButton.addEventListener('click', () => { playerStatsPanel.hidden = true; });
 function launchGame(training: boolean) {
+  if (training && networkReady) { setOnlineMessage('TRAINING MODE IS OFFLINE-ONLY'); return; }
   trainingMode = training;
   startScreen.hidden = true;
   matchTimeRemaining = MATCH_DURATION;
