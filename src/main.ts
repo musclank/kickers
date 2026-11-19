@@ -1079,6 +1079,35 @@ function frameCharacterPreview() {
   camera.lookAt(center.x, center.y - sphere.radius * 1.15, center.z);
   camera.updateProjectionMatrix();
 }
+
+const arenaThemes = {
+  classic: { sky: 0x10152b, floor: 0xf2f4f8, rim: 0xffc857, wall: 0x171d32, deep: 0x080d1b, fog: 0x10152b },
+  lava: { sky: 0x241018, floor: 0x38212a, rim: 0xff713d, wall: 0x32151d, deep: 0x10080d, fog: 0x241018 },
+  ice: { sky: 0x10283b, floor: 0xd9f3ff, rim: 0x65dfff, wall: 0x183c55, deep: 0x071522, fog: 0x10283b }
+} as const;
+function applyArenaTheme(id: keyof typeof arenaThemes) {
+  const theme = arenaThemes[id] || arenaThemes.classic;
+  scene.background = new THREE.Color(theme.sky);
+  scene.fog = new THREE.Fog(theme.fog, 24, 58);
+  (floor.material as THREE.MeshStandardMaterial).color.setHex(theme.floor);
+  (rim.material as THREE.MeshStandardMaterial).color.setHex(theme.rim);
+  (abyssWall.material as THREE.MeshStandardMaterial).color.setHex(theme.wall);
+  (abyssFloor.material as THREE.MeshStandardMaterial).color.setHex(theme.deep);
+  document.querySelectorAll<HTMLButtonElement>("[data-arena]").forEach(button => {
+    const selected = button.dataset.arena === id;
+    button.classList.toggle("selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+  try { localStorage.setItem("kickers-arena-v1", id); } catch { /* theme remains active for this session */ }
+}
+const arenaOptions = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-arena]"));
+arenaOptions.forEach(button => button.addEventListener("click", () => {
+  const id = button.dataset.arena as keyof typeof arenaThemes;
+  if (id in arenaThemes) { applyArenaTheme(id); playSound("ui"); }
+}));
+const savedArena = localStorage.getItem("kickers-arena-v1") as keyof typeof arenaThemes | null;
+applyArenaTheme(savedArena && savedArena in arenaThemes ? savedArena : "classic");
+
 function setCustomizationOpen(open: boolean) {
   if (open === customizing) return;
   if (open && roundOver) return;
@@ -1120,6 +1149,28 @@ function setCustomizationOpen(open: boolean) {
     statusEl.textContent = networkReady ? 'ONLINE' : (gamePaused ? 'PAUSED' : 'READY');
   }
 }
+
+let previewPointerId: number | null = null;
+let previewPointerX = 0;
+renderer.domElement.addEventListener("pointerdown", event => {
+  if (!customizing) return;
+  previewPointerId = event.pointerId;
+  previewPointerX = event.clientX;
+  renderer.domElement.setPointerCapture(event.pointerId);
+  renderer.domElement.style.cursor = "grabbing";
+});
+renderer.domElement.addEventListener("pointermove", event => {
+  if (!customizing || previewPointerId !== event.pointerId) return;
+  player.rotation.y += (event.clientX - previewPointerX) * 0.012;
+  previewPointerX = event.clientX;
+});
+const releasePreviewPointer = (event: PointerEvent) => {
+  if (previewPointerId !== event.pointerId) return;
+  previewPointerId = null;
+  renderer.domElement.style.cursor = "";
+};
+renderer.domElement.addEventListener("pointerup", releasePreviewPointer);
+renderer.domElement.addEventListener("pointercancel", releasePreviewPointer);
 creatorToggle.addEventListener('click', () => setCustomizationOpen(!customizing));
 saveButton.addEventListener('click', () => {
   try { localStorage.setItem('kickers-avatar-v1', JSON.stringify(config)); savedLabel.textContent = 'CHARACTER SAVED ON THIS DEVICE'; }
@@ -1466,7 +1517,7 @@ joystick.addEventListener('pointerup', releaseStick); joystick.addEventListener(
 function animate() {
   requestAnimationFrame(animate);
   const delta = Math.min(clock.getDelta(), 0.04);
-  if ((gamePaused && !networkReady) || customizing) { renderer.render(scene, camera); return; }
+  if ((gamePaused && !networkReady) || customizing) { if (customizing && previewPointerId === null) player.rotation.y += delta * 0.22; renderer.render(scene, camera); return; }
   if (!roundOver && !trainingMode && !networkReady) {
     matchTimeRemaining = Math.max(0, matchTimeRemaining - delta);
     matchTimeEl.textContent = formatMatchTime(matchTimeRemaining);
