@@ -38,6 +38,7 @@ export class ArenaRoom {
   constructor(state) {
     this.state = state;
     this.sessions = new Map();
+    this.match = { started: false, finished: false };
   }
   async fetch(request) {
     const url = new URL(request.url);
@@ -49,12 +50,21 @@ export class ArenaRoom {
     const name = url.searchParams.get("name") || "KICKERS Player";
     const current = this.state.getWebSockets().length;
     if (current >= 4) return new Response("Room is full", { status: 409 });
-    server.serializeAttachment({ id, name, x: 0, z: 2, rotation: 0, avatar: null });
+    if (this.match.finished) return new Response("Match finished. Create a new room.", { status: 409 });
+    server.serializeAttachment({ id, name, x: 0, z: 2, rotation: 0, avatar: null, hp: 100, knockedOut: false, lastKickAt: 0 });
     this.state.acceptWebSocket(server);
     this.sessions.set(id, server);
     server.send(JSON.stringify({ type: "welcome", id }));
     this.broadcastRoster();
+    this.tryStartMatch();
     return new Response(null, { status: 101, webSocket: client });
+  }
+  tryStartMatch() {
+    const players = this.state.getWebSockets().map(ws => ws.deserializeAttachment() || {});
+    if (!this.match.started && !this.match.finished && players.length >= 2) {
+      this.match.started = true;
+      this.broadcast({ type: "match-start", duration: 300, players: players.map(p => ({ id: p.id, hp: 100 })) });
+    }
   }
   webSocketMessage(ws, message) {
     let data;
@@ -83,6 +93,7 @@ export class ArenaRoom {
     const meta = ws.deserializeAttachment() || {};
     this.sessions.delete(meta.id);
     this.broadcastRoster();
+    if (this.state.getWebSockets().length === 0) this.match = { started: false, finished: false };
   }
   webSocketError(ws) { this.webSocketClose(ws); }
   broadcastRoster() {
