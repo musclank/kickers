@@ -939,15 +939,26 @@ let moveX = 0, moveZ = 0, kickTime = 0, tauntTime = 0, mockTime = 0, walkTime = 
 let speedBoostTime = 0, shieldTime = 0, powerKickTime = 0, specialCooldown = 0, powerupRespawn = 0;
 let matchXpAwarded = false;
 let matchXpEarned = 0;
+let matchResultRecorded = false;
 const xpKey = 'kickers-progression-v1';
 function awardMatchXP(amount: number) {
   if (matchXpAwarded) return 0;
   matchXpAwarded = true;
-  let stats = { xp: 0, wins: 0, matches: 0 };
+  let stats = { xp: 0, wins: 0, losses: 0, matches: 0 };
   try { stats = { ...stats, ...JSON.parse(localStorage.getItem(xpKey) || '{}') }; } catch { /* reset invalid local data */ }
-  stats.xp += amount; stats.matches += 1; stats.wins += 1;
+  stats.xp += amount;
   localStorage.setItem(xpKey, JSON.stringify(stats));
   return stats.xp;
+}
+function recordMatchResult(result: 'win' | 'loss') {
+  if (matchResultRecorded) return;
+  matchResultRecorded = true;
+  let stats = { xp: 0, wins: 0, losses: 0, matches: 0 };
+  try { stats = { ...stats, ...JSON.parse(localStorage.getItem(xpKey) || '{}') }; } catch { /* reset invalid local data */ }
+  stats.matches += 1;
+  if (result === 'win') stats.wins += 1;
+  else stats.losses += 1;
+  localStorage.setItem(xpKey, JSON.stringify(stats));
 }
 const keys = new Set<string>();
 const clock = new THREE.Clock();
@@ -969,6 +980,7 @@ function beginVictory() {
   trophy.visible = false;
   const totalXP = awardMatchXP(100);
   matchXpEarned = 100;
+  recordMatchResult('win');
   powerup.visible = false;
   matchOverMessage.textContent = `All rivals eliminated! +100 XP · Total XP: ${totalXP}`;
   updateMatchResult();
@@ -1002,6 +1014,21 @@ function setGamePaused(paused: boolean) {
 const startScreen = document.querySelector<HTMLDivElement>('#start-screen')!;
 const startGameButton = document.querySelector<HTMLButtonElement>('#start-game')!;
 const startCustomizeButton = document.querySelector<HTMLButtonElement>('#start-customize')!;
+const playerStatsButton = document.querySelector<HTMLButtonElement>('#player-stats-button')!;
+const playerStatsPanel = document.querySelector<HTMLElement>('#player-stats-panel')!;
+const closePlayerStatsButton = document.querySelector<HTMLButtonElement>('#close-player-stats')!;
+function renderPlayerStats() {
+  let stats = { xp: 0, wins: 0, losses: 0, matches: 0 };
+  try { stats = { ...stats, ...JSON.parse(localStorage.getItem(xpKey) || '{}') }; } catch { /* show empty stats */ }
+  const winRate = stats.matches ? Math.round((stats.wins / stats.matches) * 100) : 0;
+  const values: Record<string, number> = { matches: stats.matches, wins: stats.wins, losses: stats.losses, winRate, xp: stats.xp };
+  Object.entries(values).forEach(([key, value]) => {
+    const el = playerStatsPanel.querySelector<HTMLElement>(`[data-stat="${key}"]`);
+    if (el) el.textContent = key === 'winRate' ? `${value}%` : String(value);
+  });
+}
+playerStatsButton.addEventListener('click', () => { renderPlayerStats(); playerStatsPanel.hidden = false; });
+closePlayerStatsButton.addEventListener('click', () => { playerStatsPanel.hidden = true; });
 startGameButton.addEventListener('click', () => {
   startScreen.hidden = true;
   setGamePaused(false);
@@ -1109,6 +1136,7 @@ function animate() {
       statusEl.textContent = 'TIME UP';
       matchOverTitle.textContent = 'TIME UP';
       matchOverMessage.textContent = 'That round is over. Ready for another match?';
+      recordMatchResult('loss');
       updateMatchResult();
       matchOverEl.hidden = false;
       matchOverEl.setAttribute('aria-hidden', 'false');
@@ -1185,6 +1213,8 @@ function animate() {
         statusEl.textContent = 'YOU FELL!';
         matchOverTitle.textContent = 'YOU FELL!';
         matchOverMessage.textContent = 'You fell into the abyss. Ready to try again?';
+        recordMatchResult('loss');
+        updateMatchResult();
         matchOverEl.hidden = false;
         matchOverEl.setAttribute('aria-hidden', 'false');
       }
