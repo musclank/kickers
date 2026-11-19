@@ -1047,79 +1047,7 @@ function setCustomizationOpen(open: boolean) {
     player.rotation.set(0, 0, 0);
     player.visible = true;
     rivals.forEach(bot => { bot.visible = false; });
-    // Fighter-specific body choreography makes each special move readable even without its VFX.
-  if (specialTime > 0) {
-    specialTime = Math.max(0, specialTime - delta);
-    const progress = 1 - specialTime / 0.78;
-    const hit = Math.sin(Math.min(1, progress * 1.18) * Math.PI);
-    const release = Math.sin(Math.max(0, (progress - 0.28) / 0.72) * Math.PI);
-    const robot = config.characterType === 'robot';
-    const neutralLeft = robot ? 0 : -0.25;
-    const neutralRight = robot ? 0 : 0.25;
-    leftArm.rotation.x = 0;
-    rightArm.rotation.x = 0;
-    leftArm.rotation.z = neutralLeft;
-    rightArm.rotation.z = neutralRight;
-    leftLeg.rotation.x = 0;
-    rightLeg.rotation.x = 0;
-    player.rotation.x = 0;
-    player.rotation.z = 0;
-    if (specialFighter === 'blaze') {
-      player.rotation.x = -0.22 * hit;
-      leftArm.rotation.z = neutralLeft - 0.95 * hit;
-      rightArm.rotation.z = neutralRight + 0.95 * hit;
-      leftArm.rotation.x = -0.45 * release; rightArm.rotation.x = -0.45 * release;
-      player.position.y = hit * 0.12;
-    } else if (specialFighter === 'shadow') {
-      player.rotation.x = 0.38 * hit;
-      player.rotation.z = -0.12 * hit;
-      rightArm.rotation.x = -1.25 * hit;
-      leftArm.rotation.x = 0.75 * hit;
-      rightArm.rotation.z = neutralRight + 0.28 * hit;
-      leftArm.rotation.z = neutralLeft - 0.22 * hit;
-      rightLeg.rotation.x = -0.72 * hit; leftLeg.rotation.x = 0.38 * hit;
-      player.position.y = hit * 0.045;
-    } else if (specialFighter === 'titan') {
-      player.rotation.x = -0.3 * hit;
-      leftArm.rotation.x = 0.72 * hit; rightArm.rotation.x = 0.72 * hit;
-      leftArm.rotation.z = neutralLeft - 0.82 * hit;
-      rightArm.rotation.z = neutralRight + 0.82 * hit;
-      leftLeg.rotation.x = -0.42 * hit; rightLeg.rotation.x = -0.42 * hit;
-      player.position.y = -0.14 * hit;
-    } else if (specialFighter === 'venom') {
-      player.rotation.z = Math.sin(progress * Math.PI * 2) * 0.2 * hit;
-      leftArm.rotation.x = 0.9 * hit; rightArm.rotation.x = 0.9 * hit;
-      leftArm.rotation.z = neutralLeft - 0.48 * hit;
-      rightArm.rotation.z = neutralRight + 0.48 * hit;
-      player.position.y = Math.abs(Math.sin(progress * Math.PI * 3)) * 0.06;
-    } else if (specialFighter === 'nova') {
-      leftArm.rotation.z = neutralLeft - 1.35 * hit;
-      rightArm.rotation.z = neutralRight + 1.35 * hit;
-      leftArm.rotation.x = -0.32 * hit; rightArm.rotation.x = -0.32 * hit;
-      player.rotation.x = -0.12 * hit;
-      player.position.y = 0.16 * hit;
-    } else if (specialFighter === 'frost') {
-      leftArm.rotation.z = neutralLeft - 0.72 * hit;
-      rightArm.rotation.z = neutralRight + 0.72 * hit;
-      leftArm.rotation.x = 0.58 * hit; rightArm.rotation.x = 0.58 * hit;
-      player.rotation.x = 0.16 * hit;
-      player.position.y = 0.035 * hit;
-    } else {
-      leftArm.rotation.z = neutralLeft - 0.85 * hit;
-      rightArm.rotation.z = neutralRight + 0.85 * hit;
-      leftArm.rotation.x = -0.2 * hit; rightArm.rotation.x = -0.2 * hit;
-      player.rotation.x = -0.12 * hit;
-      player.position.y = 0.07 * hit;
-    }
-    if (specialTime <= 0) {
-      leftArm.rotation.x = 0; rightArm.rotation.x = 0;
-      leftArm.rotation.z = neutralLeft; rightArm.rotation.z = neutralRight;
-      leftLeg.rotation.x = 0; rightLeg.rotation.x = 0;
-      player.rotation.x = 0; player.rotation.z = 0; player.position.y = 0;
-      statusEl.textContent = 'READY';
-    }
-  }
-  remotePlayers.forEach(remote => { remote.mesh.visible = false; });
+    remotePlayers.forEach(remote => { remote.mesh.visible = false; });
     frameCharacterPreview();
     statusEl.textContent = 'CHARACTER PREVIEW';
   } else {
@@ -1820,6 +1748,78 @@ function animate() {
       kickLeg.rotation.x = 0;
       kickShin.rotation.x = 0;
       player.rotation.x = 0;
+      statusEl.textContent = 'READY';
+    }
+  }
+  // Fighter-specific body choreography makes each special move readable even without its VFX.
+  if (specialTime > 0) {
+    specialTime = Math.max(0, specialTime - delta);
+    const progress = 1 - specialTime / 0.78;
+    const hit = Math.sin(Math.min(1, progress * 1.18) * Math.PI);
+    const release = Math.sin(Math.max(0, (progress - 0.28) / 0.72) * Math.PI);
+    const robot = config.characterType === 'robot';
+    const neutralLeft = robot ? 0 : -0.25;
+    const neutralRight = robot ? 0 : 0.25;
+    leftArm.rotation.x = 0;
+    rightArm.rotation.x = 0;
+    leftArm.rotation.z = neutralLeft;
+    rightArm.rotation.z = neutralRight;
+    leftLeg.rotation.x = 0;
+    rightLeg.rotation.x = 0;
+    player.rotation.x = 0;
+    player.rotation.z = 0;
+    if (specialFighter === 'blaze') {
+      player.rotation.x = -0.22 * hit;
+      leftArm.rotation.z = neutralLeft - 0.95 * hit;
+      rightArm.rotation.z = neutralRight + 0.95 * hit;
+      leftArm.rotation.x = -0.45 * release; rightArm.rotation.x = -0.45 * release;
+      player.position.y = hit * 0.12;
+    } else if (specialFighter === 'shadow') {
+      player.rotation.x = 0.38 * hit;
+      player.rotation.z = -0.12 * hit;
+      rightArm.rotation.x = -1.25 * hit;
+      leftArm.rotation.x = 0.75 * hit;
+      rightArm.rotation.z = neutralRight + 0.28 * hit;
+      leftArm.rotation.z = neutralLeft - 0.22 * hit;
+      rightLeg.rotation.x = -0.72 * hit; leftLeg.rotation.x = 0.38 * hit;
+      player.position.y = hit * 0.045;
+    } else if (specialFighter === 'titan') {
+      player.rotation.x = -0.3 * hit;
+      leftArm.rotation.x = 0.72 * hit; rightArm.rotation.x = 0.72 * hit;
+      leftArm.rotation.z = neutralLeft - 0.82 * hit;
+      rightArm.rotation.z = neutralRight + 0.82 * hit;
+      leftLeg.rotation.x = -0.42 * hit; rightLeg.rotation.x = -0.42 * hit;
+      player.position.y = -0.14 * hit;
+    } else if (specialFighter === 'venom') {
+      player.rotation.z = Math.sin(progress * Math.PI * 2) * 0.2 * hit;
+      leftArm.rotation.x = 0.9 * hit; rightArm.rotation.x = 0.9 * hit;
+      leftArm.rotation.z = neutralLeft - 0.48 * hit;
+      rightArm.rotation.z = neutralRight + 0.48 * hit;
+      player.position.y = Math.abs(Math.sin(progress * Math.PI * 3)) * 0.06;
+    } else if (specialFighter === 'nova') {
+      leftArm.rotation.z = neutralLeft - 1.35 * hit;
+      rightArm.rotation.z = neutralRight + 1.35 * hit;
+      leftArm.rotation.x = -0.32 * hit; rightArm.rotation.x = -0.32 * hit;
+      player.rotation.x = -0.12 * hit;
+      player.position.y = 0.16 * hit;
+    } else if (specialFighter === 'frost') {
+      leftArm.rotation.z = neutralLeft - 0.72 * hit;
+      rightArm.rotation.z = neutralRight + 0.72 * hit;
+      leftArm.rotation.x = 0.58 * hit; rightArm.rotation.x = 0.58 * hit;
+      player.rotation.x = 0.16 * hit;
+      player.position.y = 0.035 * hit;
+    } else {
+      leftArm.rotation.z = neutralLeft - 0.85 * hit;
+      rightArm.rotation.z = neutralRight + 0.85 * hit;
+      leftArm.rotation.x = -0.2 * hit; rightArm.rotation.x = -0.2 * hit;
+      player.rotation.x = -0.12 * hit;
+      player.position.y = 0.07 * hit;
+    }
+    if (specialTime <= 0) {
+      leftArm.rotation.x = 0; rightArm.rotation.x = 0;
+      leftArm.rotation.z = neutralLeft; rightArm.rotation.z = neutralRight;
+      leftLeg.rotation.x = 0; rightLeg.rotation.x = 0;
+      player.rotation.x = 0; player.rotation.z = 0; player.position.y = 0;
       statusEl.textContent = 'READY';
     }
   }
