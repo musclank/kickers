@@ -39,6 +39,9 @@ export class ArenaRoom {
     this.state = state;
     this.sessions = new Map();
     this.match = { started: false, finished: false };
+    this.state.blockConcurrencyWhile(async () => {
+      this.match = await this.state.storage.get("match-state") || { started: false, finished: false };
+    });
   }
   async fetch(request) {
     const url = new URL(request.url);
@@ -56,17 +59,18 @@ export class ArenaRoom {
     this.sessions.set(id, server);
     server.send(JSON.stringify({ type: "welcome", id }));
     this.broadcastRoster();
-    this.tryStartMatch();
+    await this.tryStartMatch();
     return new Response(null, { status: 101, webSocket: client });
   }
-  tryStartMatch() {
+  async tryStartMatch() {
     const players = this.state.getWebSockets().map(ws => ws.deserializeAttachment() || {});
     if (!this.match.started && !this.match.finished && players.length >= 2) {
       this.match.started = true;
+      await this.state.storage.put("match-state", this.match);
       this.broadcast({ type: "match-start", duration: 300, players: players.map(p => ({ id: p.id, hp: 100 })) });
     }
   }
-  webSocketMessage(ws, message) {
+  async webSocketMessage(ws, message) {
     let data;
     try { data = JSON.parse(message); } catch { return; }
     const meta = ws.deserializeAttachment() || {};
@@ -113,6 +117,7 @@ export class ArenaRoom {
       const alive = this.state.getWebSockets().map(other => other.deserializeAttachment() || {}).filter(p => !p.knockedOut);
       if (alive.length === 1 && this.state.getWebSockets().length >= 2) {
         this.match.finished = true;
+        await this.state.storage.put("match-state", this.match);
         this.broadcast({ type: "match-result", winnerId: alive[0].id, players: this.state.getWebSockets().map(other => { const p = other.deserializeAttachment() || {}; return { id: p.id, hp: p.hp, knockedOut: Boolean(p.knockedOut) }; }) });
       }
     }
@@ -123,7 +128,10 @@ export class ArenaRoom {
     const meta = ws.deserializeAttachment() || {};
     this.sessions.delete(meta.id);
     this.broadcastRoster();
-    if (this.state.getWebSockets().length === 0) this.match = { started: false, finished: false };
+    if (this.state.getWebSockets().length === 0) {
+      this.match = { started: false, finished: false };
+      void this.state.storage.delete("match-state");
+    }
   }
   webSocketError(ws) { this.webSocketClose(ws); }
   broadcastRoster() {
