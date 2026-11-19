@@ -70,6 +70,7 @@
             <button id="start-game" class="start-primary" type="button">START GAME</button>
             <button id="start-customize" class="start-secondary" type="button">CUSTOMIZE FIGHTER</button>
           </div>
+          <button id="player-stats-button" class="start-secondary player-stats-button" type="button">PLAYER STATS</button>
           <div class="start-guide" aria-label="How to play">
             <div class="start-guide-item"><strong>MOVE</strong><span>Joystick / WASD</span></div>
             <div class="start-guide-item"><strong>KICK</strong><span>Tap KICK / Space</span></div>
@@ -129,6 +130,20 @@
       </div>
       <div class="desktop-hint">WASD / Arrow keys to move · Space to kick</div>
 <section id="pause-overlay" class="match-over pause-overlay" hidden aria-hidden="true"><div class="match-over-card"><span class="match-over-eyebrow">KICKERS OFFLINE MODE</span><h2>PAUSED</h2><p>Your match and timer are paused.</p><div class="match-clock pause-match-clock" aria-label="Time remaining">TIME LEFT <strong id="match-time">05:00</strong></div><button id="resume-game" type="button">RESUME GAME</button><nav class="pause-legal-nav" aria-label="Legal navigation"><a href="/terms.html">Terms</a><a href="/privacy.html">Privacy</a><a href="/community-guidelines.html">Community Guidelines</a></nav></div></section>
+      <section id="player-stats-panel" class="player-stats-panel" hidden aria-label="Player statistics">
+        <div class="player-stats-card">
+          <span class="match-over-eyebrow">KICKERS PROFILE</span>
+          <h2>PLAYER STATISTICS</h2>
+          <div class="player-stats-grid">
+            <div><strong data-stat="matches">0</strong><span>MATCHES</span></div>
+            <div><strong data-stat="wins">0</strong><span>WINS</span></div>
+            <div><strong data-stat="losses">0</strong><span>LOSSES</span></div>
+            <div><strong data-stat="winRate">0%</strong><span>WIN RATE</span></div>
+            <div><strong data-stat="xp">0</strong><span>TOTAL XP</span></div>
+          </div>
+          <button id="close-player-stats" type="button">CLOSE</button>
+        </div>
+      </section>
       <section id="match-over" class="match-over" hidden aria-hidden="true">
         <div class="match-over-card">
           <span class="match-over-eyebrow">KICKERS ARENA</span>
