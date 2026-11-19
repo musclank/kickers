@@ -148,22 +148,23 @@ updateAudioUI();
 
 
 type AvatarConfig = {
+  headType: 'human' | 'wolf' | 'fox' | 'bear' | 'bull' | 'shark' | 'skull' | 'alien';
   characterType: 'human' | 'robot'; skin: string; outfit: string; shoes: string; hairColor: string; hairStyle: string; accessory: string;
   pants: string; gloves: string; eyeColor: string; eyeStyle: string; topStyle: 'jacket' | 'hoodie' | 'armor' | 'tee'; pantsStyle: 'shorts' | 'long' | 'joggers'; shoeStyle: 'sneakers' | 'high-tops' | 'boots' | 'futuristic';
   bodyWidth: number; bodyHeight: number; headSize: number; legLength: number; shirtImage?: string; fighterId?: string;
 };
 const defaults: AvatarConfig = {
-  characterType: 'human', skin: '#4de2d0', outfit: '#ffb84d', shoes: '#24243a', hairColor: '#26314d', hairStyle: 'smooth',
+  headType: 'human', characterType: 'human', skin: '#4de2d0', outfit: '#ffb84d', shoes: '#24243a', hairColor: '#26314d', hairStyle: 'smooth',
   accessory: 'none', pants: '#33415f', gloves: '#e8edf5', eyeColor: '#172033', eyeStyle: 'round', topStyle: 'tee', pantsStyle: 'long', shoeStyle: 'sneakers', bodyWidth: 1, bodyHeight: 1, headSize: 1, legLength: 1, fighterId: 'classic'
 };
 const fighterPresets: Record<string, AvatarConfig> = {
   classic: { ...defaults, fighterId: 'classic' },
-  blaze: { ...defaults, fighterId: 'blaze', skin: '#d98b62', outfit: '#c93632', shoes: '#24202b', hairColor: '#f3a33c', hairStyle: 'spiky', accessory: 'none', bodyWidth: 1.16, bodyHeight: 1.08, headSize: 0.96, legLength: 1.05 },
-  shadow: { ...defaults, fighterId: 'shadow', skin: '#b6b9d2', outfit: '#242b49', shoes: '#101522', hairColor: '#121827', hairStyle: 'none', accessory: 'glasses', bodyWidth: 0.84, bodyHeight: 1.12, headSize: 0.94, legLength: 1.22 },
-  titan: { ...defaults, fighterId: 'titan', skin: '#8cbd82', outfit: '#65717e', shoes: '#303945', hairColor: '#303945', hairStyle: 'none', accessory: 'none', bodyWidth: 1.42, bodyHeight: 1.22, headSize: 0.88, legLength: 0.86 },
-  venom: { ...defaults, fighterId: 'venom', skin: '#b7e0d2', outfit: '#56318a', shoes: '#1c1830', hairColor: '#251b38', hairStyle: 'none', accessory: 'horns', bodyWidth: 1.02, bodyHeight: 1.02, headSize: 1.18, legLength: 1.02 },
-  nova: { ...defaults, fighterId: 'nova', skin: '#e5b7a3', outfit: '#167e9a', shoes: '#d5e8f0', hairColor: '#e8f2ff', hairStyle: 'smooth', accessory: 'crown', bodyWidth: 0.94, bodyHeight: 1.08, headSize: 1.08, legLength: 1.12 },
-  frost: { ...defaults, fighterId: 'frost', skin: '#a6c9e8', outfit: '#dce9f4', shoes: '#536c91', hairColor: '#80bde9', hairStyle: 'spiky', accessory: 'none', bodyWidth: 0.98, bodyHeight: 1.16, headSize: 0.98, legLength: 1.08 }
+  blaze: { ...defaults, headType: 'wolf', fighterId: 'blaze', skin: '#d98b62', outfit: '#c93632', shoes: '#24202b', hairColor: '#f3a33c', hairStyle: 'spiky', accessory: 'none', bodyWidth: 1.16, bodyHeight: 1.08, headSize: 0.96, legLength: 1.05 },
+  shadow: { ...defaults, headType: 'skull', fighterId: 'shadow', skin: '#b6b9d2', outfit: '#242b49', shoes: '#101522', hairColor: '#121827', hairStyle: 'none', accessory: 'glasses', bodyWidth: 0.84, bodyHeight: 1.12, headSize: 0.94, legLength: 1.22 },
+  titan: { ...defaults, headType: 'bear', fighterId: 'titan', skin: '#8cbd82', outfit: '#65717e', shoes: '#303945', hairColor: '#303945', hairStyle: 'none', accessory: 'none', bodyWidth: 1.42, bodyHeight: 1.22, headSize: 0.88, legLength: 0.86 },
+  venom: { ...defaults, headType: 'alien', fighterId: 'venom', skin: '#b7e0d2', outfit: '#56318a', shoes: '#1c1830', hairColor: '#251b38', hairStyle: 'none', accessory: 'horns', bodyWidth: 1.02, bodyHeight: 1.02, headSize: 1.18, legLength: 1.02 },
+  nova: { ...defaults, headType: 'fox', fighterId: 'nova', skin: '#e5b7a3', outfit: '#167e9a', shoes: '#d5e8f0', hairColor: '#e8f2ff', hairStyle: 'smooth', accessory: 'crown', bodyWidth: 0.94, bodyHeight: 1.08, headSize: 1.08, legLength: 1.12 },
+  frost: { ...defaults, headType: 'shark', fighterId: 'frost', skin: '#a6c9e8', outfit: '#dce9f4', shoes: '#536c91', hairColor: '#80bde9', hairStyle: 'spiky', accessory: 'none', bodyWidth: 0.98, bodyHeight: 1.16, headSize: 0.98, legLength: 1.08 }
 };
 
 type FighterMotion = { walkRate: number; stride: number; kickPower: number; idle: number; victory: number };
@@ -184,7 +185,7 @@ function refreshStartCharacterPreview() {
   const swatch = document.querySelector<HTMLElement>('#start-preview-swatch');
   const state = document.querySelector<HTMLElement>('#start-preview-state');
   if (name) name.textContent = (config.fighterId || 'custom').replace(/-/g, ' ').toUpperCase();
-  if (details) details.textContent = `${config.characterType.toUpperCase()} FIGHTER · ${config.topStyle.toUpperCase()} · ${config.shoeStyle.toUpperCase()}`;
+  if (details) details.textContent = `${config.headType.toUpperCase()} HEAD · ${config.topStyle.toUpperCase()} · ${config.shoeStyle.toUpperCase()}`;
   if (swatch) swatch.style.background = `linear-gradient(135deg, ${config.outfit}, ${config.shoes})`;
   if (state) state.textContent = characterHasUnsavedChanges ? 'UNSAVED CHANGES' : 'SAVED ON THIS DEVICE';
 }
@@ -523,7 +524,67 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = t
     }
   }
   if (cfg.topStyle !== 'tee') group.add(garment);
-  addMesh(group, new THREE.SphereGeometry(0.39 * cfg.headSize, 20, 16), cfg.skin, 0, bodyY + 0.82 * cfg.headSize, 0);
+  const headY = bodyY + 0.82 * cfg.headSize;
+  addMesh(group, new THREE.SphereGeometry(0.39 * cfg.headSize, 20, 16), cfg.skin, 0, headY, 0);
+  // Distinct creature silhouettes are built from lightweight procedural meshes.
+  // All parts are attached to the avatar group, so they follow movement and animation.
+  const headScale = cfg.headSize;
+  const ear = (side: number, color = cfg.skin, width = 0.17, height = 0.28, depth = 0.13) => {
+    const part = addMesh(group, new THREE.ConeGeometry(width * headScale, height * headScale, 10), color,
+      side * 0.25 * headScale, headY + 0.31 * headScale, -0.015);
+    part.rotation.z = side * -0.18;
+    part.scale.z = depth / 0.13;
+    return part;
+  };
+  if (cfg.headType === 'wolf' || cfg.headType === 'fox') {
+    const earColor = cfg.headType === 'fox' ? '#e87932' : cfg.skin;
+    ear(-1, earColor, cfg.headType === 'fox' ? 0.13 : 0.17, cfg.headType === 'fox' ? 0.48 : 0.38);
+    ear(1, earColor, cfg.headType === 'fox' ? 0.13 : 0.17, cfg.headType === 'fox' ? 0.48 : 0.38);
+    for (const side of [-1, 1]) addMesh(group, new THREE.ConeGeometry(0.055 * headScale, 0.22 * headScale, 8), '#f4d5c2',
+      side * 0.25 * headScale, headY + 0.29 * headScale, -0.105);
+    const muzzle = addMesh(group, new THREE.SphereGeometry(0.17 * headScale, 14, 10), cfg.headType === 'fox' ? '#f4b36f' : '#d9dce5',
+      0, headY - 0.09 * headScale, -0.30 * headScale);
+    muzzle.scale.set(1.12, 0.72, 0.78);
+  } else if (cfg.headType === 'bear') {
+    for (const side of [-1, 1]) {
+      const outer = addMesh(group, new THREE.SphereGeometry(0.17 * headScale, 12, 10), cfg.skin, side * 0.30 * headScale, headY + 0.25 * headScale, 0);
+      outer.scale.set(1, 1, 0.65);
+      const inner = addMesh(group, new THREE.SphereGeometry(0.085 * headScale, 10, 8), '#d99b82', side * 0.30 * headScale, headY + 0.25 * headScale, -0.105);
+      inner.scale.z = 0.45;
+    }
+    const muzzle = addMesh(group, new THREE.SphereGeometry(0.19 * headScale, 14, 10), '#d9b9a4', 0, headY - 0.10 * headScale, -0.30 * headScale);
+    muzzle.scale.set(1.15, 0.72, 0.7);
+  } else if (cfg.headType === 'bull') {
+    for (const side of [-1, 1]) {
+      const horn = addMesh(group, new THREE.ConeGeometry(0.12 * headScale, 0.46 * headScale, 10), '#eee2c8',
+        side * 0.32 * headScale, headY + 0.30 * headScale, 0.02);
+      horn.rotation.z = side * -0.82;
+    }
+    const muzzle = addMesh(group, new THREE.SphereGeometry(0.18 * headScale, 12, 10), '#d99b82', 0, headY - 0.12 * headScale, -0.30 * headScale);
+    muzzle.scale.set(1.15, 0.65, 0.7);
+  } else if (cfg.headType === 'shark') {
+    const fin = addMesh(group, new THREE.ConeGeometry(0.19 * headScale, 0.42 * headScale, 4), '#a9c8d7', 0, headY + 0.40 * headScale, 0.02);
+    fin.rotation.z = Math.PI;
+    const snout = addMesh(group, new THREE.ConeGeometry(0.22 * headScale, 0.42 * headScale, 12), '#a9c8d7', 0, headY - 0.08 * headScale, -0.36 * headScale);
+    snout.rotation.x = -Math.PI / 2;
+    for (let tooth = -2; tooth <= 2; tooth++) addMesh(group, new THREE.ConeGeometry(0.035 * headScale, 0.09 * headScale, 6), '#ffffff',
+      tooth * 0.065 * headScale, headY - 0.22 * headScale, -0.43 * headScale);
+  } else if (cfg.headType === 'skull') {
+    const jaw = addMesh(group, new THREE.BoxGeometry(0.43 * headScale, 0.14 * headScale, 0.12 * headScale), '#e5e1d4', 0, headY - 0.25 * headScale, -0.27 * headScale);
+    jaw.rotation.x = -0.08;
+    for (const side of [-1, 1]) addMesh(group, new THREE.BoxGeometry(0.09 * headScale, 0.12 * headScale, 0.08 * headScale), '#ffffff',
+      side * 0.13 * headScale, headY - 0.29 * headScale, -0.34 * headScale);
+  } else if (cfg.headType === 'alien') {
+    const dome = addMesh(group, new THREE.SphereGeometry(0.40 * headScale, 16, 12), '#75d7a2', 0, headY + 0.06 * headScale, 0);
+    dome.scale.set(0.82, 1.22, 0.86);
+    for (const side of [-1, 1]) {
+      const eye = addMesh(group, new THREE.SphereGeometry(0.105 * headScale, 12, 10), '#171c39',
+        side * 0.15 * headScale, headY + 0.015 * headScale, -0.35 * headScale);
+      eye.scale.set(0.72, 1.35, 0.55);
+      addMesh(group, new THREE.SphereGeometry(0.025 * headScale, 8, 6), '#b8fff0',
+        side * 0.15 * headScale, headY + 0.045 * headScale, -0.39 * headScale);
+    }
+  }
   if (shirtTexture && useShirtTexture) {
     // Curved UV patches follow the capsule torso instead of floating as flat planes.
     const makeShirtPatch = (back: boolean) => {
@@ -1040,7 +1101,7 @@ const fighterCards = Array.from(document.querySelectorAll<HTMLButtonElement>('[d
 function syncFighterControls() {
   const values: Record<string, string> = {
     'skin-color': config.skin, 'outfit-color': config.outfit, 'shoe-color': config.shoes, 'hair-color': config.hairColor,
-    'hair-style': config.hairStyle, 'accessory': config.accessory, 'pants-color': config.pants, 'glove-color': config.gloves, 'eye-color': config.eyeColor, 'eye-style': config.eyeStyle, 'top-style': config.topStyle, 'pants-style': config.pantsStyle, 'shoe-style': config.shoeStyle
+    'head-type': config.headType, 'hair-style': config.hairStyle, 'accessory': config.accessory, 'pants-color': config.pants, 'glove-color': config.gloves, 'eye-color': config.eyeColor, 'eye-style': config.eyeStyle, 'top-style': config.topStyle, 'pants-style': config.pantsStyle, 'shoe-style': config.shoeStyle
   };
   for (const [id, value] of Object.entries(values)) {
     const input = document.querySelector<HTMLInputElement | HTMLSelectElement>('#' + id);
@@ -1150,7 +1211,7 @@ function bindSelect(id: string, key: keyof AvatarConfig) {
   input.value = String(config[key]);
   input.addEventListener('change', () => { (config[key] as string) = input.value; rebuildPlayer(); });
 }
-bindSelect('hair-style', 'hairStyle'); bindSelect('accessory', 'accessory'); bindSelect('eye-style', 'eyeStyle'); bindSelect('top-style', 'topStyle'); bindSelect('pants-style', 'pantsStyle'); bindSelect('shoe-style', 'shoeStyle');
+bindSelect('head-type', 'headType'); bindSelect('hair-style', 'hairStyle'); bindSelect('accessory', 'accessory'); bindSelect('eye-style', 'eyeStyle'); bindSelect('top-style', 'topStyle'); bindSelect('pants-style', 'pantsStyle'); bindSelect('shoe-style', 'shoeStyle');
 function bindRange(id: string, key: keyof AvatarConfig) {
   const input = document.querySelector<HTMLInputElement>('#' + id)!;
   const output = document.querySelector<HTMLOutputElement>('#' + id + '-value')!;
