@@ -652,3 +652,7 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 .start-tip{margin:12px 0 0!important;padding:10px 12px;max-width:none!important;border-left:2px solid #65e7d9;background:#65e7d90d;color:#aebed9!important;font-size:10px!important;text-align:left}
 .start-tip strong{display:block;margin-bottom:4px;color:#65e7d9;font-size:8px;letter-spacing:.16em}
 @media(max-height:650px){.start-screen{overflow-y:auto;align-items:start}.start-card{margin:auto 0;padding-top:22px;padding-bottom:22px}.start-card p{margin-bottom:18px}.start-guide{margin-top:14px}.start-hint{margin-top:14px}}
+
+
+/* Compact match summary: visible only on the post-match screen. */
+.match-result-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:18px 0 8px}.match-result-stats div{display:grid;gap:5px;padding:11px 5px;border:1px solid rgba(126,164,210,.2);border-radius:10px;background:rgba(24,39,65,.55)}.match-result-stats strong{color:#8ff4e8;font-size:13px;font-variant-numeric:tabular-nums}.match-result-stats span{color:#91a6c8;font-size:7px;font-weight:800;letter-spacing:.08em}@media(max-width:380px){.match-over-card{padding:22px 15px}.match-result-stats{gap:5px}.match-result-stats strong{font-size:11px}.match-result-stats span{font-size:6px}}
