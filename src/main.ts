@@ -1009,6 +1009,35 @@ function recordMatchResult(result: 'win' | 'loss') {
   if (result === 'win') unlockAchievement('first-victory');
   if (stats.matches >= 10) unlockAchievement('arena-regular');
 }
+const dailyChallengeKey = 'kickers-daily-challenge-v1';
+function getLocalDayKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+function isDailyChallengeComplete() {
+  return localStorage.getItem(dailyChallengeKey) === getLocalDayKey();
+}
+function renderDailyChallenge() {
+  const status = document.querySelector<HTMLElement>('#daily-challenge-status');
+  const reward = document.querySelector<HTMLElement>('#daily-challenge-reward');
+  if (!status || !reward) return;
+  const complete = isDailyChallengeComplete();
+  status.textContent = complete ? 'COMPLETED TODAY' : '0 / 1 WINS';
+  reward.textContent = complete ? 'REWARD CLAIMED · +50 XP' : 'REWARD · +50 XP';
+  const card = document.querySelector<HTMLElement>('#daily-challenge');
+  card?.classList.toggle('completed', complete);
+}
+function completeDailyChallenge() {
+  if (isDailyChallengeComplete()) return;
+  localStorage.setItem(dailyChallengeKey, getLocalDayKey());
+  let stats = { xp: 0, wins: 0, losses: 0, matches: 0 };
+  try { stats = { ...stats, ...JSON.parse(localStorage.getItem(xpKey) || '{}') }; } catch { /* reset invalid local data */ }
+  stats.xp += 50;
+  localStorage.setItem(xpKey, JSON.stringify(stats));
+  matchXpEarned += 50;
+  showAchievementToast('DAILY CHALLENGE COMPLETE · +50 XP');
+  renderDailyChallenge();
+}
 const keys = new Set<string>();
 const clock = new THREE.Clock();
 const MATCH_DURATION = 300;
@@ -1031,8 +1060,10 @@ function beginVictory() {
   const totalXP = awardMatchXP(100);
   matchXpEarned = 100;
   recordMatchResult('win');
+  completeDailyChallenge();
   powerup.visible = false;
-  matchOverMessage.textContent = `All rivals eliminated! +100 XP · Total XP: ${totalXP}`;
+  const finalXP = (() => { try { return Number(JSON.parse(localStorage.getItem(xpKey) || '{}').xp || 0); } catch { return totalXP; } })();
+  matchOverMessage.textContent = `All rivals eliminated! +${matchXpEarned} XP · Total XP: ${finalXP}`;
   updateMatchResult();
 }
 function updateMatchResult() {
@@ -1078,6 +1109,7 @@ function renderPlayerStats() {
     if (el) el.textContent = key === 'winRate' ? `${value}%` : String(value);
   });
   renderAchievements();
+  renderDailyChallenge();
 }
 playerStatsButton.addEventListener('click', () => { renderPlayerStats(); playerStatsPanel.hidden = false; });
 closePlayerStatsButton.addEventListener('click', () => { playerStatsPanel.hidden = true; });
