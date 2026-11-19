@@ -950,6 +950,52 @@ function awardMatchXP(amount: number) {
   localStorage.setItem(xpKey, JSON.stringify(stats));
   return stats.xp;
 }
+const achievementKey = 'kickers-achievements-v1';
+const achievementDefinitions = [
+  { id: 'first-match', title: 'FIRST MATCH', detail: 'Complete your first match.' },
+  { id: 'first-victory', title: 'FIRST VICTORY', detail: 'Win your first match.' },
+  { id: 'arena-regular', title: 'ARENA REGULAR', detail: 'Complete 10 matches.' },
+  { id: 'kicker-10', title: 'KICKER', detail: 'Perform 10 kicks.' }
+];
+let achievementToastTimer = 0;
+function readAchievements(): { unlocked: string[]; kicks: number } {
+  try {
+    const saved = JSON.parse(localStorage.getItem(achievementKey) || '{}');
+    return { unlocked: Array.isArray(saved.unlocked) ? saved.unlocked : [], kicks: Math.max(0, Number(saved.kicks) || 0) };
+  } catch { return { unlocked: [], kicks: 0 }; }
+}
+function showAchievementToast(title: string) {
+  const toast = document.querySelector<HTMLElement>('#achievement-toast');
+  if (!toast) return;
+  toast.textContent = `ACHIEVEMENT UNLOCKED · ${title}`;
+  toast.hidden = false;
+  window.clearTimeout(achievementToastTimer);
+  achievementToastTimer = window.setTimeout(() => { toast.hidden = true; }, 2800);
+}
+function unlockAchievement(id: string) {
+  const progress = readAchievements();
+  if (progress.unlocked.includes(id)) return;
+  const achievement = achievementDefinitions.find(item => item.id === id);
+  if (!achievement) return;
+  progress.unlocked.push(id);
+  localStorage.setItem(achievementKey, JSON.stringify(progress));
+  showAchievementToast(achievement.title);
+}
+function recordAchievementKick() {
+  const progress = readAchievements();
+  progress.kicks += 1;
+  localStorage.setItem(achievementKey, JSON.stringify(progress));
+  if (progress.kicks >= 10) unlockAchievement('kicker-10');
+}
+function renderAchievements() {
+  const list = document.querySelector<HTMLElement>('#achievement-list');
+  if (!list) return;
+  const progress = readAchievements();
+  list.innerHTML = achievementDefinitions.map(item => {
+    const unlocked = progress.unlocked.includes(item.id);
+    return `<div class="achievement-row${unlocked ? ' unlocked' : ''}"><span class="achievement-mark">${unlocked ? '✓' : '—'}</span><span><strong>${item.title}</strong><small>${item.detail}</small></span><em>${unlocked ? 'UNLOCKED' : 'LOCKED'}</em></div>`;
+  }).join('');
+}
 function recordMatchResult(result: 'win' | 'loss') {
   if (matchResultRecorded) return;
   matchResultRecorded = true;
@@ -959,6 +1005,9 @@ function recordMatchResult(result: 'win' | 'loss') {
   if (result === 'win') stats.wins += 1;
   else stats.losses += 1;
   localStorage.setItem(xpKey, JSON.stringify(stats));
+  unlockAchievement('first-match');
+  if (result === 'win') unlockAchievement('first-victory');
+  if (stats.matches >= 10) unlockAchievement('arena-regular');
 }
 const keys = new Set<string>();
 const clock = new THREE.Clock();
@@ -1026,6 +1075,7 @@ function renderPlayerStats() {
     const el = playerStatsPanel.querySelector<HTMLElement>(`[data-stat="${key}"]`);
     if (el) el.textContent = key === 'winRate' ? `${value}%` : String(value);
   });
+  renderAchievements();
 }
 playerStatsButton.addEventListener('click', () => { renderPlayerStats(); playerStatsPanel.hidden = false; });
 closePlayerStatsButton.addEventListener('click', () => { playerStatsPanel.hidden = true; });
@@ -1101,6 +1151,7 @@ function kick() {
   if (kickTime > 0 || tauntTime > 0 || mockTime > 0) return;
   kickTime = 0.48;
   kickHitDone = false;
+  recordAchievementKick();
   if (networkReady) sendNetwork({ type: 'kick' });
   statusEl.textContent = 'FOOT KICK!';
   kickButton.classList.add('pressed');
