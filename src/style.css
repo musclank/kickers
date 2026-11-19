@@ -755,3 +755,66 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 /* Current fighter summary: compact, readable and contained inside the start card. */
 .start-character-preview{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px;border:1px solid rgba(101,231,217,.22);border-radius:11px;background:rgba(8,19,41,.72);min-width:0}.start-preview-swatch{width:34px;height:34px;flex:0 0 34px;border:2px solid rgba(255,255,255,.28);border-radius:10px;background:linear-gradient(135deg,#ffb84d,#24243a);box-shadow:0 4px 12px #0005}.start-preview-copy{display:grid;gap:3px;min-width:0;text-align:left}.start-preview-kicker{color:#65e7d9;font-size:7px;font-weight:1000;letter-spacing:.14em}.start-preview-copy strong{color:#f4f7ff;font-size:10px;letter-spacing:.08em}.start-preview-copy small{overflow:hidden;color:#9eafce;font-size:7px;text-overflow:ellipsis;white-space:nowrap}.start-preview-state{margin-left:auto;max-width:105px;color:#8ff4e8;font-size:7px;font-weight:900;letter-spacing:.06em;text-align:right;line-height:1.4}
 @media(max-width:520px){.start-character-preview{gap:8px;padding:8px}.start-preview-swatch{width:30px;height:30px;flex-basis:30px}.start-preview-state{max-width:88px;font-size:6px}}
+
+
+/* Arena token market: dedicated zoom control and readable full-screen market panel. */
+.market-zoom-toggle {
+  position: absolute; z-index: 9; right: 12px; top: 48%; transform: translateY(-50%);
+  min-height: 44px; padding: 0 13px; border: 1px solid #65e7d9;
+  border-radius: 12px; background: linear-gradient(145deg,#123a50f2,#151d3bf2);
+  color: #8ffcf0; font-size: 10px; font-weight: 1000; letter-spacing: .09em;
+  box-shadow: 0 6px 20px #0008, inset 0 0 14px #65e7d91c;
+  writing-mode: vertical-rl; text-orientation: mixed; cursor: pointer;
+}
+.market-zoom-toggle:hover { filter: brightness(1.2); border-color: #fff; }
+.market-zoom-panel[hidden] { display: none !important; }
+.market-zoom-panel {
+  position: absolute; z-index: 40; inset: 0; display: grid; place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) 14px max(16px, env(safe-area-inset-bottom));
+  background: #050b18ed; backdrop-filter: blur(14px);
+}
+.market-zoom-card {
+  position: relative; width: min(720px, 100%); padding: clamp(20px, 4vw, 38px);
+  border: 1px solid #65e7d988; border-radius: 22px;
+  background: radial-gradient(ellipse at 90% 0%,#1b4561 0%,transparent 48%),linear-gradient(145deg,#111d36,#090f20);
+  box-shadow: 0 24px 90px #000b, inset 0 0 35px #65e7d90b;
+}
+.market-zoom-close {
+  position: absolute; top: 14px; right: 14px; min-height: 38px; padding: 0 13px;
+  border: 1px solid #ffffff38; border-radius: 9px; background: #ffffff10;
+  color: #dce8ff; font-size: 10px; font-weight: 900; letter-spacing: .08em;
+}
+.market-zoom-brand { display: flex; align-items: center; gap: 16px; padding-right: 76px; }
+.market-zoom-icon {
+  width: clamp(58px, 12vw, 86px); height: clamp(58px, 12vw, 86px); flex: 0 0 auto;
+  border: 2px solid #65e7d988; border-radius: 20px; object-fit: cover; background: #17243b;
+  box-shadow: 0 0 25px #65e7d933;
+}
+.market-zoom-icon[hidden] { display: none; }
+.market-zoom-brand span { color: #65e7d9; font-size: 10px; font-weight: 900; letter-spacing: .16em; }
+.market-zoom-brand h2 { margin: 6px 0; color: #fff; font-size: clamp(17px, 4vw, 26px); overflow-wrap: anywhere; }
+.market-zoom-brand code { display: block; color: #8fa3c6; font-size: clamp(8px, 1.7vw, 11px); overflow-wrap: anywhere; }
+.market-zoom-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px; margin: 30px 0 24px; }
+.market-zoom-price strong { color: #fff; font-size: clamp(38px, 10vw, 68px); line-height: 1; font-weight: 1000; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.market-zoom-change { color: #c2d2e9; font-size: 14px; font-weight: 900; }
+.market-zoom-change.positive { color: #46f2ad; }
+.market-zoom-change.negative { color: #ff6685; }
+.market-zoom-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.market-zoom-metrics div { min-width: 0; padding: 16px 12px; border: 1px solid #ffffff1c; border-radius: 12px; background: #ffffff08; }
+.market-zoom-metrics span { display: block; margin-bottom: 9px; color: #8fa9ca; font-size: 9px; font-weight: 900; letter-spacing: .1em; }
+.market-zoom-metrics strong { color: #fff; font-size: clamp(15px, 3.5vw, 22px); font-weight: 950; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.market-zoom-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; }
+.market-zoom-updated { color: #8194b5; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
+.market-zoom-link { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 0 14px; border: 1px solid #65e7d9; border-radius: 10px; color: #071a29; background: #65e7d9; text-decoration: none; font-size: 10px; font-weight: 1000; letter-spacing: .06em; white-space: nowrap; }
+@media (max-width: 600px) {
+  .market-zoom-toggle { right: 8px; top: 48%; min-height: 42px; padding: 0 10px; font-size: 9px; }
+  .market-zoom-card { padding: 20px 15px; border-radius: 17px; }
+  .market-zoom-brand { gap: 11px; padding-right: 56px; }
+  .market-zoom-close { top: 10px; right: 10px; min-height: 34px; padding: 0 9px; font-size: 9px; }
+  .market-zoom-price { margin: 25px 0 20px; gap: 8px; }
+  .market-zoom-metrics { gap: 6px; }
+  .market-zoom-metrics div { padding: 12px 8px; }
+  .market-zoom-metrics span { font-size: 7px; letter-spacing: .04em; }
+  .market-zoom-metrics strong { font-size: 14px; }
+  .market-zoom-footer { align-items: flex-start; flex-direction: column; }
+}
