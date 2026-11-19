@@ -758,13 +758,18 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 
 
 /* Arena token market: dedicated zoom control and readable full-screen market panel. */
+.market-kick-stack {
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  gap: 7px; flex: 0 0 auto; pointer-events: auto;
+}
 .market-zoom-toggle {
-  position: absolute; z-index: 9; right: 12px; top: 48%; transform: translateY(-50%);
-  min-height: 44px; padding: 0 13px; border: 1px solid #65e7d9;
-  border-radius: 12px; background: linear-gradient(145deg,#123a50f2,#151d3bf2);
-  color: #8ffcf0; font-size: 10px; font-weight: 1000; letter-spacing: .09em;
-  box-shadow: 0 6px 20px #0008, inset 0 0 14px #65e7d91c;
-  writing-mode: vertical-rl; text-orientation: mixed; cursor: pointer;
+  position: static; transform: none; writing-mode: horizontal-tb; text-orientation: mixed;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 112px; min-height: 34px; padding: 0 8px; border: 1px solid #65e7d9;
+  border-radius: 10px; background: linear-gradient(145deg,#123a50f2,#151d3bf2);
+  color: #8ffcf0; font-size: 8px; line-height: 1.2; font-weight: 1000;
+  letter-spacing: .035em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  box-shadow: 0 4px 12px #0008, inset 0 0 14px #65e7d91c; cursor: pointer;
 }
 .market-zoom-toggle:hover { filter: brightness(1.2); border-color: #fff; }
 .market-zoom-panel[hidden] { display: none !important; }
@@ -807,7 +812,8 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 .market-zoom-updated { color: #8194b5; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
 .market-zoom-link { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 0 14px; border: 1px solid #65e7d9; border-radius: 10px; color: #071a29; background: #65e7d9; text-decoration: none; font-size: 10px; font-weight: 1000; letter-spacing: .06em; white-space: nowrap; }
 @media (max-width: 600px) {
-  .market-zoom-toggle { right: 8px; top: 48%; min-height: 42px; padding: 0 10px; font-size: 9px; }
+  .market-kick-stack { gap: 6px; }
+  .market-zoom-toggle { width: 88px; min-height: 31px; padding: 0 5px; font-size: 7px; letter-spacing: 0; }
   .market-zoom-card { padding: 20px 15px; border-radius: 17px; }
   .market-zoom-brand { gap: 11px; padding-right: 56px; }
   .market-zoom-close { top: 10px; right: 10px; min-height: 34px; padding: 0 9px; font-size: 9px; }
