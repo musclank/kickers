@@ -342,7 +342,12 @@ let scoreboardMessage = 'CONNECTING TO BASE MARKET';
 let marketLogo: HTMLImageElement | null = null;
 const marketZoomButton = document.createElement('button');
 marketZoomButton.id = 'market-zoom-toggle'; marketZoomButton.type = 'button';
-marketZoomButton.className = 'market-zoom-toggle'; marketZoomButton.textContent = 'ZOOM MARKET';
+marketZoomButton.className = 'market-zoom-toggle'; marketZoomButton.textContent = 'LIVE MARKET  ·  CONNECTING';
+marketZoomButton.setAttribute('aria-label', 'Open live token market details');
+const marketKickStack = document.createElement('div');
+marketKickStack.className = 'market-kick-stack';
+kickButton.before(marketKickStack);
+marketKickStack.append(marketZoomButton, kickButton);
 marketZoomButton.setAttribute('aria-label', 'Open enlarged live token market');
 const marketZoomPanel = document.createElement('section');
 marketZoomPanel.id = 'market-zoom-panel'; marketZoomPanel.className = 'market-zoom-panel';
@@ -364,7 +369,11 @@ marketZoomPanel.innerHTML = `
 document.getElementById('app')?.append(marketZoomButton, marketZoomPanel);
 const marketZoomImage = marketZoomPanel.querySelector<HTMLImageElement>('.market-zoom-icon')!;
 function updateMarketZoom() {
-  if (!arenaMarket) return;
+  if (!arenaMarket) {
+    marketZoomButton.textContent = marketLoading ? 'LIVE MARKET  ·  CONNECTING' : 'LIVE MARKET  ·  NO DATA';
+    return;
+  }
+  marketZoomButton.textContent = `LIVE MARKET  ·  ${arenaMarket.symbol}  ${formatMarketUsd(arenaMarket.priceUsd)}`;
   marketZoomImage.src = arenaMarket.iconUrl || '';
   marketZoomImage.hidden = !arenaMarket.iconUrl;
   marketZoomPanel.querySelector<HTMLElement>('.market-zoom-name')!.textContent = arenaMarket.name + ' · ' + arenaMarket.symbol;
