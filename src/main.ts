@@ -1248,6 +1248,10 @@ function connectToRoom(room: string) {
         rivals.forEach(rival => { rival.visible = false; });
         player.visible = true;
         player.userData.fallen = false;
+        player.userData.fallVelocity = 0;
+        player.position.set(0, 0, 0);
+        player.rotation.set(0, Math.PI, 0);
+        player.visible = true;
         roundOver = false;
         matchTimeRemaining = MATCH_DURATION;
         matchTimeEl.classList.remove('urgent');
@@ -1290,7 +1294,7 @@ function connectToRoom(room: string) {
         recordMatchResult(won ? 'win' : 'loss');
         if (won) completeDailyChallenge();
         matchOverTitle.textContent = won ? 'YOU ARE THE CHAMPION!' : 'MATCH OVER';
-        matchOverMessage.textContent = won ? 'All rivals eliminated. The arena belongs to you!' : 'You were knocked out. Ready for another match?';
+        matchOverMessage.textContent = won ? `Round ${championshipRound} cleared. Your next challenge is ready!` : 'You were knocked out. Start a fresh run when you are ready.';
         updateMatchResult();
         matchOverEl.hidden = false;
         matchOverEl.setAttribute('aria-hidden', 'false');
@@ -1813,7 +1817,7 @@ function beginVictory() {
   completeDailyChallenge();
   powerup.visible = false;
   const finalXP = (() => { try { return Number(JSON.parse(localStorage.getItem(xpKey) || '{}').xp || 0); } catch { return totalXP; } })();
-  matchOverMessage.textContent = `All rivals eliminated! +${matchXpEarned} XP · Total XP: ${finalXP}`;
+  matchOverMessage.textContent = `Championship Round ${championshipRound} cleared! +${matchXpEarned} XP · Total XP: ${finalXP}`;
   updateMatchResult();
 }
 function updateMatchResult() {
@@ -1885,7 +1889,68 @@ startCustomizeButton.addEventListener('click', () => {
 });
 pauseButton.addEventListener('click', () => setGamePaused(!gamePaused));
 resumeButton.addEventListener('click', () => setGamePaused(false));
-playAgainButton.addEventListener('click', () => location.reload());
+function resetOfflineChampionshipMatch() {
+  championshipRound += 1;
+  roundOver = false;
+  victoryActive = false;
+  victoryStarted = false;
+  victoryTime = 0;
+  matchTimeRemaining = MATCH_DURATION;
+  matchTimeEl.textContent = formatMatchTime(MATCH_DURATION);
+  matchTimeEl.classList.remove('urgent');
+  matchXpAwarded = false;
+  matchXpEarned = 0;
+  matchResultRecorded = false;
+  player.position.set(0, 0, 0);
+  player.rotation.set(0, Math.PI, 0);
+  player.userData.fallen = false;
+  player.userData.fallVelocity = 0;
+  player.visible = true;
+  player.scale.setScalar(1);
+  player.rotation.z = 0;
+  moveX = 0; moveZ = 0;
+  kickTime = 0; tauntTime = 0; mockTime = 0; walkTime = 0;
+  speedBoostTime = 0; shieldTime = 0; powerKickTime = 0; specialTime = 0;
+  specialCooldown = 0; powerupRespawn = 0; arenaEventClock = 0;
+  speedAura.visible = false; shieldAura.visible = false; powerKickAura.visible = false;
+  trophy.visible = false;
+  trophy.position.set(0, 0, 0);
+  trophy.rotation.set(0, 0, 0);
+  baseTile.scale.y = 1;
+  baseTile.position.set(0, -0.065, 0);
+  powerup.visible = true;
+  powerup.position.set(-3.2, 0.85, 1.2);
+  setPowerupAppearance('speed');
+  const spawnPoints = [[-4,-2],[4,-3],[1,-6],[-6.2,-1.2],[-4.8,-4.8],[-1.5,-6.8],[2.8,-6.1],[6.1,-2.5],[5.4,3.6]];
+  rivals.forEach((bot, index) => {
+    const [x,z] = spawnPoints[index];
+    bot.position.set(x, 0, z);
+    bot.rotation.set(0, Math.atan2(-x, 2-z), 0);
+    bot.visible = true;
+    bot.userData.fallen = false;
+    bot.userData.fallVelocity = 0;
+    bot.userData.knockback = new THREE.Vector3();
+    bot.userData.botAI = { cooldown: 0.65 + Math.random() * 1.1, attackTime: 0, hitDone: false, retargetTime: 0, target: null };
+    bot.scale.setScalar(1);
+  });
+  crowdCheer = 0;
+  camera.position.set(0, 14, 20);
+  camera.lookAt(0, 0, 0);
+  matchOverEl.hidden = true;
+  matchOverEl.setAttribute('aria-hidden', 'true');
+  statusEl.textContent = 'ROUND ' + championshipRound;
+  drawArenaScoreboard('CHAMPIONSHIP ROUND ' + championshipRound);
+  setGamePaused(false);
+  playSound('ui');
+}
+playAgainButton.addEventListener('click', () => {
+  if (networkReady) {
+    setOnlineMessage('REQUESTING NEXT MATCH FROM ROOM HOST...');
+    sendNetwork({ type: 'next-match', room: activeRoom, round: championshipRound + 1 });
+    return;
+  }
+  resetOfflineChampionshipMatch();
+});
 addEventListener('keydown', (event) => { if (event.code === 'Escape' || event.key.toLowerCase() === 'p') { event.preventDefault(); setGamePaused(!gamePaused); return; } if (gamePaused) return; keys.add(event.key.toLowerCase()); if (event.code === 'Space') { event.preventDefault(); kick(); } });
 addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
 function playDance() {
@@ -2092,7 +2157,7 @@ function animate() {
       roundOver = true;
       statusEl.textContent = 'CHAMPION!';
       matchOverTitle.textContent = 'YOU ARE THE CHAMPION!';
-      matchOverMessage.textContent = 'All rivals eliminated. The arena belongs to you!';
+      matchOverMessage.textContent = `Round ${championshipRound} cleared. Your next challenge is ready!`;
       updateMatchResult();
       matchOverEl.hidden = false;
       matchOverEl.setAttribute('aria-hidden', 'false');
