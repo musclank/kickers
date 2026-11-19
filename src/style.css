@@ -865,3 +865,31 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
   .market-token-option { min-height:50px; }
   .market-token-option-icon,.market-token-option-fallback { width:30px; height:30px; flex-basis:30px; }
 }
+
+
+/* Power-up feedback is a brief toast, not a permanent HUD element. */
+.powerup-status {
+  top: max(82px, calc(env(safe-area-inset-top) + 76px));
+  bottom: auto;
+  z-index: 12;
+  width: max-content;
+  max-width: min(78vw, 300px);
+  padding: 7px 11px;
+  font-size: 8px;
+  letter-spacing: .07em;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, -6px);
+  transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
+}
+.powerup-status.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+@media (max-width:700px) {
+  .powerup-status { top: max(92px, calc(env(safe-area-inset-top) + 86px)); padding:6px 9px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .powerup-status { transition:none; }
+}
