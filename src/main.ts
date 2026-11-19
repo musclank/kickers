@@ -760,7 +760,7 @@ function updateRoster(players: Array<{ id: string; name?: string; walletAddress?
       remote.targetRotation = item.rotation ?? remote.targetRotation;
     }
   }
-  playerCountText.textContent = `${players.length}/4 PLAYERS`;
+  playerCountText.textContent = `${players.length}/10 PLAYERS`;
 }
 let playerDisplayName = 'KICKERS Player';
 let playerWalletAddress: string | null = null;
@@ -885,7 +885,7 @@ function connectToRoom(room: string) {
     createRoomButton.disabled = false;
     joinRoomButton.disabled = false;
     leaveRoomButton.disabled = true;
-    playerCountText.textContent = '1/4 PLAYERS';
+    playerCountText.textContent = '1/10 PLAYERS';
     statusEl.textContent = 'OFFLINE';
     setOnlineMessage('DISCONNECTED FROM ROOM');
   });
