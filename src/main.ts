@@ -1736,27 +1736,50 @@ function animate() {
     }
   } else { powerup.visible = false; powerupStatus.textContent = networkReady ? 'ONLINE MATCH' : 'MATCH COMPLETE'; }
 
-  // Solo arena bots actively hunt the player, close the distance, and launch timed kicks.
+  // Solo bots fight every active opponent, not just the human player.
   if (!networkReady) rivals.forEach((bot, index) => {
-    if (bot.userData.fallen) return;
+    if (bot.userData.fallen || !bot.visible) return;
     const velocity = (bot.userData.knockback as THREE.Vector3 | undefined) ?? new THREE.Vector3();
-    const botAI = (bot.userData.botAI as { cooldown: number; attackTime: number; hitDone: boolean } | undefined)
-      ?? { cooldown: 0.5 + index * 0.55, attackTime: 0, hitDone: false };
+    const botAI = (bot.userData.botAI as { cooldown: number; attackTime: number; hitDone: boolean; retargetTime: number; target: THREE.Group | null } | undefined)
+      ?? { cooldown: 0.5 + index * 0.31, attackTime: 0, hitDone: false, retargetTime: 0, target: null };
     bot.userData.botAI = botAI;
     botAI.cooldown = Math.max(0, botAI.cooldown - delta);
     botAI.attackTime = Math.max(0, botAI.attackTime - delta);
-    const dx = player.position.x - bot.position.x;
-    const dz = player.position.z - bot.position.z;
-    const distance = Math.hypot(dx, dz);
-    if (Math.hypot(bot.position.x, bot.position.z) > 8.78 && !bot.userData.fallen) {
+    botAI.retargetTime = Math.max(0, botAI.retargetTime - delta);
+
+    if (Math.hypot(bot.position.x, bot.position.z) > 8.78) {
       bot.userData.fallen = true;
       velocity.y = Math.min(velocity.y, 0);
+      return;
     }
-    if (bot.userData.fallen) return;
+
+    const targetIsAlive = (candidate: THREE.Group | null) =>
+      Boolean(candidate && candidate.visible && !candidate.userData.fallen && candidate.position.y < 1.8);
+    if (!targetIsAlive(botAI.target) || (botAI.retargetTime <= 0 && botAI.attackTime <= 0)) {
+      let nearest: THREE.Group | null = null;
+      let nearestScore = Infinity;
+      const candidates = [player, ...rivals.filter(other => other !== bot)];
+      for (const candidate of candidates) {
+        if (!targetIsAlive(candidate)) continue;
+        const distance = Math.hypot(candidate.position.x - bot.position.x, candidate.position.z - bot.position.z);
+        // A small per-bot preference prevents the whole roster from dogpiling one target.
+        const preference = candidate === player ? 0.35 + (index % 3) * 0.08 : ((index + rivals.indexOf(candidate)) % 3) * 0.12;
+        const score = distance + preference;
+        if (score < nearestScore) { nearestScore = score; nearest = candidate; }
+      }
+      botAI.target = nearest;
+      botAI.retargetTime = 0.65 + (index % 4) * 0.17;
+    }
+
+    const target = botAI.target;
+    if (!target) return;
+    const dx = target.position.x - bot.position.x;
+    const dz = target.position.z - bot.position.z;
+    const distance = Math.hypot(dx, dz);
     if (distance > 0.001 && bot.position.y < 0.2) {
       bot.rotation.y = Math.atan2(-dx, -dz);
       if (distance > 1.55 && botAI.attackTime <= 0) {
-        const speed = index === 1 ? 2.65 : 2.25;
+        const speed = index % 3 === 1 ? 2.55 : 2.2;
         bot.position.x += dx / distance * speed * delta;
         bot.position.z += dz / distance * speed * delta;
         const walk = Math.sin(clock.elapsedTime * 9 + index) * 0.38;
@@ -1764,7 +1787,7 @@ function animate() {
         (bot.userData.kickLeg as THREE.Group).rotation.x = -walk;
       } else if (distance <= 1.95 && botAI.cooldown <= 0 && botAI.attackTime <= 0) {
         botAI.attackTime = 0.52;
-        botAI.cooldown = 1.65 + index * 0.28;
+        botAI.cooldown = 1.35 + (index % 4) * 0.22;
         botAI.hitDone = false;
       }
     }
@@ -1774,18 +1797,30 @@ function animate() {
       leg.rotation.x = Math.sin(progress * Math.PI) * 1.05;
       if (!botAI.hitDone && progress >= 0.42 && progress <= 0.72) {
         botAI.hitDone = true;
-        const hitDx = player.position.x - bot.position.x;
-        const hitDz = player.position.z - bot.position.z;
-        const hitDistance = Math.hypot(hitDx, hitDz);
-        const facing = new THREE.Vector3(0, 0, -1).applyQuaternion(bot.quaternion);
-        const towardPlayer = new THREE.Vector3(hitDx, 0, hitDz).normalize();
-        if (hitDistance < 2.15 && facing.dot(towardPlayer) > 0.35 && shieldTime <= 0) {
-          const push = (player.userData.botPush as THREE.Vector3 | undefined) ?? new THREE.Vector3();
-          push.x += towardPlayer.x * (4.2 + index * 0.35);
-          push.z += towardPlayer.z * (4.2 + index * 0.35);
-          player.userData.botPush = push;
-          statusEl.textContent = 'BOT HIT!';
-          playSound('impact');
+        const currentTarget = botAI.target;
+        if (targetIsAlive(currentTarget)) {
+          const hitDx = currentTarget!.position.x - bot.position.x;
+          const hitDz = currentTarget!.position.z - bot.position.z;
+          const hitDistance = Math.hypot(hitDx, hitDz);
+          const facing = new THREE.Vector3(0, 0, -1).applyQuaternion(bot.quaternion);
+          const towardTarget = new THREE.Vector3(hitDx, 0, hitDz).normalize();
+          const targetIsPlayer = currentTarget === player;
+          if (hitDistance < 2.15 && facing.dot(towardTarget) > 0.35 && (!targetIsPlayer || shieldTime <= 0)) {
+            if (targetIsPlayer) {
+              const push = (player.userData.botPush as THREE.Vector3 | undefined) ?? new THREE.Vector3();
+              push.x += towardTarget.x * (4.2 + index * 0.2);
+              push.z += towardTarget.z * (4.2 + index * 0.2);
+              player.userData.botPush = push;
+              statusEl.textContent = 'BOT HIT!';
+            } else {
+              const targetPush = (currentTarget!.userData.knockback as THREE.Vector3 | undefined) ?? new THREE.Vector3();
+              targetPush.x += towardTarget.x * (4.8 + index * 0.16);
+              targetPush.z += towardTarget.z * (4.8 + index * 0.16);
+              targetPush.y = Math.max(targetPush.y, 4.5);
+              currentTarget!.userData.knockback = targetPush;
+            }
+            playSound('impact');
+          }
         }
       }
       if (botAI.attackTime <= 0) leg.rotation.x = 0;
