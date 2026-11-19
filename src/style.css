@@ -733,14 +733,20 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 @media(max-width:520px){ #creator .creator-grid select { min-height: 44px; font-size: 12px; } }
 
 
-/* Keep the official X profile visible directly above the Customize control. */
+/* Keep the X profile clear of the top-right PAUSE and FULL SCREEN controls. */
 .x-social-link {
   position: absolute;
-  z-index: 9;
+  z-index: 6;
   top: max(78px, calc(env(safe-area-inset-top) + 68px));
-  right: 14px;
+  left: 14px;
+  right: auto;
   margin: 0;
+  max-width: min(180px, calc(100vw - 28px));
 }
-.creator-toggle {
-  top: max(126px, calc(env(safe-area-inset-top) + 116px));
+@media (max-width: 700px) {
+  .x-social-link {
+    top: max(78px, calc(env(safe-area-inset-top) + 68px));
+    left: 14px;
+    right: auto;
+  }
 }
