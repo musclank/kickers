@@ -327,19 +327,109 @@ scoreboardCanvas.width = 768; scoreboardCanvas.height = 256;
 const scoreboardContext = scoreboardCanvas.getContext('2d')!;
 const scoreboardTexture = new THREE.CanvasTexture(scoreboardCanvas);
 scoreboardTexture.colorSpace = THREE.SRGBColorSpace;
-function drawArenaScoreboard(message = 'LIVE MATCH') {
+type ArenaMarketData = {
+  symbol: string; name: string; priceUsd: number; change24h: number | null;
+  marketCap: number | null; liquidity: number | null; volume24h: number | null;
+  dexId: string; pairUrl: string; updatedAt: number;
+};
+const MARKET_TOKEN_ADDRESS = '0x1bc0c42215582d5A085795f4baDbaC3ff36d1Bcb';
+const MARKET_API_URL = `https://api.dexscreener.com/token-pairs/v1/base/${MARKET_TOKEN_ADDRESS}`;
+let arenaMarket: ArenaMarketData | null = null;
+let marketLoading = true;
+let marketError = false;
+let scoreboardMessage = 'CONNECTING TO BASE MARKET';
+const formatMarketUsd = (value: number | null, compact = false) => {
+  if (value === null || !Number.isFinite(value)) return '—';
+  if (compact && value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
+  if (compact && value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
+  if (value >= 1000) return `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  if (value >= 1) return `$${value.toFixed(3)}`;
+  return `$${value.toPrecision(5)}`;
+};
+function drawArenaScoreboard(message = scoreboardMessage) {
+  scoreboardMessage = message;
   const ctx = scoreboardContext;
   ctx.clearRect(0, 0, 768, 256);
   const gradient = ctx.createLinearGradient(0, 0, 768, 256);
-  gradient.addColorStop(0, '#101d3b'); gradient.addColorStop(1, '#24134b');
+  gradient.addColorStop(0, '#07172d'); gradient.addColorStop(0.55, '#10264b'); gradient.addColorStop(1, '#24134b');
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, 768, 256);
-  ctx.strokeStyle = '#55e6e0'; ctx.lineWidth = 8; ctx.strokeRect(8, 8, 752, 240);
-  ctx.textAlign = 'center'; ctx.shadowColor = '#42e8ff'; ctx.shadowBlur = 18;
-  ctx.fillStyle = '#fff'; ctx.font = '900 76px system-ui'; ctx.fillText('KICKERS', 384, 105);
-  ctx.shadowBlur = 8; ctx.fillStyle = '#ffd166'; ctx.font = '800 30px system-ui'; ctx.fillText(message, 384, 178);
-  ctx.shadowBlur = 0; ctx.fillStyle = '#a9c5e8'; ctx.font = '700 24px system-ui'; ctx.fillText('THE CROWD IS WATCHING', 384, 218);
+  ctx.strokeStyle = '#55e6e0'; ctx.lineWidth = 7; ctx.strokeRect(7, 7, 754, 242);
+  ctx.textAlign = 'left'; ctx.shadowColor = '#42e8ff'; ctx.shadowBlur = 12;
+  ctx.fillStyle = '#ffffff'; ctx.font = '900 29px system-ui'; ctx.fillText('KICKERS // BASE MARKET', 28, 43);
+  ctx.shadowBlur = 0; ctx.textAlign = 'right'; ctx.fillStyle = '#63f0d2'; ctx.font = '800 17px system-ui';
+  ctx.fillText(marketLoading ? 'CONNECTING' : marketError ? 'LIVE FEED DELAYED' : 'LIVE DATA', 738, 41);
+  if (arenaMarket) {
+    const change = arenaMarket.change24h;
+    ctx.textAlign = 'left'; ctx.fillStyle = '#a9c5e8'; ctx.font = '700 18px system-ui';
+    ctx.fillText(`${arenaMarket.name.toUpperCase()}  ·  $${arenaMarket.symbol}`, 30, 76);
+    ctx.shadowColor = change !== null && change >= 0 ? '#46f2ad' : '#ff6685';
+    ctx.shadowBlur = 13; ctx.fillStyle = '#ffffff'; ctx.font = '900 58px system-ui';
+    ctx.fillText(formatMarketUsd(arenaMarket.priceUsd), 28, 143);
+    ctx.shadowBlur = 0; ctx.textAlign = 'right'; ctx.font = '900 28px system-ui';
+    ctx.fillStyle = change === null ? '#d7e5f5' : change >= 0 ? '#46f2ad' : '#ff6685';
+    ctx.fillText(change === null ? '24H —' : `${change >= 0 ? '▲' : '▼'} ${change >= 0 ? '+' : ''}${change.toFixed(2)}%  24H`, 738, 137);
+    const metrics = [
+      ['MARKET CAP', formatMarketUsd(arenaMarket.marketCap, true)],
+      ['LIQUIDITY', formatMarketUsd(arenaMarket.liquidity, true)],
+      ['24H VOLUME', formatMarketUsd(arenaMarket.volume24h, true)]
+    ];
+    metrics.forEach((item, index) => {
+      const x = 30 + index * 242;
+      ctx.fillStyle = '#8fa9ca'; ctx.font = '700 14px system-ui'; ctx.textAlign = 'left'; ctx.fillText(item[0], x, 188);
+      ctx.fillStyle = '#ffffff'; ctx.font = '900 24px system-ui'; ctx.fillText(item[1], x, 220);
+    });
+    ctx.textAlign = 'right'; ctx.fillStyle = '#8fa9ca'; ctx.font = '600 12px system-ui';
+    ctx.fillText(`${arenaMarket.dexId.toUpperCase()}  ·  UPDATED ${new Date(arenaMarket.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`, 738, 238);
+  } else {
+    ctx.textAlign = 'center'; ctx.fillStyle = '#ffffff'; ctx.font = '900 34px system-ui';
+    ctx.fillText(marketLoading ? 'LOADING LIVE TOKEN DATA' : 'MARKET DATA UNAVAILABLE', 384, 137);
+    ctx.fillStyle = '#a9c5e8'; ctx.font = '600 17px system-ui';
+    ctx.fillText(marketLoading ? 'BASE NETWORK  ·  CLANKER' : 'RETRYING AUTOMATICALLY', 384, 183);
+  }
+  if (message !== 'CONNECTING TO BASE MARKET' && message !== 'LIVE MATCH' && message !== 'ONLINE SHOWDOWN' && message !== 'PRACTICE ROUND') {
+    ctx.textAlign = 'right'; ctx.fillStyle = '#ffd166'; ctx.font = '800 14px system-ui'; ctx.fillText(message, 738, 65);
+  }
   scoreboardTexture.needsUpdate = true;
 }
+async function refreshArenaMarket() {
+  try {
+    const response = await fetch(MARKET_API_URL, { headers: { accept: 'application/json' }, cache: 'no-store' });
+    if (!response.ok) throw new Error(`Market API ${response.status}`);
+    const pairs = await response.json() as Array<{
+      chainId?: string; baseToken?: { address?: string; name?: string; symbol?: string };
+      priceUsd?: string; priceChange?: { h24?: number }; marketCap?: number; fdv?: number;
+      liquidity?: { usd?: number }; volume?: { h24?: number }; dexId?: string; url?: string;
+    }>;
+    const matching = pairs.filter(pair =>
+      pair.chainId?.toLowerCase() === 'base' &&
+      pair.baseToken?.address?.toLowerCase() === MARKET_TOKEN_ADDRESS.toLowerCase() &&
+      Number(pair.priceUsd) > 0
+    );
+    const bestPair = matching.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
+    if (!bestPair) throw new Error('No active Base liquidity pair found');
+    arenaMarket = {
+      symbol: bestPair.baseToken?.symbol || 'TOKEN',
+      name: bestPair.baseToken?.name || 'Base token',
+      priceUsd: Number(bestPair.priceUsd),
+      change24h: Number.isFinite(bestPair.priceChange?.h24) ? bestPair.priceChange!.h24! : null,
+      marketCap: bestPair.marketCap ?? bestPair.fdv ?? null,
+      liquidity: bestPair.liquidity?.usd ?? null,
+      volume24h: bestPair.volume?.h24 ?? null,
+      dexId: bestPair.dexId || 'DEX',
+      pairUrl: bestPair.url || 'https://dexscreener.com/base',
+      updatedAt: Date.now()
+    };
+    marketError = false;
+  } catch (error) {
+    console.warn('KICKERS live market refresh failed:', error);
+    marketError = true;
+  } finally {
+    marketLoading = false;
+    drawArenaScoreboard();
+  }
+}
+void refreshArenaMarket();
+window.setInterval(() => { void refreshArenaMarket(); }, 30_000);
 const scoreboard = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 2.4), new THREE.MeshBasicMaterial({ map: scoreboardTexture, side: THREE.DoubleSide }));
 scoreboard.position.set(0, 5.4, -12.8); scoreboard.rotation.x = -0.08; scene.add(scoreboard);
 drawArenaScoreboard();
