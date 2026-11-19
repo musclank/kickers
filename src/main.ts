@@ -149,12 +149,12 @@ updateAudioUI();
 
 type AvatarConfig = {
   characterType: 'human' | 'robot'; skin: string; outfit: string; shoes: string; hairColor: string; hairStyle: string; accessory: string;
-  pants: string; gloves: string; eyeColor: string; eyeStyle: string;
+  pants: string; gloves: string; eyeColor: string; eyeStyle: string; topStyle: 'jacket' | 'hoodie' | 'armor' | 'tee'; pantsStyle: 'shorts' | 'long' | 'joggers'; shoeStyle: 'sneakers' | 'high-tops' | 'boots' | 'futuristic';
   bodyWidth: number; bodyHeight: number; headSize: number; legLength: number; shirtImage?: string; fighterId?: string;
 };
 const defaults: AvatarConfig = {
   characterType: 'human', skin: '#4de2d0', outfit: '#ffb84d', shoes: '#24243a', hairColor: '#26314d', hairStyle: 'smooth',
-  accessory: 'none', pants: '#33415f', gloves: '#e8edf5', eyeColor: '#172033', eyeStyle: 'round', bodyWidth: 1, bodyHeight: 1, headSize: 1, legLength: 1, fighterId: 'classic'
+  accessory: 'none', pants: '#33415f', gloves: '#e8edf5', eyeColor: '#172033', eyeStyle: 'round', topStyle: 'tee', pantsStyle: 'long', shoeStyle: 'sneakers', bodyWidth: 1, bodyHeight: 1, headSize: 1, legLength: 1, fighterId: 'classic'
 };
 const fighterPresets: Record<string, AvatarConfig> = {
   classic: { ...defaults, fighterId: 'classic' },
@@ -374,6 +374,36 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = t
   }
   const bodyY = 0.85 * cfg.bodyHeight;
   addMesh(group, new THREE.CapsuleGeometry(0.48 * cfg.bodyWidth, 0.55 * cfg.bodyHeight, 6, 12), cfg.outfit, 0, bodyY, 0);
+  // Modular upper-body garments are separate meshes, not simple color swaps.
+  const garment = new THREE.Group();
+  const garmentMat = (color = cfg.outfit, metalness = 0.12, roughness = 0.58) =>
+    new THREE.MeshStandardMaterial({ color, metalness, roughness });
+  if (cfg.topStyle === 'jacket') {
+    const shell = new THREE.Mesh(new THREE.CapsuleGeometry(0.495 * cfg.bodyWidth, 0.56 * cfg.bodyHeight, 6, 12), garmentMat());
+    shell.scale.set(1, 1, 1.035); shell.castShadow = true; garment.add(shell);
+    addMesh(garment, new THREE.BoxGeometry(0.045, 0.78 * cfg.bodyHeight, 0.035), '#dce8f5', 0, bodyY, -0.485);
+    for (const side of [-1, 1]) {
+      const panel = addMesh(garment, new THREE.BoxGeometry(0.18 * cfg.bodyWidth, 0.56 * cfg.bodyHeight, 0.045), cfg.outfit, side * 0.13 * cfg.bodyWidth, bodyY + 0.02, -0.49);
+      panel.rotation.z = side * -0.08;
+    }
+  } else if (cfg.topStyle === 'hoodie') {
+    const shell = new THREE.Mesh(new THREE.CapsuleGeometry(0.50 * cfg.bodyWidth, 0.57 * cfg.bodyHeight, 6, 12), garmentMat());
+    shell.scale.set(1, 1, 1.04); shell.castShadow = true; garment.add(shell);
+    const hood = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.72), garmentMat());
+    hood.position.set(0, bodyY + 0.53 * cfg.headSize, 0.23); hood.scale.set(1.05, 0.95, 0.72); hood.castShadow = true; garment.add(hood);
+    addMesh(garment, new THREE.BoxGeometry(0.42 * cfg.bodyWidth, 0.055, 0.035), '#d9e4f1', 0, bodyY - 0.18, -0.49);
+    for (const side of [-1, 1]) addMesh(garment, new THREE.CylinderGeometry(0.012, 0.012, 0.25, 8), '#e8edf5', side * 0.09, bodyY + 0.08, -0.50);
+  } else if (cfg.topStyle === 'armor') {
+    const plate = new THREE.Mesh(new THREE.CapsuleGeometry(0.505 * cfg.bodyWidth, 0.56 * cfg.bodyHeight, 5, 10), garmentMat('#8795a8', 0.72, 0.3));
+    plate.scale.set(1, 1, 1.09); plate.castShadow = true; garment.add(plate);
+    addMesh(garment, new THREE.BoxGeometry(0.42 * cfg.bodyWidth, 0.34 * cfg.bodyHeight, 0.10), cfg.outfit, 0, bodyY + 0.08, -0.50);
+    addMesh(garment, new THREE.BoxGeometry(0.16, 0.13, 0.08), '#65e7d9', 0, bodyY + 0.08, -0.56);
+    for (const side of [-1, 1]) {
+      const pad = addMesh(garment, new THREE.SphereGeometry(0.22, 12, 10), '#65758b', side * 0.48 * cfg.bodyWidth, bodyY + 0.25, 0);
+      pad.scale.set(1.25, 0.72, 1);
+    }
+  }
+  if (cfg.topStyle !== 'tee') group.add(garment);
   addMesh(group, new THREE.SphereGeometry(0.39 * cfg.headSize, 20, 16), cfg.skin, 0, bodyY + 0.82 * cfg.headSize, 0);
   if (shirtTexture && useShirtTexture) {
     // Curved UV patches follow the capsule torso instead of floating as flat planes.
@@ -445,20 +475,30 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = t
   const legScale = cfg.legLength;
   const leftLeg = new THREE.Group();
   leftLeg.position.set(-0.22 * cfg.bodyWidth, 0.34 * legScale, 0);
-  addMesh(leftLeg, new THREE.CapsuleGeometry(0.155, 0.29 * legScale, 4, 8), cfg.pants, 0, -0.16 * legScale, 0);
+  addMesh(leftLeg, new THREE.CapsuleGeometry(0.155, (cfg.pantsStyle === 'shorts' ? 0.08 : 0.29) * legScale, 4, 8), cfg.pants, 0, -0.16 * legScale, 0);
   addMesh(leftLeg, new THREE.CapsuleGeometry(0.15, 0.28 * legScale, 4, 8), cfg.skin, 0, -0.16 * legScale, 0);
-  addMesh(leftLeg, new THREE.BoxGeometry(0.34, 0.2, 0.5), cfg.shoes, 0, -0.34 * legScale, -0.13);
+  const makeShoe = (parent: THREE.Group, y: number) => {
+    const sole = addMesh(parent, new THREE.BoxGeometry(0.38, 0.10, 0.56), '#20283b', 0, y - 0.07, -0.15);
+    const upper = addMesh(parent, new THREE.BoxGeometry(0.34, cfg.shoeStyle === 'boots' ? 0.34 : 0.20, cfg.shoeStyle === 'high-tops' ? 0.48 : 0.50), cfg.shoes, 0, y, -0.13);
+    if (cfg.shoeStyle === 'boots') upper.position.y = y + 0.04;
+    if (cfg.shoeStyle === 'high-tops') addMesh(parent, new THREE.TorusGeometry(0.13, 0.025, 6, 14), '#e8edf5', 0, y + 0.10, -0.19);
+    if (cfg.shoeStyle === 'futuristic') {
+      addMesh(parent, new THREE.BoxGeometry(0.30, 0.035, 0.035), '#65e7d9', 0, y + 0.02, -0.39);
+      addMesh(parent, new THREE.BoxGeometry(0.12, 0.08, 0.08), '#b9c7e5', 0, y - 0.02, 0.02);
+    }
+  };
+  makeShoe(leftLeg, -0.34 * legScale);
   group.add(leftLeg);
 
   const kickLeg = new THREE.Group();
   kickLeg.position.set(0.22 * cfg.bodyWidth, 0.34 * legScale, 0);
-  addMesh(kickLeg, new THREE.CapsuleGeometry(0.155, 0.29 * legScale, 4, 8), cfg.pants, 0, -0.16 * legScale, 0);
+  addMesh(kickLeg, new THREE.CapsuleGeometry(0.155, (cfg.pantsStyle === 'shorts' ? 0.08 : 0.29) * legScale, 4, 8), cfg.pants, 0, -0.16 * legScale, 0);
   addMesh(kickLeg, new THREE.CapsuleGeometry(0.15, 0.28 * legScale, 4, 8), cfg.skin, 0, -0.16 * legScale, 0);
   const knee = addMesh(kickLeg, new THREE.SphereGeometry(0.15, 12, 10), cfg.skin, 0, -0.29 * legScale, 0);
   const shin = new THREE.Group();
   shin.position.set(0, -0.29 * legScale, 0);
   addMesh(shin, new THREE.CapsuleGeometry(0.13, 0.25 * legScale, 4, 8), cfg.skin, 0, -0.13 * legScale, 0);
-  addMesh(shin, new THREE.BoxGeometry(0.36, 0.2, 0.54), cfg.shoes, 0, -0.29 * legScale, -0.16);
+  makeShoe(shin, -0.29 * legScale);
   kickLeg.add(shin);
   group.add(kickLeg);
   group.userData.leftLeg = leftLeg;
@@ -875,7 +915,7 @@ const fighterCards = Array.from(document.querySelectorAll<HTMLButtonElement>('[d
 function syncFighterControls() {
   const values: Record<string, string> = {
     'skin-color': config.skin, 'outfit-color': config.outfit, 'shoe-color': config.shoes, 'hair-color': config.hairColor,
-    'hair-style': config.hairStyle, 'accessory': config.accessory, 'pants-color': config.pants, 'glove-color': config.gloves, 'eye-color': config.eyeColor, 'eye-style': config.eyeStyle
+    'hair-style': config.hairStyle, 'accessory': config.accessory, 'pants-color': config.pants, 'glove-color': config.gloves, 'eye-color': config.eyeColor, 'eye-style': config.eyeStyle, 'top-style': config.topStyle, 'pants-style': config.pantsStyle, 'shoe-style': config.shoeStyle
   };
   for (const [id, value] of Object.entries(values)) {
     const input = document.querySelector<HTMLInputElement | HTMLSelectElement>('#' + id);
@@ -984,7 +1024,7 @@ function bindSelect(id: string, key: keyof AvatarConfig) {
   input.value = String(config[key]);
   input.addEventListener('change', () => { (config[key] as string) = input.value; rebuildPlayer(); });
 }
-bindSelect('hair-style', 'hairStyle'); bindSelect('accessory', 'accessory'); bindSelect('eye-style', 'eyeStyle');
+bindSelect('hair-style', 'hairStyle'); bindSelect('accessory', 'accessory'); bindSelect('eye-style', 'eyeStyle'); bindSelect('top-style', 'topStyle'); bindSelect('pants-style', 'pantsStyle'); bindSelect('shoe-style', 'shoeStyle');
 function bindRange(id: string, key: keyof AvatarConfig) {
   const input = document.querySelector<HTMLInputElement>('#' + id)!;
   const output = document.querySelector<HTMLOutputElement>('#' + id + '-value')!;
