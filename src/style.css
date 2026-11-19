@@ -1005,3 +1005,98 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
     padding: 9px;
   }
 }
+
+
+/* Landscape collision fix: reserve separate header, mode-button and playfield rows. */
+@media (orientation: landscape) and (max-height: 700px) and (pointer: coarse) {
+  .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    grid-template-areas: "brand social" ". actions";
+    align-items: start;
+    justify-content: stretch;
+    column-gap: 12px;
+    row-gap: 5px;
+    top: max(7px, env(safe-area-inset-top));
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+  }
+  .brand-block {
+    grid-area: brand;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .brand { font-size: clamp(18px, 3.2vw, 27px); }
+  .contract-box {
+    width: clamp(145px, 23vw, 250px);
+    padding: 5px 7px;
+  }
+  .contract-box label { font-size: 6px; margin-bottom: 3px; }
+  .contract-field input, .contract-field button { height: 26px; }
+  .social-market-column {
+    grid-area: social;
+    justify-self: end;
+    align-items: flex-end;
+    gap: 4px;
+  }
+  .x-social-link { margin: 0; padding: 5px 9px; font-size: 8px; }
+  .topbar-actions {
+    grid-area: actions;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 5px;
+    max-width: none;
+    width: auto;
+  }
+  .sound-controls { min-height: 28px; padding: 2px 5px; }
+  .volume-control { display: none; }
+  .match-clock { position: absolute; top: 174px; }
+  .online-toggle, .creator-toggle {
+    position: absolute;
+    top: max(104px, calc(env(safe-area-inset-top) + 96px));
+    width: clamp(140px, 22vw, 220px);
+    min-height: 38px;
+    height: 38px;
+    padding: 0 10px;
+    font-size: 8px;
+    z-index: 6;
+  }
+  .online-toggle { left: max(12px, env(safe-area-inset-left)); right: auto; }
+  .creator-toggle { right: max(12px, env(safe-area-inset-right)); left: auto; }
+  .online-panel {
+    top: max(150px, calc(env(safe-area-inset-top) + 142px));
+    left: max(12px, env(safe-area-inset-left));
+    width: min(320px, 38vw);
+    max-height: calc(100dvh - 165px);
+    overflow-y: auto;
+  }
+  .creator-panel {
+    top: max(150px, calc(env(safe-area-inset-top) + 142px));
+    right: max(12px, env(safe-area-inset-right));
+    width: min(360px, 42vw);
+    max-height: calc(100dvh - 165px);
+    overflow-y: auto;
+  }
+  .powerup-status { top: 58px; bottom: auto; }
+  .controls {
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+  }
+  body.customizing .topbar { display: none !important; }
+  body.customizing .creator-toggle { top: max(8px, env(safe-area-inset-top)); }
+  body.customizing .creator-panel {
+    top: max(52px, calc(env(safe-area-inset-top) + 46px));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    right: max(10px, env(safe-area-inset-right));
+    left: auto;
+    width: min(390px, 44vw);
+    max-height: none;
+  }
+}
