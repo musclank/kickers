@@ -1117,7 +1117,7 @@ function updateMatchResult() {
   if (!stats) return;
   const played = MATCH_DURATION - matchTimeRemaining;
   const totalXP = (() => { try { return Number(JSON.parse(localStorage.getItem(xpKey) || '{}').xp || 0); } catch { return 0; } })();
-  stats.innerHTML = `<div><strong>${formatMatchTime(played)}</strong><span>TIME PLAYED</span></div><div><strong>+${matchXpEarned} XP</strong><span>THIS MATCH</span></div><div><strong>${totalXP} XP</strong><span>TOTAL XP</span></div>`;
+  stats.innerHTML = `<div><strong>${networkReady ? 'ONLINE' : formatMatchTime(played)}</strong><span>${networkReady ? 'MATCH TYPE' : 'TIME PLAYED'}</span></div><div><strong>+${matchXpEarned} XP</strong><span>THIS MATCH</span></div><div><strong>${totalXP} XP</strong><span>TOTAL XP</span></div>`;
 }
 function formatMatchTime(seconds: number) {
   const whole = Math.max(0, Math.ceil(seconds));
