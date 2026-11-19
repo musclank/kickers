@@ -1015,12 +1015,13 @@ const MATCH_DURATION = 300;
 let matchTimeRemaining = MATCH_DURATION;
 let roundOver = false;
 let gamePaused = true;
+let trainingMode = false;
 let victoryActive = false;
 let victoryTime = 0;
 let victoryStarted = false;
 const PODIUM_HEIGHT = 5.2;
 function beginVictory() {
-  if (victoryStarted || networkReady) return;
+  if (victoryStarted || networkReady || trainingMode) return;
   victoryStarted = true;
   victoryActive = true;
   victoryTime = 0;
@@ -1062,6 +1063,7 @@ function setGamePaused(paused: boolean) {
 }
 const startScreen = document.querySelector<HTMLDivElement>('#start-screen')!;
 const startGameButton = document.querySelector<HTMLButtonElement>('#start-game')!;
+const startTrainingButton = document.querySelector<HTMLButtonElement>('#start-training')!;
 const startCustomizeButton = document.querySelector<HTMLButtonElement>('#start-customize')!;
 const playerStatsButton = document.querySelector<HTMLButtonElement>('#player-stats-button')!;
 const playerStatsPanel = document.querySelector<HTMLElement>('#player-stats-panel')!;
@@ -1079,11 +1081,19 @@ function renderPlayerStats() {
 }
 playerStatsButton.addEventListener('click', () => { renderPlayerStats(); playerStatsPanel.hidden = false; });
 closePlayerStatsButton.addEventListener('click', () => { playerStatsPanel.hidden = true; });
-startGameButton.addEventListener('click', () => {
+function launchGame(training: boolean) {
+  trainingMode = training;
   startScreen.hidden = true;
+  matchTimeRemaining = MATCH_DURATION;
+  roundOver = false;
+  matchTimeEl.textContent = training ? 'TRAINING' : formatMatchTime(matchTimeRemaining);
+  matchTimeEl.classList.remove('urgent');
+  statusEl.textContent = training ? 'TRAINING MODE' : 'READY';
   setGamePaused(false);
   playSound('ui');
-});
+}
+startGameButton.addEventListener('click', () => launchGame(false));
+startTrainingButton.addEventListener('click', () => launchGame(true));
 startCustomizeButton.addEventListener('click', () => {
   startScreen.hidden = true;
   setCustomizationOpen(true);
@@ -1178,7 +1188,7 @@ function animate() {
   requestAnimationFrame(animate);
   const delta = Math.min(clock.getDelta(), 0.04);
   if ((gamePaused && !networkReady) || customizing) { renderer.render(scene, camera); return; }
-  if (!roundOver) {
+  if (!roundOver && !trainingMode) {
     matchTimeRemaining = Math.max(0, matchTimeRemaining - delta);
     matchTimeEl.textContent = formatMatchTime(matchTimeRemaining);
     matchTimeEl.classList.toggle('urgent', matchTimeRemaining <= 30);
@@ -1257,7 +1267,16 @@ function animate() {
     player.userData.fallVelocity = Number(player.userData.fallVelocity || 0) - 18 * delta;
     player.position.y += Number(player.userData.fallVelocity) * delta;
     player.rotation.z += delta * 2.2;
-    if (player.position.y < -12) {
+    if (player.position.y < -12 && trainingMode) {
+      player.position.set(0, 0, 0);
+      player.rotation.set(0, Math.PI, 0);
+      player.userData.fallen = false;
+      player.userData.fallVelocity = 0;
+      player.visible = true;
+      moveX = 0; moveZ = 0;
+      releaseStick();
+      statusEl.textContent = 'TRAINING MODE';
+    } else if (player.position.y < -12) {
       player.visible = false;
       if (!roundOver) {
         roundOver = true;
