@@ -961,6 +961,12 @@ function connectToRoom(room: string) {
   setOnlineMessage('CONNECTING TO ROOM...');
   ws.addEventListener('open', () => {
     networkReady = true;
+    // Joining a room must replace any local/offline session on this device.
+    trainingMode = false;
+    roundOver = false;
+    matchTimeRemaining = MATCH_DURATION;
+    startScreen.hidden = true;
+    rivals.forEach(rival => { rival.visible = false; });
     setGamePaused(false);
     pauseButton.hidden = true;
     sendNetwork({ type: 'hello', name: playerDisplayName, walletAddress: playerWalletAddress, avatar: { ...config, shirtImage: undefined } });
@@ -979,6 +985,16 @@ function connectToRoom(room: string) {
       const data = JSON.parse(String(event.data)) as { type: string; players?: Array<{ id: string; name?: string; walletAddress?: string | null; avatar?: Partial<AvatarConfig>; x?: number; z?: number; rotation?: number; hp?: number; knockedOut?: boolean }>; id?: string; x?: number; z?: number; rotation?: number; duration?: number; attackerId?: string; targetId?: string; hp?: number; knockX?: number; knockZ?: number; knockedOut?: boolean; playerId?: string; winnerId?: string };
       if (data.type === 'roster' && data.players) updateRoster(data.players);
       if (data.type === 'match-start') {
+        // Explicitly switch both host and guest into the same online match state.
+        trainingMode = false;
+        startScreen.hidden = true;
+        setGamePaused(false);
+        rivals.forEach(rival => { rival.visible = false; });
+        player.visible = true;
+        player.userData.fallen = false;
+        roundOver = false;
+        matchTimeRemaining = MATCH_DURATION;
+        matchTimeEl.classList.remove('urgent');
         onlineHp = 100;
         matchResultRecorded = false;
         matchXpAwarded = false;
