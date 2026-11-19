@@ -719,3 +719,9 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 .fighter-card strong{font-size:8px;letter-spacing:.1em}
 .fighter-card small{max-width:100%;overflow:hidden;color:#9eafce;font-size:7px;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:520px){.start-screen{padding:10px}.start-card{padding:17px 13px;border-radius:18px}.fighter-roster{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.fighter-card{padding:8px 3px}.fighter-avatar{width:34px;height:34px}.fighter-select{padding:9px;margin-bottom:12px}.start-card h1{margin:8px 0 5px}.start-card>p{font-size:11px;margin-bottom:12px}}
+
+/* Expanded character creator controls */
+.creator-section-title { margin: 17px 0 8px; padding-top: 12px; border-top: 1px solid #ffffff18; color: #65e7d9; font-size: 9px; font-weight: 1000; letter-spacing: .16em; }
+.creator-panel { scrollbar-width: thin; scrollbar-color: #526582 transparent; }
+.creator-panel input[type=color] { min-width: 0; cursor: pointer; }
+.creator-panel select, .creator-panel input { accent-color: #65e7d9; }
