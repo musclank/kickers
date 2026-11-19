@@ -1793,6 +1793,8 @@ function completeDailyChallenge() {
 }
 const keys = new Set<string>();
 const clock = new THREE.Clock();
+let championshipRound = 1;
+let onlineNextMatchPending = false;
 const MATCH_DURATION = 300;
 let matchTimeRemaining = MATCH_DURATION;
 let roundOver = false;
