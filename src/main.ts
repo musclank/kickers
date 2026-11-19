@@ -268,6 +268,11 @@ const crowdSkinColors = [0xf0b68b, 0x9d6245, 0xd68c65, 0xf2cfaa, 0x70452f];
 const crowdDummy = new THREE.Object3D();
 const crowdUp = new THREE.Vector3(0, 1, 0);
 let crowdIndex = 0;
+let crowdCheer = 0;
+let crowdAnimationTime = 0;
+const crowdBaseMatrices: THREE.Matrix4[] = [];
+const crowdHeadBaseMatrices: THREE.Matrix4[] = [];
+const crowdArmBaseMatrices: THREE.Matrix4[] = [];
 for (let row = 0; row < 3; row++) {
   for (let seat = 0; seat < 36; seat++) {
     const angle = (seat / 36) * Math.PI * 2 + (row % 2) * 0.075;
@@ -283,6 +288,7 @@ for (let row = 0; row < 3; row++) {
     crowdDummy.scale.set(bodyScale, 1, 0.72);
     crowdDummy.updateMatrix();
     crowdBodies.setMatrixAt(crowdIndex, crowdDummy.matrix);
+    crowdBaseMatrices[crowdIndex] = crowdDummy.matrix.clone();
     crowdBodies.setColorAt(crowdIndex, new THREE.Color(crowdBodyColors[(seat * 3 + row * 2) % crowdBodyColors.length]));
 
     crowdDummy.position.set(radial.x * radius, baseY + 0.88, radial.z * radius);
@@ -290,6 +296,7 @@ for (let row = 0; row < 3; row++) {
     crowdDummy.scale.set(1, 1, 1);
     crowdDummy.updateMatrix();
     crowdHeads.setMatrixAt(crowdIndex, crowdDummy.matrix);
+    crowdHeadBaseMatrices[crowdIndex] = crowdDummy.matrix.clone();
     crowdHeads.setColorAt(crowdIndex, new THREE.Color(crowdSkinColors[(seat + row * 2) % crowdSkinColors.length]));
 
     for (let side = -1; side <= 1; side += 2) {
@@ -300,6 +307,7 @@ for (let row = 0; row < 3; row++) {
       crowdDummy.scale.set(1, 1, 1);
       crowdDummy.updateMatrix();
       crowdArms.setMatrixAt(crowdIndex * 2 + (side === 1 ? 1 : 0), crowdDummy.matrix);
+      crowdArmBaseMatrices[crowdIndex * 2 + (side === 1 ? 1 : 0)] = crowdDummy.matrix.clone();
       crowdArms.setColorAt(crowdIndex * 2 + (side === 1 ? 1 : 0), new THREE.Color(crowdBodyColors[(seat * 3 + row * 2) % crowdBodyColors.length]));
     }
     crowdIndex++;
@@ -312,6 +320,29 @@ if (crowdBodies.instanceColor) crowdBodies.instanceColor.needsUpdate = true;
 if (crowdHeads.instanceColor) crowdHeads.instanceColor.needsUpdate = true;
 if (crowdArms.instanceColor) crowdArms.instanceColor.needsUpdate = true;
 scene.add(crowdBodies, crowdHeads, crowdArms);
+// Stadium LED screen facing the arena.
+const scoreboardCanvas = document.createElement('canvas');
+scoreboardCanvas.width = 768; scoreboardCanvas.height = 256;
+const scoreboardContext = scoreboardCanvas.getContext('2d')!;
+const scoreboardTexture = new THREE.CanvasTexture(scoreboardCanvas);
+scoreboardTexture.colorSpace = THREE.SRGBColorSpace;
+function drawArenaScoreboard(message = 'LIVE MATCH') {
+  const ctx = scoreboardContext;
+  ctx.clearRect(0, 0, 768, 256);
+  const gradient = ctx.createLinearGradient(0, 0, 768, 256);
+  gradient.addColorStop(0, '#101d3b'); gradient.addColorStop(1, '#24134b');
+  ctx.fillStyle = gradient; ctx.fillRect(0, 0, 768, 256);
+  ctx.strokeStyle = '#55e6e0'; ctx.lineWidth = 8; ctx.strokeRect(8, 8, 752, 240);
+  ctx.textAlign = 'center'; ctx.shadowColor = '#42e8ff'; ctx.shadowBlur = 18;
+  ctx.fillStyle = '#fff'; ctx.font = '900 76px system-ui'; ctx.fillText('KICKERS', 384, 105);
+  ctx.shadowBlur = 8; ctx.fillStyle = '#ffd166'; ctx.font = '800 30px system-ui'; ctx.fillText(message, 384, 178);
+  ctx.shadowBlur = 0; ctx.fillStyle = '#a9c5e8'; ctx.font = '700 24px system-ui'; ctx.fillText('THE CROWD IS WATCHING', 384, 218);
+  scoreboardTexture.needsUpdate = true;
+}
+const scoreboard = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 2.4), new THREE.MeshBasicMaterial({ map: scoreboardTexture, side: THREE.DoubleSide }));
+scoreboard.position.set(0, 5.4, -12.8); scoreboard.rotation.x = -0.08; scene.add(scoreboard);
+drawArenaScoreboard();
+let scoreboardRefresh = 0;
 // Grid removed for a clean white arena floor.
 
 // Base logo floor decal: a solid blue raised tile guarantees visibility,
@@ -1436,6 +1467,8 @@ const PODIUM_HEIGHT = 5.2;
 function beginVictory() {
   if (victoryStarted || networkReady || trainingMode) return;
   victoryStarted = true;
+  crowdCheer = 2.0;
+  drawArenaScoreboard('CHAMPION!');
   victoryActive = true;
   victoryTime = 0;
   moveX = 0; moveZ = 0;
@@ -1545,6 +1578,8 @@ function funnyStyle() {
 }
 styleButton.addEventListener('pointerdown', funnyStyle);
 function useSpecial() {
+  crowdCheer = Math.max(crowdCheer, 1.25);
+  drawArenaScoreboard('SPECIAL MOVE!');
   if (roundOver || gamePaused || customizing) return;
   if (networkReady) { setOnlineMessage('SPECIAL MOVES ARE CURRENTLY OFFLINE-ONLY'); return; }
   if (specialCooldown > 0) return;
@@ -1608,6 +1643,8 @@ function kick() {
   playSound('kick');
   if (kickTime > 0 || tauntTime > 0 || mockTime > 0) return;
   kickTime = 0.48;
+  crowdCheer = Math.max(crowdCheer, 0.65);
+  drawArenaScoreboard('HERE COMES A KICK!');
   kickHitDone = false;
   recordAchievementKick();
   if (networkReady) sendNetwork({ type: 'kick' });
@@ -1635,6 +1672,40 @@ joystick.addEventListener('pointerup', releaseStick); joystick.addEventListener(
 function animate() {
   requestAnimationFrame(animate);
   const delta = Math.min(clock.getDelta(), 0.04);
+  crowdAnimationTime += delta;
+  crowdCheer = Math.max(0, crowdCheer - delta * 0.48);
+  const cheerPulse = 1 + crowdCheer * 0.9;
+  const bodyMatrix = new THREE.Matrix4();
+  const bodyPosition = new THREE.Vector3();
+  const bodyQuaternion = new THREE.Quaternion();
+  const bodyScale = new THREE.Vector3();
+  for (let i = 0; i < crowdCount; i++) {
+    const bounce = Math.max(0, Math.sin(crowdAnimationTime * (3.2 + (i % 5) * 0.22) + i * 1.7));
+    crowdBaseMatrices[i].decompose(bodyPosition, bodyQuaternion, bodyScale);
+    bodyPosition.y += bounce * 0.11 * cheerPulse;
+    bodyMatrix.compose(bodyPosition, bodyQuaternion, bodyScale);
+    crowdBodies.setMatrixAt(i, bodyMatrix);
+    crowdHeadBaseMatrices[i].decompose(bodyPosition, bodyQuaternion, bodyScale);
+    bodyPosition.y += bounce * 0.13 * cheerPulse;
+    bodyMatrix.compose(bodyPosition, bodyQuaternion, bodyScale);
+    crowdHeads.setMatrixAt(i, bodyMatrix);
+  }
+  crowdBodies.instanceMatrix.needsUpdate = true;
+  crowdHeads.instanceMatrix.needsUpdate = true;
+  for (let i = 0; i < crowdArmBaseMatrices.length; i++) {
+    const wave = Math.sin(crowdAnimationTime * 5 + Math.floor(i / 2) * 1.3 + i * 0.7);
+    crowdArmBaseMatrices[i].decompose(bodyPosition, bodyQuaternion, bodyScale);
+    bodyPosition.y += Math.max(0, wave) * 0.12 * cheerPulse;
+    bodyQuaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), wave * 0.16 * cheerPulse));
+    bodyMatrix.compose(bodyPosition, bodyQuaternion, bodyScale);
+    crowdArms.setMatrixAt(i, bodyMatrix);
+  }
+  crowdArms.instanceMatrix.needsUpdate = true;
+  scoreboardRefresh += delta;
+  if (scoreboardRefresh > 2.5 && crowdCheer < 0.05) {
+    scoreboardRefresh = 0;
+    drawArenaScoreboard(networkReady ? 'ONLINE SHOWDOWN' : trainingMode ? 'PRACTICE ROUND' : 'LIVE MATCH');
+  }
   if ((gamePaused && !networkReady) || customizing) { if (customizing && previewPointerId === null) player.rotation.y += delta * 0.22; renderer.render(scene, camera); return; }
   if (!roundOver && !trainingMode && !networkReady) {
     matchTimeRemaining = Math.max(0, matchTimeRemaining - delta);
