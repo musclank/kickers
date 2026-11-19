@@ -387,7 +387,6 @@ function renderMarketTokenList() {
     const item = document.createElement('button');
     item.type = 'button'; item.className = 'market-token-option';
     item.classList.toggle('selected', address === selectedMarketAddress);
-    item.setAttribute('role', 'listitem');
     item.setAttribute('aria-pressed', String(address === selectedMarketAddress));
     const logo = document.createElement('img');
     logo.className = 'market-token-option-icon'; logo.alt = data ? data.name + ' official logo' : 'Token logo';
@@ -397,7 +396,7 @@ function renderMarketTokenList() {
     fallback.textContent = (data?.symbol || '...').slice(0, 5);
     const identity = document.createElement('span');
     identity.className = 'market-token-option-identity';
-    const name = document.createElement('strong'); name.textContent = data ? data.symbol : 'LOADING';
+    const name = document.createElement('strong'); name.textContent = data ? data.symbol : marketLoading ? 'LOADING' : 'NO MARKET DATA';
     const shortAddress = document.createElement('small'); shortAddress.textContent = address.slice(0, 8) + '…' + address.slice(-6);
     identity.append(name, shortAddress);
     const quote = document.createElement('span'); quote.className = 'market-token-option-quote';
