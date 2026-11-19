@@ -639,9 +639,14 @@ setNameLabel(player, 'KICKERS Player');
 const rivals = [
   makeAvatar({ ...defaults, skin: '#ff6b78', outfit: '#5d293d', accessory: 'horns' }, -4, -2),
   makeAvatar({ ...defaults, skin: '#ffc857', outfit: '#4b5f9a', hairStyle: 'spiky' }, 4, -3),
-  makeAvatar({ ...defaults, skin: '#9b83ff', outfit: '#3d725f', accessory: 'crown' }, 1, -6)
-];
-rivals.forEach((bot, index) => setNameLabel(bot, `BOT 0${index + 1}`));
+  makeAvatar({ ...defaults, skin: '#9b83ff', outfit: '#3d725f', accessory: 'crown' }, 1, -6),
+  makeAvatar({ ...defaults, skin: '#66d9ff', outfit: '#263d68', shoes: '#f4d35e', hairStyle: 'curly' }, -6.2, -1.2),
+  makeAvatar({ ...defaults, skin: '#f3a6d2', outfit: '#613f78', pants: '#292747', accessory: 'glasses' }, -4.8, -4.8),
+  makeAvatar({ ...defaults, skin: '#a8e6a1', outfit: '#315b48', shoes: '#e8edf5', hairStyle: 'spiky' }, -1.5, -6.8),
+  makeAvatar({ ...defaults, skin: '#d6b18c', outfit: '#8a3d32', pants: '#303b50', accessory: 'cap' }, 2.8, -6.1),
+  makeAvatar({ ...defaults, skin: '#e5e7eb', outfit: '#414b5e', shoes: '#65e7d9', accessory: 'visor' }, 6.1, -2.5),
+  makeAvatar({ ...defaults, skin: '#f6c177', outfit: '#6a3158', pants: '#384b36', hairStyle: 'curly' }, 5.4, 3.6)
+];rivals.forEach((bot, index) => setNameLabel(bot, `BOT 0${index + 1}`));
 
 // Lightweight offline-only collectible: one reusable mesh, no per-frame allocations.
 const powerup = new THREE.Group();
