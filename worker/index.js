@@ -1,3 +1,4 @@
+const ARENA_ROOM_CAPACITY = 10;
 const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function makeRoomCode() {
   const bytes = new Uint8Array(6);
@@ -31,7 +32,7 @@ export default {
       const id = env.ROOMS.idFromName(room);
       return env.ROOMS.get(id).fetch(request);
     }
-    return json({ service: "KICKERS Multiplayer", status: "ready", maxPlayersPerRoom: 4 });
+    return json({ service: "KICKERS Multiplayer", status: "ready", maxPlayersPerRoom: ARENA_ROOM_CAPACITY });
   }
 };
 export class ArenaRoom {
@@ -52,7 +53,7 @@ export class ArenaRoom {
     const id = url.searchParams.get("id");
     const name = url.searchParams.get("name") || "KICKERS Player";
     const current = this.state.getWebSockets().length;
-    if (current >= 4) return new Response("Room is full", { status: 409 });
+    if (current >= ARENA_ROOM_CAPACITY) return new Response("Room is full (10 players maximum).", { status: 409 });
     if (this.match.finished) return new Response("Match finished. Create a new room.", { status: 409 });
     server.serializeAttachment({ id, name, x: 0, z: 2, rotation: 0, avatar: null, hp: 100, knockedOut: false, lastKickAt: 0 });
     this.state.acceptWebSocket(server);
