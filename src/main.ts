@@ -177,6 +177,17 @@ const fighterMotion: Record<string, FighterMotion> = {
   frost:   { walkRate: 9, stride: 0.46, kickPower: 1.32, idle: 0.8, victory: 1.2 }
 };
 let config: AvatarConfig = { ...defaults };
+let characterHasUnsavedChanges = false;
+function refreshStartCharacterPreview() {
+  const name = document.querySelector<HTMLElement>('#start-preview-name');
+  const details = document.querySelector<HTMLElement>('#start-preview-details');
+  const swatch = document.querySelector<HTMLElement>('#start-preview-swatch');
+  const state = document.querySelector<HTMLElement>('#start-preview-state');
+  if (name) name.textContent = (config.fighterId || 'custom').replace(/-/g, ' ').toUpperCase();
+  if (details) details.textContent = `${config.characterType.toUpperCase()} FIGHTER · ${config.topStyle.toUpperCase()} · ${config.shoeStyle.toUpperCase()}`;
+  if (swatch) swatch.style.background = `linear-gradient(135deg, ${config.outfit}, ${config.shoes})`;
+  if (state) state.textContent = characterHasUnsavedChanges ? 'UNSAVED CHANGES' : 'SAVED ON THIS DEVICE';
+}
 let shirtTexture: THREE.Texture | null = null;
 
 const scene = new THREE.Scene();
@@ -942,7 +953,8 @@ function selectFighter(id: string) {
     card.classList.toggle('selected', selected);
     card.setAttribute('aria-pressed', String(selected));
   });
-  try { localStorage.setItem('kickers-avatar-v1', JSON.stringify(config)); } catch { /* selection remains active for this session */ }
+  try { localStorage.setItem('kickers-avatar-v1', JSON.stringify(config)); characterHasUnsavedChanges = false; } catch { /* selection remains active for this session */ }
+  refreshStartCharacterPreview();
   const label = document.querySelector<HTMLElement>('#selected-fighter-name');
   if (label) label.textContent = id.toUpperCase();
   playSound('ui');
@@ -1180,8 +1192,23 @@ renderer.domElement.addEventListener("pointerup", releasePreviewPointer);
 renderer.domElement.addEventListener("pointercancel", releasePreviewPointer);
 creatorToggle.addEventListener('click', () => setCustomizationOpen(!customizing));
 saveButton.addEventListener('click', () => {
-  try { localStorage.setItem('kickers-avatar-v1', JSON.stringify(config)); savedLabel.textContent = 'CHARACTER SAVED ON THIS DEVICE'; }
-  catch { savedLabel.textContent = 'SAVE NOT AVAILABLE'; }
+  try {
+    localStorage.setItem('kickers-avatar-v1', JSON.stringify(config));
+    characterHasUnsavedChanges = false;
+    savedLabel.textContent = 'CHARACTER SAVED ON THIS DEVICE';
+    refreshStartCharacterPreview();
+    playSound('ui');
+  } catch { savedLabel.textContent = 'SAVE NOT AVAILABLE'; }
+});
+creator.addEventListener('input', () => {
+  characterHasUnsavedChanges = true;
+  savedLabel.textContent = 'UNSAVED CHANGES — SAVE TO KEEP';
+  refreshStartCharacterPreview();
+});
+creator.addEventListener('change', () => {
+  characterHasUnsavedChanges = true;
+  savedLabel.textContent = 'UNSAVED CHANGES — SAVE TO KEEP';
+  refreshStartCharacterPreview();
 });
 try {
   const saved = localStorage.getItem('kickers-avatar-v1');
@@ -1206,6 +1233,7 @@ fighterCards.forEach(card => {
 });
 const selectedFighterLabel = document.querySelector<HTMLElement>('#selected-fighter-name');
 if (selectedFighterLabel) selectedFighterLabel.textContent = activeFighterId.toUpperCase();
+refreshStartCharacterPreview();
 
 let moveX = 0, moveZ = 0, kickTime = 0, tauntTime = 0, mockTime = 0, walkTime = 0, kickHitDone = false;
 let speedBoostTime = 0, shieldTime = 0, powerKickTime = 0, specialCooldown = 0, powerupRespawn = 0;
