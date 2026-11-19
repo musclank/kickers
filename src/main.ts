@@ -472,7 +472,7 @@ function drawArenaScoreboard(message = scoreboardMessage) {
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, 768, 256);
   ctx.strokeStyle = '#55e6e0'; ctx.lineWidth = 7; ctx.strokeRect(7, 7, 754, 242);
   ctx.textAlign = 'left'; ctx.shadowColor = '#42e8ff'; ctx.shadowBlur = 3;
-  ctx.fillStyle = '#ffffff'; ctx.font = '900 29px system-ui'; ctx.fillText('KICKERS // BASE MARKET', 28, 43);
+  ctx.fillStyle = '#ffffff'; ctx.font = '900 29px system-ui'; ctx.fillText('CLANKER // LIVE MARKET', 28, 43);
   ctx.shadowBlur = 0; ctx.textAlign = 'right'; ctx.fillStyle = '#63f0d2'; ctx.font = '800 17px system-ui';
   ctx.fillText(marketLoading ? 'CONNECTING' : marketError ? 'LIVE FEED DELAYED' : 'LIVE DATA', 738, 41);
   if (arenaMarket) {
