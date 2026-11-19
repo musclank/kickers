@@ -1,0 +1,29 @@
+.creator2-tools { margin: 0 0 16px; padding: 13px; border: 1px solid #65e7d944; border-radius: 13px; background: linear-gradient(145deg,#13253bdd,#111a30dd); }
+.creator2-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 10px; }
+.creator2-heading > div { display:grid; gap:4px; }
+.creator2-heading strong { color:#f4f7ff; font-size:11px; letter-spacing:.1em; }
+.creator2-note { color:#91a6c8; font-size:8px; font-weight:800; letter-spacing:.08em; text-align:right; }
+.creator2-presets { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+.creator2-presets button { min-width:0; min-height:48px; display:grid; gap:3px; justify-items:start; padding:8px 10px; border:1px solid #ffffff20; border-radius:9px; background:#202b46; color:#eaf2ff; text-align:left; cursor:pointer; touch-action:manipulation; }
+.creator2-presets button strong { font-size:9px; letter-spacing:.08em; }
+.creator2-presets button small { color:#9eabc9; font-size:8px; }
+.creator2-presets button.selected { border-color:#65e7d9; background:#1c4149; box-shadow:inset 0 0 0 1px #65e7d933; }
+.creator2-actions { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:9px; }
+.creator2-actions button,.creator2-slot button { min-height:35px; border:1px solid #65e7d966; border-radius:8px; background:#1b3045; color:#8af4e7; font-size:8px; font-weight:1000; letter-spacing:.06em; cursor:pointer; touch-action:manipulation; }
+.creator2-actions button:last-child { border-color:#ffffff28; color:#c4cbe2; background:#202b46; }
+.creator2-slots-heading { margin-top:15px; }
+.creator2-slots { display:grid; gap:6px; }
+.creator2-slot { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:6px; padding:7px 8px; border:1px solid #ffffff18; border-radius:9px; background:#0d172b99; }
+.creator2-slot > div { display:grid; gap:3px; min-width:0; }
+.creator2-slot > div strong { color:#edf4ff; font-size:8px; letter-spacing:.1em; }
+.creator2-slot small { overflow:hidden; color:#8fa2c3; font-size:8px; text-overflow:ellipsis; white-space:nowrap; }
+.creator2-slot button { min-width:48px; min-height:32px; padding:0 8px; }
+.creator2-slot button:disabled { opacity:.3; cursor:not-allowed; }
+.creator2-status { margin:9px 0 0; color:#91a6c8; font-size:9px; line-height:1.45; }
+@media (max-width:600px) {
+  .creator-panel { top: max(154px, calc(env(safe-area-inset-top) + 138px)); bottom: max(104px, calc(env(safe-area-inset-bottom) + 92px)); max-height:none; width:calc(100vw - 20px); right:10px; padding:12px; overscroll-behavior:contain; }
+  .creator2-tools { padding:10px; }
+  .creator2-presets button { min-height:44px; }
+  .creator2-slot { gap:5px; padding:6px; }
+  .creator2-slot button { min-width:43px; padding:0 6px; font-size:7px; }
+}
