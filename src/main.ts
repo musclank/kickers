@@ -1108,6 +1108,7 @@ arenaOptions.forEach(button => button.addEventListener("click", () => {
 const savedArena = localStorage.getItem("kickers-arena-v1") as keyof typeof arenaThemes | null;
 applyArenaTheme(savedArena && savedArena in arenaThemes ? savedArena : "classic");
 
+let customizationFromStartMenu = false;
 function setCustomizationOpen(open: boolean) {
   if (open === customizing) return;
   if (open && roundOver) return;
@@ -1146,7 +1147,13 @@ function setCustomizationOpen(open: boolean) {
       camera.lookAt(player.position.x * 0.15, 0, player.position.z * 0.2);
     }
     customizationSnapshot = null;
-    statusEl.textContent = networkReady ? 'ONLINE' : (gamePaused ? 'PAUSED' : 'READY');
+    if (customizationFromStartMenu) {
+      startScreen.hidden = false;
+      customizationFromStartMenu = false;
+      statusEl.textContent = 'READY';
+    } else {
+      statusEl.textContent = networkReady ? 'ONLINE' : (gamePaused ? 'PAUSED' : 'READY');
+    }
   }
 }
 
@@ -1396,6 +1403,7 @@ function launchGame(training: boolean) {
 startGameButton.addEventListener('click', () => launchGame(false));
 startTrainingButton.addEventListener('click', () => launchGame(true));
 startCustomizeButton.addEventListener('click', () => {
+  customizationFromStartMenu = true;
   startScreen.hidden = true;
   setCustomizationOpen(true);
 });
