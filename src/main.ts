@@ -680,11 +680,13 @@ function connectToRoom(room: string) {
         matchTimeEl.textContent = 'ONLINE';
         statusEl.textContent = 'ONLINE MATCH';
         setOnlineMessage('MATCH LIVE — KNOCK OUT YOUR RIVALS');
+        powerupStatus.textContent = 'ONLINE HP: 100';
       }
       if (data.type === 'combat-hit' && data.targetId) {
         if (data.targetId === localPlayerId) {
           onlineHp = Math.max(0, Number(data.hp ?? onlineHp));
           statusEl.textContent = onlineHp > 0 ? `HIT TAKEN · HP ${onlineHp}` : 'KNOCKED OUT';
+          powerupStatus.textContent = `ONLINE HP: ${onlineHp}`;
           if (typeof data.knockX === 'number' && typeof data.knockZ === 'number') {
             player.position.x += data.knockX * 0.55;
             player.position.z += data.knockZ * 0.55;
