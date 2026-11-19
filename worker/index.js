@@ -181,6 +181,7 @@ export class SocialRoom {
         const a = data.avatar;
         meta.avatar = {
           characterType: a.characterType === "robot" ? "robot" : "human",
+          fighterId: ["classic","blaze","shadow","titan","venom","nova","frost"].includes(a.fighterId) ? a.fighterId : "classic",
           skin: typeof a.skin === "string" && /^#[0-9a-f]{6}$/i.test(a.skin) ? a.skin : "#4de2d0",
           outfit: typeof a.outfit === "string" && /^#[0-9a-f]{6}$/i.test(a.outfit) ? a.outfit : "#ffb84d",
           shoes: typeof a.shoes === "string" && /^#[0-9a-f]{6}$/i.test(a.shoes) ? a.shoes : "#24243a",
