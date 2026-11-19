@@ -328,11 +328,6 @@ const scoreboardContext = scoreboardCanvas.getContext('2d')!;
 scoreboardContext.scale(2, 2);
 const scoreboardTexture = new THREE.CanvasTexture(scoreboardCanvas);
 scoreboardTexture.colorSpace = THREE.SRGBColorSpace;
-type ArenaMarketData = {
-  symbol: string; name: string; iconUrl: string | null; priceUsd: number; change24h: number | null;
-  marketCap: number | null; liquidity: number | null; volume24h: number | null;
-  dexId: string; pairUrl: string; updatedAt: number;
-};
 const MARKET_TOKEN_ADDRESSES = [
   '0x1bc0c42215582d5A085795f4baDbaC3ff36d1Bcb',
   '0x0947FB7076BFa307796F8fd533055f6016C6cccC',
