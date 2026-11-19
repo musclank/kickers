@@ -1708,7 +1708,7 @@ function kick() {
   drawArenaScoreboard('HERE COMES A KICK!');
   kickHitDone = false;
   recordAchievementKick();
-  if (networkReady) sendNetwork({ type: 'kick' });
+  if (networkReady) sendNetwork({ type: 'kick', x: player.position.x, z: player.position.z, rotation: player.rotation.y });
   statusEl.textContent = 'FOOT KICK!';
   kickButton.classList.add('pressed');
   setTimeout(() => kickButton.classList.remove('pressed'), 160);
@@ -1829,7 +1829,7 @@ function animate() {
     return;
   }
   networkSendClock += delta;
-  if (networkReady && networkSendClock >= 0.05) {
+  if (networkReady && networkSendClock >= 1 / 30) {
     networkSendClock = 0;
     sendNetwork({ type: 'state', x: player.position.x, z: player.position.z, rotation: player.rotation.y });
   }
@@ -2216,7 +2216,13 @@ function animate() {
   remotePlayers.forEach(remote => {
     remote.mesh.position.x += (remote.targetX - remote.mesh.position.x) * Math.min(1, delta * 14);
     remote.mesh.position.z += (remote.targetZ - remote.mesh.position.z) * Math.min(1, delta * 14);
-    remote.mesh.rotation.y += (remote.targetRotation - remote.mesh.rotation.y) * Math.min(1, delta * 12);
+    const rotationDelta = Math.atan2(Math.sin(remote.targetRotation - remote.mesh.rotation.y), Math.cos(remote.targetRotation - remote.mesh.rotation.y));
+    remote.mesh.rotation.y += rotationDelta * Math.min(1, delta * 16);
+    // Snap only when a packet gap is large enough to indicate a teleport/rejoin.
+    if (Math.hypot(remote.targetX - remote.mesh.position.x, remote.targetZ - remote.mesh.position.z) > 4) {
+      remote.mesh.position.x = remote.targetX;
+      remote.mesh.position.z = remote.targetZ;
+    }
     const remoteTaunt = Number(remote.mesh.userData.remoteTauntTime || 0);
     if (remoteTaunt > 0) {
       remote.mesh.userData.remoteTauntTime = Math.max(0, remoteTaunt - delta);
