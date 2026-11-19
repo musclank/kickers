@@ -937,6 +937,7 @@ try {
 
 let moveX = 0, moveZ = 0, kickTime = 0, tauntTime = 0, mockTime = 0, walkTime = 0, kickHitDone = false;
 let speedBoostTime = 0, shieldTime = 0, powerKickTime = 0, specialCooldown = 0, powerupRespawn = 0;
+let arenaEventClock = 0;
 let matchXpAwarded = false;
 let matchXpEarned = 0;
 let matchResultRecorded = false;
@@ -1116,6 +1117,7 @@ closePlayerStatsButton.addEventListener('click', () => { playerStatsPanel.hidden
 function launchGame(training: boolean) {
   if (training && networkReady) { setOnlineMessage('TRAINING MODE IS OFFLINE-ONLY'); return; }
   trainingMode = training;
+  arenaEventClock = 0;
   startScreen.hidden = true;
   matchTimeRemaining = MATCH_DURATION;
   roundOver = false;
@@ -1326,6 +1328,25 @@ function animate() {
 
   // Offline collectible: update a single low-poly pickup and award a temporary speed boost.
   if (!networkReady && !victoryStarted) {
+    arenaEventClock += delta;
+    if (arenaEventClock >= 35) {
+      arenaEventClock = 0;
+      const eventRoll = Math.floor(Math.random() * 3);
+      if (eventRoll === 0) {
+        speedBoostTime = Math.max(speedBoostTime, 8);
+        statusEl.textContent = 'ARENA EVENT: SPEED SURGE!';
+        powerupStatus.textContent = 'EVENT · SPEED SURGE 8.0s';
+      } else if (eventRoll === 1) {
+        shieldTime = Math.max(shieldTime, 8);
+        statusEl.textContent = 'ARENA EVENT: SHIELD UP!';
+        powerupStatus.textContent = 'EVENT · SHIELD 8.0s';
+      } else {
+        powerKickTime = Math.max(powerKickTime, 8);
+        statusEl.textContent = 'ARENA EVENT: POWER KICK!';
+        powerupStatus.textContent = 'EVENT · POWER KICK 8.0s';
+      }
+      playSound('victory');
+    }
     specialCooldown = Math.max(0, specialCooldown - delta);
     speedBoostTime = Math.max(0, speedBoostTime - delta);
     shieldTime = Math.max(0, shieldTime - delta);
