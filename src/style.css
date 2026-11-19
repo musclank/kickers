@@ -893,3 +893,115 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 @media (prefers-reduced-motion:reduce) {
   .powerup-status { transition:none; }
 }
+
+
+/* Dedicated phone landscape layout. Portrait rules remain unchanged. */
+@media (orientation: landscape) and (max-height: 520px) and (pointer: coarse) {
+  html, body, #app { min-height: 100%; }
+  .topbar {
+    top: max(5px, env(safe-area-inset-top));
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .brand-block { flex-direction: row; align-items: center; gap: 7px; }
+  .brand { font-size: clamp(17px, 3.2vw, 23px); line-height: 1; }
+  .contract-box { width: clamp(118px, 19vw, 170px); padding: 4px 6px; }
+  .contract-box label { margin-bottom: 3px; font-size: 6px; }
+  .contract-field { gap: 3px; }
+  .contract-field input { height: 23px; padding: 0 5px; font-size: 6px; }
+  .contract-field button { min-width: 37px; height: 23px; padding: 0 4px; font-size: 6px; }
+  .topbar-actions {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 5px;
+    max-width: none;
+    width: auto;
+  }
+  .round-label { display: none; }
+  .sound-controls { min-height: 30px; padding: 2px 5px; gap: 3px; }
+  #audio-toggle { min-height: 24px; padding: 2px; font-size: 7px; }
+  .volume-control { display: none; }
+  .match-clock { min-height: 30px; padding: 3px 6px; font-size: 7px; }
+  .match-clock strong { font-size: 11px; }
+  .pause-toggle, .fullscreen-toggle {
+    min-height: 30px;
+    height: 30px;
+    padding: 0 7px;
+    border-radius: 8px;
+    font-size: 7px;
+    white-space: nowrap;
+  }
+  .help { display: none; }
+  .online-toggle, .creator-toggle {
+    top: max(48px, calc(env(safe-area-inset-top) + 42px));
+    min-height: 30px;
+    height: 30px;
+    width: min(26vw, 190px);
+    padding: 0 7px;
+    border-radius: 8px;
+    font-size: 7px;
+  }
+  .online-toggle { left: max(8px, env(safe-area-inset-left)); right: auto; }
+  .creator-toggle { right: max(8px, env(safe-area-inset-right)); left: auto; }
+  .online-panel, .creator-panel {
+    top: max(84px, calc(env(safe-area-inset-top) + 78px));
+    max-height: calc(100dvh - 94px);
+    overflow-y: auto;
+    padding: 10px;
+    border-radius: 12px;
+  }
+  .online-panel { left: max(8px, env(safe-area-inset-left)); width: min(300px, 43vw); }
+  .creator-panel { right: max(8px, env(safe-area-inset-right)); width: min(350px, 48vw); }
+  .creator-heading { margin-bottom: 8px; }
+  .creator-heading h2 { font-size: 13px; }
+  .creator-grid { gap: 7px; margin: 8px 0; }
+  .sliders { gap: 8px; margin-top: 9px; }
+  .controls {
+    bottom: max(7px, env(safe-area-inset-bottom));
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .joystick { width: clamp(58px, 16vh, 72px); height: clamp(58px, 16vh, 72px); }
+  .stick { width: 30px; height: 30px; }
+  .action-buttons { gap: 6px; }
+  .kick-button { width: clamp(54px, 14vh, 66px); height: clamp(54px, 14vh, 66px); font-size: 12px; }
+  .taunt-button, .mock-button, .special-button {
+    width: clamp(42px, 11vh, 52px);
+    height: clamp(42px, 11vh, 52px);
+    font-size: 7px;
+  }
+  .powerup-status {
+    top: max(48px, calc(env(safe-area-inset-top) + 42px));
+    bottom: auto;
+    max-width: 42vw;
+    padding: 5px 8px;
+    font-size: 7px;
+  }
+  .desktop-hint { display: none; }
+  .start-screen { padding: 8px; overflow-y: auto; align-items: flex-start; }
+  .start-card { max-height: calc(100dvh - 16px); overflow-y: auto; padding: 14px; }
+  body.customizing .topbar,
+  body.customizing .controls,
+  body.customizing .online-toggle { display: none !important; }
+  body.customizing .creator-toggle {
+    top: max(7px, env(safe-area-inset-top));
+    right: max(8px, env(safe-area-inset-right));
+  }
+  body.customizing .creator-panel {
+    top: max(44px, calc(env(safe-area-inset-top) + 38px));
+    right: max(8px, env(safe-area-inset-right));
+    bottom: max(7px, env(safe-area-inset-bottom));
+    left: auto;
+    width: min(360px, 48vw);
+    max-height: none;
+    padding: 9px;
+  }
+}
