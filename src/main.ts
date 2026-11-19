@@ -366,7 +366,7 @@ marketZoomPanel.innerHTML = `
     </div>
     <div class="market-zoom-footer"><span class="market-zoom-updated">UPDATING EVERY 30 SECONDS</span><a class="market-zoom-link" href="https://dexscreener.com/base/${MARKET_TOKEN_ADDRESS}" target="_blank" rel="noopener noreferrer">OPEN DEXSCREENER</a></div>
   </div>`;
-document.getElementById('app')?.append(marketZoomButton, marketZoomPanel);
+document.getElementById('app')?.append(marketZoomPanel);
 const marketZoomImage = marketZoomPanel.querySelector<HTMLImageElement>('.market-zoom-icon')!;
 function updateMarketZoom() {
   if (!arenaMarket) {
