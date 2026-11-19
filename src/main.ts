@@ -235,6 +235,83 @@ const floor = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 0.7, 64), new THRE
 floor.position.y = -0.45; floor.receiveShadow = true; scene.add(floor);
 const rim = new THREE.Mesh(new THREE.TorusGeometry(9, 0.22, 12, 80), new THREE.MeshStandardMaterial({ color: 0xffc857, metalness: 0.35, roughness: 0.45 }));
 rim.rotation.x = Math.PI / 2; rim.position.y = -0.05; scene.add(rim);
+
+// Compact spectator stands surrounding the arena. Instanced meshes keep the crowd
+// lightweight on mobile while giving the stadium a lively, cheering atmosphere.
+const crowdStandMaterial = new THREE.MeshStandardMaterial({
+  color: 0x202b49, roughness: 0.82, metalness: 0.12, side: THREE.DoubleSide
+});
+for (let row = 0; row < 3; row++) {
+  const stand = new THREE.Mesh(
+    new THREE.TorusGeometry(11.15 + row * 0.9, 0.34, 6, 96),
+    crowdStandMaterial
+  );
+  stand.position.y = -0.22 + row * 0.48;
+  stand.receiveShadow = true;
+  scene.add(stand);
+}
+const crowdBodyGeometry = new THREE.SphereGeometry(0.25, 7, 6);
+const crowdHeadGeometry = new THREE.SphereGeometry(0.17, 8, 7);
+const crowdArmGeometry = new THREE.CapsuleGeometry(0.075, 0.34, 3, 6);
+const crowdBodyMaterial = new THREE.MeshStandardMaterial({ roughness: 0.72 });
+const crowdHeadMaterial = new THREE.MeshStandardMaterial({ roughness: 0.78 });
+const crowdArmMaterial = new THREE.MeshStandardMaterial({ roughness: 0.72 });
+const crowdCount = 3 * 36;
+const crowdBodies = new THREE.InstancedMesh(crowdBodyGeometry, crowdBodyMaterial, crowdCount);
+const crowdHeads = new THREE.InstancedMesh(crowdHeadGeometry, crowdHeadMaterial, crowdCount);
+const crowdArms = new THREE.InstancedMesh(crowdArmGeometry, crowdArmMaterial, crowdCount * 2);
+crowdBodies.frustumCulled = false;
+crowdHeads.frustumCulled = false;
+crowdArms.frustumCulled = false;
+const crowdBodyColors = [0x20c9c3, 0xffbd4a, 0xff6685, 0x8b7cff, 0x62a8ff, 0xe9edf7, 0x78d66b];
+const crowdSkinColors = [0xf0b68b, 0x9d6245, 0xd68c65, 0xf2cfaa, 0x70452f];
+const crowdDummy = new THREE.Object3D();
+const crowdUp = new THREE.Vector3(0, 1, 0);
+let crowdIndex = 0;
+for (let row = 0; row < 3; row++) {
+  for (let seat = 0; seat < 36; seat++) {
+    const angle = (seat / 36) * Math.PI * 2 + (row % 2) * 0.075;
+    const radius = 11.25 + row * 0.9;
+    const baseY = -0.12 + row * 0.48;
+    const radial = new THREE.Vector3(Math.sin(angle), 0, Math.cos(angle));
+    const inward = radial.clone().negate();
+    const facing = Math.atan2(inward.x, inward.z);
+    const bodyScale = 0.82 + ((seat * 7 + row * 3) % 5) * 0.075;
+
+    crowdDummy.position.set(radial.x * radius, baseY + 0.48, radial.z * radius);
+    crowdDummy.rotation.set(0, facing, 0);
+    crowdDummy.scale.set(bodyScale, 1, 0.72);
+    crowdDummy.updateMatrix();
+    crowdBodies.setMatrixAt(crowdIndex, crowdDummy.matrix);
+    crowdBodies.setColorAt(crowdIndex, new THREE.Color(crowdBodyColors[(seat * 3 + row * 2) % crowdBodyColors.length]));
+
+    crowdDummy.position.set(radial.x * radius, baseY + 0.88, radial.z * radius);
+    crowdDummy.rotation.set(0, facing, 0);
+    crowdDummy.scale.set(1, 1, 1);
+    crowdDummy.updateMatrix();
+    crowdHeads.setMatrixAt(crowdIndex, crowdDummy.matrix);
+    crowdHeads.setColorAt(crowdIndex, new THREE.Color(crowdSkinColors[(seat + row * 2) % crowdSkinColors.length]));
+
+    for (let side = -1; side <= 1; side += 2) {
+      const localOffset = new THREE.Vector3(side * 0.29, 0.79, 0).applyAxisAngle(crowdUp, facing);
+      const armDirection = new THREE.Vector3(side * 0.48, 0.72, 0).applyAxisAngle(crowdUp, facing).normalize();
+      crowdDummy.position.set(radial.x * radius + localOffset.x, baseY + localOffset.y, radial.z * radius + localOffset.z);
+      crowdDummy.quaternion.setFromUnitVectors(crowdUp, armDirection);
+      crowdDummy.scale.set(1, 1, 1);
+      crowdDummy.updateMatrix();
+      crowdArms.setMatrixAt(crowdIndex * 2 + (side === 1 ? 1 : 0), crowdDummy.matrix);
+      crowdArms.setColorAt(crowdIndex * 2 + (side === 1 ? 1 : 0), new THREE.Color(crowdBodyColors[(seat * 3 + row * 2) % crowdBodyColors.length]));
+    }
+    crowdIndex++;
+  }
+}
+crowdBodies.instanceMatrix.needsUpdate = true;
+crowdHeads.instanceMatrix.needsUpdate = true;
+crowdArms.instanceMatrix.needsUpdate = true;
+if (crowdBodies.instanceColor) crowdBodies.instanceColor.needsUpdate = true;
+if (crowdHeads.instanceColor) crowdHeads.instanceColor.needsUpdate = true;
+if (crowdArms.instanceColor) crowdArms.instanceColor.needsUpdate = true;
+scene.add(crowdBodies, crowdHeads, crowdArms);
 // Grid removed for a clean white arena floor.
 
 // Base logo floor decal: a solid blue raised tile guarantees visibility,
