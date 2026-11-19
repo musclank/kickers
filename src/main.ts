@@ -1326,27 +1326,54 @@ function useSpecial() {
   if (specialCooldown > 0) return;
   if (kickTime > 0 || tauntTime > 0 || mockTime > 0) return;
   specialCooldown = 12;
-  const pulse = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.09, 8, 36), new THREE.MeshBasicMaterial({ color: 0x65e7d9, transparent: true, opacity: 0.9 }));
-  pulse.rotation.x = Math.PI / 2; pulse.position.set(player.position.x, 0.12, player.position.z); scene.add(pulse);
+  const fighter = config.fighterId || 'classic';
+  const specialStyles: Record<string, { color: number; radius: number; force: number; lift: number; label: string; duration: number; directional?: boolean }> = {
+    classic: { color: 0x65e7d9, radius: 4.2, force: 10, lift: 5.2, label: 'SHOCKWAVE!', duration: 520 },
+    blaze:   { color: 0xff713d, radius: 4.5, force: 11.2, lift: 6.0, label: 'BLAZE BURST!', duration: 620 },
+    shadow:  { color: 0x9a83ff, radius: 5.0, force: 12.2, lift: 4.2, label: 'SHADOW DASH!', duration: 420, directional: true },
+    titan:   { color: 0xffc45c, radius: 4.8, force: 13.2, lift: 6.6, label: 'TITAN QUAKE!', duration: 700 },
+    venom:   { color: 0x9bea57, radius: 3.7, force: 9.5, lift: 3.4, label: 'VENOM BLAST!', duration: 650 },
+    nova:    { color: 0x62dfff, radius: 4.7, force: 10.8, lift: 5.7, label: 'NOVA PULSE!', duration: 560 },
+    frost:   { color: 0x9deaff, radius: 4.0, force: 9.8, lift: 4.8, label: 'FROST BURST!', duration: 600 }
+  };
+  const style = specialStyles[fighter] || specialStyles.classic;
+  const pulse = new THREE.Mesh(new THREE.TorusGeometry(0.82, fighter === 'titan' ? 0.14 : 0.085, 8, 40),
+    new THREE.MeshBasicMaterial({ color: style.color, transparent: true, opacity: 0.92 }));
+  pulse.rotation.x = Math.PI / 2; pulse.position.set(player.position.x, 0.14, player.position.z); scene.add(pulse);
+  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 1),
+    new THREE.MeshBasicMaterial({ color: style.color, transparent: true, opacity: 0.82, wireframe: fighter === 'shadow' || fighter === 'nova' }));
+  core.position.set(player.position.x, 0.8, player.position.z); scene.add(core);
   const started = performance.now();
   const animatePulse = () => {
-    const progress = Math.min(1, (performance.now() - started) / 520);
-    pulse.scale.setScalar(1 + progress * 4.2); (pulse.material as THREE.MeshBasicMaterial).opacity = 0.9 * (1 - progress);
+    const progress = Math.min(1, (performance.now() - started) / style.duration);
+    pulse.scale.setScalar(1 + progress * (style.radius / 0.82));
+    (pulse.material as THREE.MeshBasicMaterial).opacity = 0.92 * (1 - progress);
+    core.scale.setScalar(1 + progress * (fighter === 'nova' ? 3.4 : 2.2));
+    core.rotation.y += 0.08;
+    (core.material as THREE.MeshBasicMaterial).opacity = 0.82 * (1 - progress);
     if (progress < 1) requestAnimationFrame(animatePulse);
-    else { scene.remove(pulse); pulse.geometry.dispose(); (pulse.material as THREE.Material).dispose(); }
+    else {
+      scene.remove(pulse, core); pulse.geometry.dispose(); core.geometry.dispose();
+      (pulse.material as THREE.Material).dispose(); (core.material as THREE.Material).dispose();
+    }
   };
   requestAnimationFrame(animatePulse);
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion).normalize();
   for (const bot of rivals) {
     if (bot.userData.fallen || !bot.visible) continue;
     const dx = bot.position.x - player.position.x, dz = bot.position.z - player.position.z;
     const distance = Math.hypot(dx, dz);
-    if (distance < 4.2 && distance > 0.001) {
-      const impulse = (bot.userData.knockback as THREE.Vector3 | undefined) ?? new THREE.Vector3();
-      impulse.x += dx / distance * 10; impulse.z += dz / distance * 10; impulse.y = Math.max(impulse.y, 5.2);
-      bot.userData.knockback = impulse;
-    }
+    if (distance >= style.radius || distance <= 0.001) continue;
+    const direction = new THREE.Vector3(dx / distance, 0, dz / distance);
+    if (style.directional && forward.dot(direction) < 0.25) continue;
+    const impulse = (bot.userData.knockback as THREE.Vector3 | undefined) ?? new THREE.Vector3();
+    const falloff = 1 - distance / (style.radius * 1.35);
+    impulse.x += direction.x * style.force * Math.max(0.55, falloff);
+    impulse.z += direction.z * style.force * Math.max(0.55, falloff);
+    impulse.y = Math.max(impulse.y, style.lift);
+    bot.userData.knockback = impulse;
   }
-  playSound('impact'); statusEl.textContent = 'SHOCKWAVE!';
+  playSound('impact'); statusEl.textContent = style.label;
   specialButton.classList.add('pressed'); window.setTimeout(() => specialButton.classList.remove('pressed'), 180);
 }
 specialButton.addEventListener('pointerdown', useSpecial);
