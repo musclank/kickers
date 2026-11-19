@@ -333,19 +333,31 @@ type ArenaMarketData = {
   marketCap: number | null; liquidity: number | null; volume24h: number | null;
   dexId: string; pairUrl: string; updatedAt: number;
 };
-const MARKET_TOKEN_ADDRESS = '0x1bc0c42215582d5A085795f4baDbaC3ff36d1Bcb';
-const MARKET_API_URL = `https://api.dexscreener.com/token-pairs/v1/base/${MARKET_TOKEN_ADDRESS}`;
+const MARKET_TOKEN_ADDRESSES = [
+  '0x1bc0c42215582d5A085795f4baDbaC3ff36d1Bcb',
+  '0x0947FB7076BFa307796F8fd533055f6016C6cccC',
+  '0x3441e8fCdD380c4e7F5C7F55CCd599B2a2afCcCC',
+  '0xD072072048da26acEeF6EAD42F0bB7eD05CEcccC',
+  '0xa4CCdeaeB02e574aaF89EB39bCa73169327dcCcc'
+];
+const MARKET_TOKEN_ADDRESS = MARKET_TOKEN_ADDRESSES[0];
+type ArenaMarketData = {
+  address: string; symbol: string; name: string; iconUrl: string | null; priceUsd: number; change24h: number | null;
+  marketCap: number | null; liquidity: number | null; volume24h: number | null;
+  dexId: string; pairUrl: string; updatedAt: number;
+};
+const arenaMarkets = new Map<string, ArenaMarketData>();
 let arenaMarket: ArenaMarketData | null = null;
+let selectedMarketAddress = MARKET_TOKEN_ADDRESS;
 let marketLoading = true;
 let marketError = false;
 let scoreboardMessage = 'CONNECTING TO BASE MARKET';
 let marketLogo: HTMLImageElement | null = null;
 const marketZoomButton = document.createElement('button');
 marketZoomButton.id = 'market-zoom-toggle'; marketZoomButton.type = 'button';
-marketZoomButton.className = 'market-zoom-toggle'; marketZoomButton.textContent = 'LIVE MARKET  ·  CONNECTING';
-marketZoomButton.setAttribute('aria-label', 'Open live token market details');
+marketZoomButton.className = 'market-zoom-toggle'; marketZoomButton.textContent = 'LIVE TOKENS  ·  LOADING';
+marketZoomButton.setAttribute('aria-label', 'Open live token list');
 document.querySelector('.social-market-column')?.append(marketZoomButton);
-marketZoomButton.setAttribute('aria-label', 'Open enlarged live token market');
 const marketZoomPanel = document.createElement('section');
 marketZoomPanel.id = 'market-zoom-panel'; marketZoomPanel.className = 'market-zoom-panel';
 marketZoomPanel.hidden = true;
@@ -354,26 +366,77 @@ marketZoomPanel.setAttribute('aria-label', 'Live Base token market');
 marketZoomPanel.innerHTML = `
   <div class="market-zoom-card">
     <button class="market-zoom-close" type="button" aria-label="Close live market">CLOSE</button>
-    <div class="market-zoom-brand"><img class="market-zoom-icon" alt="Token official icon"><div><span>BASE NETWORK · LIVE MARKET</span><h2 class="market-zoom-name">TOKEN MARKET</h2><code>${MARKET_TOKEN_ADDRESS}</code></div></div>
+    <div class="market-zoom-heading"><span>BASE NETWORK · LIVE MARKET</span><strong>SELECT A TOKEN</strong></div>
+    <div class="market-token-list" role="list" aria-label="Tracked tokens"></div>
+    <div class="market-zoom-brand"><img class="market-zoom-icon" alt="Official token logo"><div><span>SELECTED TOKEN</span><h2 class="market-zoom-name">TOKEN MARKET</h2><code class="market-zoom-address"></code></div></div>
     <div class="market-zoom-price"><strong class="market-zoom-price-value">—</strong><span class="market-zoom-change">WAITING FOR DATA</span></div>
     <div class="market-zoom-metrics">
       <div><span>MARKET CAP</span><strong class="market-zoom-cap">—</strong></div>
       <div><span>LIQUIDITY</span><strong class="market-zoom-liquidity">—</strong></div>
       <div><span>24H VOLUME</span><strong class="market-zoom-volume">—</strong></div>
     </div>
-    <div class="market-zoom-footer"><span class="market-zoom-updated">UPDATING EVERY 30 SECONDS</span><a class="market-zoom-link" href="https://dexscreener.com/base/${MARKET_TOKEN_ADDRESS}" target="_blank" rel="noopener noreferrer">OPEN DEXSCREENER</a></div>
+    <div class="market-zoom-footer"><span class="market-zoom-updated">UPDATING EVERY 30 SECONDS</span><a class="market-zoom-link" href="https://dexscreener.com/base" target="_blank" rel="noopener noreferrer">OPEN DEXSCREENER</a></div>
   </div>`;
 document.getElementById('app')?.append(marketZoomPanel);
 const marketZoomImage = marketZoomPanel.querySelector<HTMLImageElement>('.market-zoom-icon')!;
+const marketTokenList = marketZoomPanel.querySelector<HTMLDivElement>('.market-token-list')!;
+function renderMarketTokenList() {
+  marketTokenList.replaceChildren();
+  MARKET_TOKEN_ADDRESSES.forEach(address => {
+    const data = arenaMarkets.get(address);
+    const item = document.createElement('button');
+    item.type = 'button'; item.className = 'market-token-option';
+    item.classList.toggle('selected', address === selectedMarketAddress);
+    item.setAttribute('role', 'listitem');
+    item.setAttribute('aria-pressed', String(address === selectedMarketAddress));
+    const logo = document.createElement('img');
+    logo.className = 'market-token-option-icon'; logo.alt = data ? data.name + ' official logo' : 'Token logo';
+    if (data?.iconUrl) logo.src = data.iconUrl;
+    const fallback = document.createElement('span');
+    fallback.className = 'market-token-option-fallback';
+    fallback.textContent = (data?.symbol || '...').slice(0, 5);
+    const identity = document.createElement('span');
+    identity.className = 'market-token-option-identity';
+    const name = document.createElement('strong'); name.textContent = data ? data.symbol : 'LOADING';
+    const shortAddress = document.createElement('small'); shortAddress.textContent = address.slice(0, 8) + '…' + address.slice(-6);
+    identity.append(name, shortAddress);
+    const quote = document.createElement('span'); quote.className = 'market-token-option-quote';
+    quote.textContent = data ? formatMarketUsd(data.priceUsd) : '—';
+    item.append(logo, fallback, identity, quote);
+    if (!data?.iconUrl) logo.hidden = true; else fallback.hidden = true;
+    item.addEventListener('click', () => selectMarket(address));
+    marketTokenList.append(item);
+  });
+}
+function loadMarketLogo(data: ArenaMarketData | null) {
+  marketLogo = null;
+  if (!data?.iconUrl) return;
+  const logo = new Image(); logo.crossOrigin = 'anonymous';
+  logo.onload = () => { if (arenaMarket?.address === data.address) { marketLogo = logo; drawArenaScoreboard(); } };
+  logo.onerror = () => { if (arenaMarket?.address === data.address) marketLogo = null; };
+  logo.src = data.iconUrl;
+}
+function selectMarket(address: string) {
+  if (!MARKET_TOKEN_ADDRESSES.includes(address)) return;
+  selectedMarketAddress = address;
+  arenaMarket = arenaMarkets.get(address) || null;
+  loadMarketLogo(arenaMarket);
+  updateMarketZoom();
+  renderMarketTokenList();
+  drawArenaScoreboard();
+}
 function updateMarketZoom() {
+  marketZoomButton.textContent = marketLoading ? 'LIVE TOKENS  ·  LOADING' : 'LIVE TOKENS  ·  ' + arenaMarkets.size + '/' + MARKET_TOKEN_ADDRESSES.length;
   if (!arenaMarket) {
-    marketZoomButton.textContent = marketLoading ? 'LIVE MARKET  ·  CONNECTING' : 'LIVE MARKET  ·  NO DATA';
+    marketZoomPanel.querySelector<HTMLElement>('.market-zoom-name')!.textContent = 'MARKET DATA UNAVAILABLE';
+    marketZoomPanel.querySelector<HTMLElement>('.market-zoom-address')!.textContent = selectedMarketAddress;
+    marketZoomImage.hidden = true;
     return;
   }
-  marketZoomButton.textContent = `LIVE MARKET  ·  ${arenaMarket.symbol}  ${formatMarketUsd(arenaMarket.priceUsd)}`;
   marketZoomImage.src = arenaMarket.iconUrl || '';
   marketZoomImage.hidden = !arenaMarket.iconUrl;
   marketZoomPanel.querySelector<HTMLElement>('.market-zoom-name')!.textContent = arenaMarket.name + ' · ' + arenaMarket.symbol;
+  marketZoomPanel.querySelector<HTMLElement>('.market-zoom-address')!.textContent = arenaMarket.address;
   marketZoomPanel.querySelector<HTMLElement>('.market-zoom-price-value')!.textContent = formatMarketUsd(arenaMarket.priceUsd);
   const change = arenaMarket.change24h;
   const changeEl = marketZoomPanel.querySelector<HTMLElement>('.market-zoom-change')!;
@@ -386,7 +449,7 @@ function updateMarketZoom() {
   marketZoomPanel.querySelector<HTMLElement>('.market-zoom-updated')!.textContent = 'UPDATED ' + new Date(arenaMarket.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   marketZoomPanel.querySelector<HTMLAnchorElement>('.market-zoom-link')!.href = arenaMarket.pairUrl;
 }
-marketZoomButton.addEventListener('click', () => { updateMarketZoom(); marketZoomPanel.hidden = false; });
+marketZoomButton.addEventListener('click', () => { renderMarketTokenList(); updateMarketZoom(); marketZoomPanel.hidden = false; });
 marketZoomPanel.querySelector('.market-zoom-close')!.addEventListener('click', () => { marketZoomPanel.hidden = true; });
 marketZoomPanel.addEventListener('click', event => { if (event.target === marketZoomPanel) marketZoomPanel.hidden = true; });
 window.addEventListener('keydown', event => { if (event.key === 'Escape') marketZoomPanel.hidden = true; });
@@ -448,62 +511,46 @@ function drawArenaScoreboard(message = scoreboardMessage) {
   scoreboardTexture.needsUpdate = true;
 }
 async function refreshArenaMarket() {
-  try {
-    const response = await fetch(MARKET_API_URL, { headers: { accept: 'application/json' }, cache: 'no-store' });
-    if (!response.ok) throw new Error(`Market API ${response.status}`);
-    const pairs = await response.json() as Array<{
-      chainId?: string; baseToken?: { address?: string; name?: string; symbol?: string }; info?: { imageUrl?: string };
-      priceUsd?: string; priceChange?: { h24?: number }; marketCap?: number; fdv?: number;
-      liquidity?: { usd?: number }; volume?: { h24?: number }; dexId?: string; url?: string;
-    }>;
-    const matching = pairs.filter(pair =>
-      pair.chainId?.toLowerCase() === 'base' &&
-      pair.baseToken?.address?.toLowerCase() === MARKET_TOKEN_ADDRESS.toLowerCase() &&
-      Number(pair.priceUsd) > 0
-    );
-    const bestPair = matching.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
-    if (!bestPair) throw new Error('No active Base liquidity pair found');
-    let iconUrl = bestPair.info?.imageUrl || null;
-    if (!iconUrl) {
-      try {
-        const profilesResponse = await fetch('https://api.dexscreener.com/token-profiles/latest/v1', { headers: { accept: 'application/json' }, cache: 'no-store' });
-        if (profilesResponse.ok) {
-          const profiles = await profilesResponse.json() as Array<{ chainId?: string; tokenAddress?: string; icon?: string }>;
-          iconUrl = profiles.find(profile => profile.chainId?.toLowerCase() === 'base' && profile.tokenAddress?.toLowerCase() === MARKET_TOKEN_ADDRESS.toLowerCase())?.icon || null;
-        }
-      } catch (profileError) { console.warn('Token icon metadata unavailable:', profileError); }
+  const profilesPromise = fetch('https://api.dexscreener.com/token-profiles/latest/v1', { headers: { accept: 'application/json' }, cache: 'no-store' })
+    .then(response => response.ok ? response.json() : [])
+    .catch(() => []);
+  const profiles = await profilesPromise as Array<{ chainId?: string; tokenAddress?: string; icon?: string }>;
+  await Promise.all(MARKET_TOKEN_ADDRESSES.map(async address => {
+    try {
+      const response = await fetch(`https://api.dexscreener.com/token-pairs/v1/base/${address}`, { headers: { accept: 'application/json' }, cache: 'no-store' });
+      if (!response.ok) throw new Error(`Market API ${response.status}`);
+      const pairs = await response.json() as Array<{
+        chainId?: string; baseToken?: { address?: string; name?: string; symbol?: string }; info?: { imageUrl?: string };
+        priceUsd?: string; priceChange?: { h24?: number }; marketCap?: number; fdv?: number;
+        liquidity?: { usd?: number }; volume?: { h24?: number }; dexId?: string; url?: string;
+      }>;
+      const matching = pairs.filter(pair => pair.chainId?.toLowerCase() === 'base' &&
+        pair.baseToken?.address?.toLowerCase() === address.toLowerCase() && Number(pair.priceUsd) > 0);
+      const bestPair = matching.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
+      if (!bestPair) throw new Error('No active Base liquidity pair found');
+      const iconUrl = bestPair.info?.imageUrl ||
+        profiles.find(profile => profile.chainId?.toLowerCase() === 'base' && profile.tokenAddress?.toLowerCase() === address.toLowerCase())?.icon || null;
+      arenaMarkets.set(address, {
+        address, iconUrl, symbol: bestPair.baseToken?.symbol || 'TOKEN', name: bestPair.baseToken?.name || 'Base token',
+        priceUsd: Number(bestPair.priceUsd),
+        change24h: Number.isFinite(bestPair.priceChange?.h24) ? bestPair.priceChange!.h24! : null,
+        marketCap: bestPair.marketCap ?? bestPair.fdv ?? null, liquidity: bestPair.liquidity?.usd ?? null,
+        volume24h: bestPair.volume?.h24 ?? null, dexId: bestPair.dexId || 'DEX',
+        pairUrl: bestPair.url || `https://dexscreener.com/base/${address}`, updatedAt: Date.now()
+      });
+    } catch (error) {
+      console.warn('KICKERS token market refresh failed:', address, error);
     }
-    if (iconUrl && iconUrl !== arenaMarket?.iconUrl) {
-      const logo = new Image(); logo.crossOrigin = 'anonymous';
-      logo.onload = () => { marketLogo = logo; drawArenaScoreboard(); };
-      logo.onerror = () => { marketLogo = null; };
-      logo.src = iconUrl;
-    }
-    arenaMarket = {
-      iconUrl,
-      symbol: bestPair.baseToken?.symbol || 'TOKEN',
-      name: bestPair.baseToken?.name || 'Base token',
-      priceUsd: Number(bestPair.priceUsd),
-      change24h: Number.isFinite(bestPair.priceChange?.h24) ? bestPair.priceChange!.h24! : null,
-      marketCap: bestPair.marketCap ?? bestPair.fdv ?? null,
-      liquidity: bestPair.liquidity?.usd ?? null,
-      volume24h: bestPair.volume?.h24 ?? null,
-      dexId: bestPair.dexId || 'DEX',
-      pairUrl: bestPair.url || 'https://dexscreener.com/base',
-      updatedAt: Date.now()
-    };
-    marketError = false;
-    updateMarketZoom();
-  } catch (error) {
-    console.warn('KICKERS live market refresh failed:', error);
-    marketError = true;
-  } finally {
-    marketLoading = false;
-    drawArenaScoreboard();
-  }
+  }));
+  marketError = arenaMarkets.size === 0;
+  marketLoading = false;
+  arenaMarket = arenaMarkets.get(selectedMarketAddress) || arenaMarkets.get(MARKET_TOKEN_ADDRESS) || null;
+  if (arenaMarket) selectedMarketAddress = arenaMarket.address;
+  loadMarketLogo(arenaMarket);
+  renderMarketTokenList();
+  updateMarketZoom();
+  drawArenaScoreboard();
 }
-void refreshArenaMarket();
-window.setInterval(() => { void refreshArenaMarket(); }, 30_000);
 const scoreboard = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 2.4), new THREE.MeshBasicMaterial({ map: scoreboardTexture, side: THREE.DoubleSide }));
 scoreboard.position.set(0, 5.4, -12.8); scoreboard.rotation.x = -0.08; scene.add(scoreboard);
 drawArenaScoreboard();
