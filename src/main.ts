@@ -149,11 +149,12 @@ updateAudioUI();
 
 type AvatarConfig = {
   characterType: 'human' | 'robot'; skin: string; outfit: string; shoes: string; hairColor: string; hairStyle: string; accessory: string;
+  pants: string; gloves: string; eyeColor: string; eyeStyle: string;
   bodyWidth: number; bodyHeight: number; headSize: number; legLength: number; shirtImage?: string; fighterId?: string;
 };
 const defaults: AvatarConfig = {
   characterType: 'human', skin: '#4de2d0', outfit: '#ffb84d', shoes: '#24243a', hairColor: '#26314d', hairStyle: 'smooth',
-  accessory: 'none', bodyWidth: 1, bodyHeight: 1, headSize: 1, legLength: 1, fighterId: 'classic'
+  accessory: 'none', pants: '#33415f', gloves: '#e8edf5', eyeColor: '#172033', eyeStyle: 'round', bodyWidth: 1, bodyHeight: 1, headSize: 1, legLength: 1, fighterId: 'classic'
 };
 const fighterPresets: Record<string, AvatarConfig> = {
   classic: { ...defaults, fighterId: 'classic' },
@@ -422,8 +423,16 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = t
     makeShirtPatch(true);
   }
   // Eyes and smile sit on the front (-Z).
-  addMesh(group, new THREE.SphereGeometry(0.055, 12, 10), '#172033', -0.14 * cfg.headSize, bodyY + 0.9 * cfg.headSize, -0.34 * cfg.headSize);
-  addMesh(group, new THREE.SphereGeometry(0.055, 12, 10), '#172033', 0.14 * cfg.headSize, bodyY + 0.9 * cfg.headSize, -0.34 * cfg.headSize);
+  const eyeRadius = cfg.eyeStyle === 'wide' ? 0.075 : 0.055;
+  const eyeY = bodyY + (cfg.eyeStyle === 'angry' ? 0.92 : 0.9) * cfg.headSize;
+  for (const side of [-1, 1]) {
+    const eye = addMesh(group, new THREE.SphereGeometry(eyeRadius, 12, 10), cfg.eyeColor, side * 0.14 * cfg.headSize, eyeY, -0.34 * cfg.headSize);
+    eye.scale.y = cfg.eyeStyle === 'slit' ? 0.42 : 1;
+    if (cfg.eyeStyle === 'angry') {
+      const brow = addMesh(group, new THREE.BoxGeometry(0.15 * cfg.headSize, 0.035, 0.035), cfg.hairColor, side * 0.14 * cfg.headSize, eyeY + 0.09 * cfg.headSize, -0.35 * cfg.headSize);
+      brow.rotation.z = side * -0.22;
+    }
+  }
   const smile = addMesh(group, new THREE.TorusGeometry(0.09 * cfg.headSize, 0.018, 6, 16, Math.PI), '#172033', 0, bodyY + 0.72 * cfg.headSize, -0.355 * cfg.headSize);
   smile.rotation.z = Math.PI;
   // Arms
@@ -431,16 +440,19 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = t
   const leftArm = addMesh(group, armGeo, cfg.skin, -0.58 * cfg.bodyWidth, bodyY + 0.03, 0);
   const rightArm = addMesh(group, armGeo, cfg.skin, 0.58 * cfg.bodyWidth, bodyY + 0.03, 0);
   leftArm.rotation.z = -0.25; rightArm.rotation.z = 0.25;
+  for (const side of [-1, 1]) addMesh(group, new THREE.SphereGeometry(0.17, 12, 10), cfg.gloves, side * 0.58 * cfg.bodyWidth, bodyY - 0.29, -0.015);
   // Separate articulated legs: the right leg is the actual kicking leg.
   const legScale = cfg.legLength;
   const leftLeg = new THREE.Group();
   leftLeg.position.set(-0.22 * cfg.bodyWidth, 0.34 * legScale, 0);
+  addMesh(leftLeg, new THREE.CapsuleGeometry(0.155, 0.29 * legScale, 4, 8), cfg.pants, 0, -0.16 * legScale, 0);
   addMesh(leftLeg, new THREE.CapsuleGeometry(0.15, 0.28 * legScale, 4, 8), cfg.skin, 0, -0.16 * legScale, 0);
   addMesh(leftLeg, new THREE.BoxGeometry(0.34, 0.2, 0.5), cfg.shoes, 0, -0.34 * legScale, -0.13);
   group.add(leftLeg);
 
   const kickLeg = new THREE.Group();
   kickLeg.position.set(0.22 * cfg.bodyWidth, 0.34 * legScale, 0);
+  addMesh(kickLeg, new THREE.CapsuleGeometry(0.155, 0.29 * legScale, 4, 8), cfg.pants, 0, -0.16 * legScale, 0);
   addMesh(kickLeg, new THREE.CapsuleGeometry(0.15, 0.28 * legScale, 4, 8), cfg.skin, 0, -0.16 * legScale, 0);
   const knee = addMesh(kickLeg, new THREE.SphereGeometry(0.15, 12, 10), cfg.skin, 0, -0.29 * legScale, 0);
   const shin = new THREE.Group();
@@ -863,7 +875,7 @@ const fighterCards = Array.from(document.querySelectorAll<HTMLButtonElement>('[d
 function syncFighterControls() {
   const values: Record<string, string> = {
     'skin-color': config.skin, 'outfit-color': config.outfit, 'shoe-color': config.shoes, 'hair-color': config.hairColor,
-    'hair-style': config.hairStyle, 'accessory': config.accessory
+    'hair-style': config.hairStyle, 'accessory': config.accessory, 'pants-color': config.pants, 'glove-color': config.gloves, 'eye-color': config.eyeColor, 'eye-style': config.eyeStyle
   };
   for (const [id, value] of Object.entries(values)) {
     const input = document.querySelector<HTMLInputElement | HTMLSelectElement>('#' + id);
@@ -907,6 +919,7 @@ characterTypeInput.addEventListener('change', () => {
   savedLabel.textContent = config.characterType === 'robot' ? 'ROBOT FIGHTER SELECTED — SAVE TO KEEP IT' : 'HUMAN FIGHTER SELECTED — SAVE TO KEEP IT';
 });
 bindColor('skin-color', 'skin'); bindColor('outfit-color', 'outfit'); bindColor('shoe-color', 'shoes'); bindColor('hair-color', 'hairColor');
+bindColor('pants-color', 'pants'); bindColor('glove-color', 'gloves'); bindColor('eye-color', 'eyeColor');
 
 const shirtImageInput = document.querySelector<HTMLInputElement>('#shirt-image')!;
 const removeShirtImageButton = document.querySelector<HTMLButtonElement>('#remove-shirt-image')!;
@@ -971,7 +984,7 @@ function bindSelect(id: string, key: keyof AvatarConfig) {
   input.value = String(config[key]);
   input.addEventListener('change', () => { (config[key] as string) = input.value; rebuildPlayer(); });
 }
-bindSelect('hair-style', 'hairStyle'); bindSelect('accessory', 'accessory');
+bindSelect('hair-style', 'hairStyle'); bindSelect('accessory', 'accessory'); bindSelect('eye-style', 'eyeStyle');
 function bindRange(id: string, key: keyof AvatarConfig) {
   const input = document.querySelector<HTMLInputElement>('#' + id)!;
   const output = document.querySelector<HTMLOutputElement>('#' + id + '-value')!;
@@ -1078,8 +1091,8 @@ try {
     characterTypeInput.value = config.characterType;
     if (config.shirtImage) applyShirtImage(config.shirtImage);
     rebuildPlayer();
-    for (const id of ['skin-color','outfit-color','shoe-color','hair-color']) (document.querySelector<HTMLInputElement>('#'+id)!).value = String(config[id === 'skin-color' ? 'skin' : id === 'outfit-color' ? 'outfit' : id === 'shoe-color' ? 'shoes' : 'hairColor']);
-    for (const id of ['hair-style','accessory']) (document.querySelector<HTMLSelectElement>('#'+id)!).value = String(config[id === 'hair-style' ? 'hairStyle' : 'accessory']);
+    for (const id of ['skin-color','outfit-color','shoe-color','hair-color','pants-color','glove-color','eye-color']) (document.querySelector<HTMLInputElement>('#'+id)!).value = String(config[id === 'skin-color' ? 'skin' : id === 'outfit-color' ? 'outfit' : id === 'shoe-color' ? 'shoes' : 'hairColor']);
+    for (const id of ['hair-style','accessory','eye-style']) (document.querySelector<HTMLSelectElement>('#'+id)!).value = String(config[id === 'hair-style' ? 'hairStyle' : 'accessory']);
     for (const [id,key] of [['body-width','bodyWidth'],['body-height','bodyHeight'],['head-size','headSize'],['leg-length','legLength']] as const) {
       const el = document.querySelector<HTMLInputElement>('#'+id)!; el.value = String(config[key]);
       (document.querySelector<HTMLOutputElement>('#'+id+'-value')!).value = Number(config[key]).toFixed(1);
