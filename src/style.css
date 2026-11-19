@@ -725,3 +725,9 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 .creator-panel { scrollbar-width: thin; scrollbar-color: #526582 transparent; }
 .creator-panel input[type=color] { min-width: 0; cursor: pointer; }
 .creator-panel select, .creator-panel input { accent-color: #65e7d9; }
+
+
+/* Modular clothing controls: compact touch targets for the character creator. */
+#creator .creator-grid select { min-height: 42px; width: 100%; padding: 9px 10px; border: 1px solid rgba(101,231,217,.25); border-radius: 9px; background: #101b32; color: #edf6ff; font-size: 11px; }
+#creator .creator-grid select:focus-visible { outline: 2px solid #65e7d9; outline-offset: 2px; }
+@media(max-width:520px){ #creator .creator-grid select { min-height: 44px; font-size: 12px; } }
