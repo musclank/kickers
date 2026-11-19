@@ -1241,6 +1241,7 @@ function connectToRoom(room: string) {
       const data = JSON.parse(String(event.data)) as { type: string; players?: Array<{ id: string; name?: string; walletAddress?: string | null; avatar?: Partial<AvatarConfig>; x?: number; z?: number; rotation?: number; hp?: number; knockedOut?: boolean }>; id?: string; x?: number; z?: number; rotation?: number; duration?: number; attackerId?: string; targetId?: string; hp?: number; knockX?: number; knockZ?: number; knockedOut?: boolean; playerId?: string; winnerId?: string };
       if (data.type === 'roster' && data.players) updateRoster(data.players);
       if (data.type === 'match-start') {
+        if (onlineNextMatchPending) { championshipRound += 1; onlineNextMatchPending = false; }
         // Explicitly switch both host and guest into the same online match state.
         trainingMode = false;
         startScreen.hidden = true;
@@ -1945,6 +1946,7 @@ function resetOfflineChampionshipMatch() {
 }
 playAgainButton.addEventListener('click', () => {
   if (networkReady) {
+    onlineNextMatchPending = true;
     setOnlineMessage('REQUESTING NEXT MATCH FROM ROOM HOST...');
     sendNetwork({ type: 'next-match', room: activeRoom, round: championshipRound + 1 });
     return;
