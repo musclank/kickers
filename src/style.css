@@ -670,3 +670,20 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 .player-stats-grid strong{color:#8ff4e8;font-size:22px;font-variant-numeric:tabular-nums}
 .player-stats-grid span{color:#91a6c8;font-size:8px;font-weight:800;letter-spacing:.1em}
 .player-stats-card>button{width:100%;min-height:42px;border:0;border-radius:9px;background:#78e8dc;color:#10182b;font-weight:900;letter-spacing:.08em}
+
+
+/* Achievement collection lives inside the optional player profile. */
+.achievement-section{margin:4px 0 18px;text-align:left}
+.achievement-section h3{margin:0 0 9px;color:#8ff4e8;font-size:9px;font-weight:900;letter-spacing:.16em}
+.achievement-list{display:grid;gap:6px;max-height:190px;overflow-y:auto}
+.achievement-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:8px;padding:9px 10px;border:1px solid rgba(126,164,210,.16);border-radius:9px;background:rgba(10,18,36,.58)}
+.achievement-mark{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#26324c;color:#8292b5;font-size:11px;font-weight:900}
+.achievement-row.unlocked{border-color:rgba(101,231,217,.38);background:rgba(49,139,132,.10)}
+.achievement-row.unlocked .achievement-mark{background:#65e7d9;color:#0d1a2c}
+.achievement-row strong{display:block;color:#eaf5ff;font-size:8px;letter-spacing:.08em}
+.achievement-row small{display:block;margin-top:3px;color:#91a6c8;font-size:8px;line-height:1.35}
+.achievement-row em{color:#7889a8;font-size:7px;font-style:normal;font-weight:900;letter-spacing:.06em}
+.achievement-row.unlocked em{color:#78e8dc}
+.achievement-toast{position:fixed;z-index:160;top:max(18px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 28px);padding:11px 16px;border:1px solid rgba(101,231,217,.6);border-radius:999px;background:rgba(10,25,43,.96);box-shadow:0 10px 30px #0007;color:#91f5e9;font-size:9px;font-weight:1000;letter-spacing:.08em;text-align:center;pointer-events:none}
+.achievement-toast[hidden]{display:none}
+@media(max-width:390px){.achievement-row{padding:8px;gap:6px}.achievement-row strong{font-size:7px}.achievement-row small{font-size:7px}.achievement-row em{font-size:6px}}
