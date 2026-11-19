@@ -754,3 +754,8 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 .arena-hint{margin:8px 0 0;color:#91a2c2;font-size:9px;line-height:1.4}
 .customizing .game-canvas{touch-action:none;cursor:grab}
 @media(max-width:520px){.arena-picker{padding:9px;margin-bottom:11px}.arena-option{min-height:42px;font-size:8px}}
+
+
+/* Current fighter summary: compact, readable and contained inside the start card. */
+.start-character-preview{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px;border:1px solid rgba(101,231,217,.22);border-radius:11px;background:rgba(8,19,41,.72);min-width:0}.start-preview-swatch{width:34px;height:34px;flex:0 0 34px;border:2px solid rgba(255,255,255,.28);border-radius:10px;background:linear-gradient(135deg,#ffb84d,#24243a);box-shadow:0 4px 12px #0005}.start-preview-copy{display:grid;gap:3px;min-width:0;text-align:left}.start-preview-kicker{color:#65e7d9;font-size:7px;font-weight:1000;letter-spacing:.14em}.start-preview-copy strong{color:#f4f7ff;font-size:10px;letter-spacing:.08em}.start-preview-copy small{overflow:hidden;color:#9eafce;font-size:7px;text-overflow:ellipsis;white-space:nowrap}.start-preview-state{margin-left:auto;max-width:105px;color:#8ff4e8;font-size:7px;font-weight:900;letter-spacing:.06em;text-align:right;line-height:1.4}
+@media(max-width:520px){.start-character-preview{gap:8px;padding:8px}.start-preview-swatch{width:30px;height:30px;flex-basis:30px}.start-preview-state{max-width:88px;font-size:6px}}
