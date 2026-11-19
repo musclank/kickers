@@ -505,45 +505,84 @@ function drawArenaScoreboard(message = scoreboardMessage) {
   scoreboardTexture.needsUpdate = true;
 }
 async function refreshArenaMarket() {
-  const profilesPromise = fetch('https://api.dexscreener.com/token-profiles/latest/v1', { headers: { accept: 'application/json' }, cache: 'no-store' })
-    .then(response => response.ok ? response.json() : [])
-    .catch(() => []);
-  const profiles = await profilesPromise as Array<{ chainId?: string; tokenAddress?: string; icon?: string }>;
-  await Promise.all(MARKET_TOKEN_ADDRESSES.map(async address => {
-    try {
-      const response = await fetch(`https://api.dexscreener.com/token-pairs/v1/base/${address}`, { headers: { accept: 'application/json' }, cache: 'no-store' });
-      if (!response.ok) throw new Error(`Market API ${response.status}`);
-      const pairs = await response.json() as Array<{
-        chainId?: string; baseToken?: { address?: string; name?: string; symbol?: string }; info?: { imageUrl?: string };
-        priceUsd?: string; priceChange?: { h24?: number }; marketCap?: number; fdv?: number;
-        liquidity?: { usd?: number }; volume?: { h24?: number }; dexId?: string; url?: string;
-      }>;
-      const matching = pairs.filter(pair => pair.chainId?.toLowerCase() === 'base' &&
-        pair.baseToken?.address?.toLowerCase() === address.toLowerCase() && Number(pair.priceUsd) > 0);
-      const bestPair = matching.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
-      if (!bestPair) throw new Error('No active Base liquidity pair found');
-      const iconUrl = bestPair.info?.imageUrl ||
-        profiles.find(profile => profile.chainId?.toLowerCase() === 'base' && profile.tokenAddress?.toLowerCase() === address.toLowerCase())?.icon || null;
+  // Fetch all tracked Base tokens in one request. This avoids five independent
+  // requests and keeps market loading independent from optional logo metadata.
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 12000);
+  try {
+    const addresses = MARKET_TOKEN_ADDRESSES.join(',');
+    const response = await fetch(`https://api.dexscreener.com/tokens/v1/base/${addresses}`, {
+      headers: { accept: 'application/json' },
+      cache: 'no-store',
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`DexScreener API ${response.status}`);
+    const payload: unknown = await response.json();
+    if (!Array.isArray(payload)) throw new Error('Unexpected DexScreener response');
+    type DexPair = {
+      chainId?: string; dexId?: string; url?: string; baseToken?: { address?: string; name?: string; symbol?: string };
+      quoteToken?: { address?: string; name?: string; symbol?: string }; priceUsd?: string; priceNative?: string;
+      priceChange?: { h24?: number }; marketCap?: number; fdv?: number; liquidity?: { usd?: number };
+      volume?: { h24?: number }; info?: { imageUrl?: string };
+    };
+    const pairs = payload as DexPair[];
+    for (const address of MARKET_TOKEN_ADDRESSES) {
+      const matching = pairs.flatMap(pair => {
+        if (pair.chainId?.toLowerCase() !== 'base') return [];
+        const baseMatch = pair.baseToken?.address?.toLowerCase() === address.toLowerCase();
+        const quoteMatch = pair.quoteToken?.address?.toLowerCase() === address.toLowerCase();
+        if (!baseMatch && !quoteMatch) return [];
+        const basePrice = Number(pair.priceUsd);
+        const nativePrice = Number(pair.priceNative);
+        const priceUsd = baseMatch ? basePrice : (basePrice > 0 && nativePrice > 0 ? basePrice / nativePrice : 0);
+        if (!Number.isFinite(priceUsd) || priceUsd <= 0) return [];
+        const token = baseMatch ? pair.baseToken : pair.quoteToken;
+        return [{
+          pair, token, priceUsd, isBaseToken: baseMatch,
+          liquidityUsd: Number(pair.liquidity?.usd) || 0
+        }];
+      }).sort((a, b) => b.liquidityUsd - a.liquidityUsd);
+      const best = matching[0];
+      if (!best) {
+        console.warn('KICKERS market: no priced Base pair found for', address);
+        continue;
+      }
+      const { pair, token, priceUsd, isBaseToken } = best;
       arenaMarkets.set(address, {
-        address, iconUrl, symbol: bestPair.baseToken?.symbol || 'TOKEN', name: bestPair.baseToken?.name || 'Base token',
-        priceUsd: Number(bestPair.priceUsd),
-        change24h: Number.isFinite(bestPair.priceChange?.h24) ? bestPair.priceChange!.h24! : null,
-        marketCap: bestPair.marketCap ?? bestPair.fdv ?? null, liquidity: bestPair.liquidity?.usd ?? null,
-        volume24h: bestPair.volume?.h24 ?? null, dexId: bestPair.dexId || 'DEX',
-        pairUrl: bestPair.url || `https://dexscreener.com/base/${address}`, updatedAt: Date.now()
+        address,
+        iconUrl: pair.info?.imageUrl || null,
+        symbol: token?.symbol || 'TOKEN',
+        name: token?.name || 'Base token',
+        priceUsd,
+        // DexScreener price-change and market-cap fields describe baseToken.
+        change24h: isBaseToken && Number.isFinite(pair.priceChange?.h24) ? pair.priceChange!.h24! : null,
+        marketCap: isBaseToken ? (pair.marketCap ?? pair.fdv ?? null) : null,
+        liquidity: pair.liquidity?.usd ?? null,
+        volume24h: pair.volume?.h24 ?? null,
+        dexId: pair.dexId || 'DEX',
+        pairUrl: pair.url || `https://dexscreener.com/base/${address}`,
+        updatedAt: Date.now()
       });
-    } catch (error) {
-      console.warn('KICKERS token market refresh failed:', address, error);
     }
-  }));
-  marketError = arenaMarkets.size === 0;
-  marketLoading = false;
-  arenaMarket = arenaMarkets.get(selectedMarketAddress) || arenaMarkets.get(MARKET_TOKEN_ADDRESS) || null;
-  if (arenaMarket) selectedMarketAddress = arenaMarket.address;
-  loadMarketLogo(arenaMarket);
-  renderMarketTokenList();
-  updateMarketZoom();
-  drawArenaScoreboard();
+  } catch (error) {
+    console.warn('KICKERS token market refresh failed:', error);
+  } finally {
+    window.clearTimeout(timeout);
+    marketLoading = false;
+    marketError = MARKET_TOKEN_ADDRESSES.every(address => !arenaMarkets.has(address));
+    arenaMarket = arenaMarkets.get(selectedMarketAddress) || null;
+    if (!arenaMarket) {
+      const firstAvailable = MARKET_TOKEN_ADDRESSES.find(address => arenaMarkets.has(address));
+      if (firstAvailable) {
+        selectedMarketAddress = firstAvailable;
+        arenaMarket = arenaMarkets.get(firstAvailable) || null;
+      }
+    }
+    loadMarketLogo(arenaMarket);
+    renderMarketTokenList();
+    updateMarketZoom();
+    drawArenaScoreboard();
+  }
 }
 const scoreboard = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 2.4), new THREE.MeshBasicMaterial({ map: scoreboardTexture, side: THREE.DoubleSide }));
 scoreboard.position.set(0, 5.4, -12.8); scoreboard.rotation.x = -0.08; scene.add(scoreboard);
