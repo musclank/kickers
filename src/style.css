@@ -656,3 +656,17 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 
 /* Compact match summary: visible only on the post-match screen. */
 .match-result-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:18px 0 8px}.match-result-stats div{display:grid;gap:5px;padding:11px 5px;border:1px solid rgba(126,164,210,.2);border-radius:10px;background:rgba(24,39,65,.55)}.match-result-stats strong{color:#8ff4e8;font-size:13px;font-variant-numeric:tabular-nums}.match-result-stats span{color:#91a6c8;font-size:7px;font-weight:800;letter-spacing:.08em}@media(max-width:380px){.match-over-card{padding:22px 15px}.match-result-stats{gap:5px}.match-result-stats strong{font-size:11px}.match-result-stats span{font-size:6px}}
+
+
+/* Player stats stay inside a lightweight, on-demand profile panel. */
+.player-stats-button{margin:10px auto 0;min-width:150px}
+.player-stats-panel{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:18px;background:rgba(4,8,20,.78);backdrop-filter:blur(8px)}
+.player-stats-panel[hidden]{display:none}
+.player-stats-card{width:min(100%,380px);padding:24px 20px;border:1px solid rgba(126,164,210,.28);border-radius:18px;background:linear-gradient(145deg,#151e37,#0b1022);box-shadow:0 22px 70px rgba(0,0,0,.45);text-align:center}
+.player-stats-card h2{margin:8px 0 18px;color:#f4f7ff;font-size:20px;letter-spacing:.08em}
+.player-stats-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:18px}
+.player-stats-grid div{display:grid;gap:5px;padding:14px 8px;border:1px solid rgba(126,164,210,.2);border-radius:10px;background:rgba(24,39,65,.55)}
+.player-stats-grid div:last-child{grid-column:1/-1}
+.player-stats-grid strong{color:#8ff4e8;font-size:22px;font-variant-numeric:tabular-nums}
+.player-stats-grid span{color:#91a6c8;font-size:8px;font-weight:800;letter-spacing:.1em}
+.player-stats-card>button{width:100%;min-height:42px;border:0;border-radius:9px;background:#78e8dc;color:#10182b;font-weight:900;letter-spacing:.08em}
