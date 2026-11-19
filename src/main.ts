@@ -323,11 +323,19 @@ if (crowdArms.instanceColor) crowdArms.instanceColor.needsUpdate = true;
 scene.add(crowdBodies, crowdHeads, crowdArms);
 // Stadium LED screen facing the arena.
 const scoreboardCanvas = document.createElement('canvas');
-scoreboardCanvas.width = 1536; scoreboardCanvas.height = 512;
-const scoreboardContext = scoreboardCanvas.getContext('2d')!;
-scoreboardContext.scale(2, 2);
+// Render the stadium display at 4x its logical resolution so text remains crisp
+// when the arena camera scales the LED panel down on mobile and desktop.
+const SCOREBOARD_RENDER_SCALE = 4;
+scoreboardCanvas.width = 768 * SCOREBOARD_RENDER_SCALE;
+scoreboardCanvas.height = 256 * SCOREBOARD_RENDER_SCALE;
+const scoreboardContext = scoreboardCanvas.getContext('2d', { alpha: false })!;
+scoreboardContext.scale(SCOREBOARD_RENDER_SCALE, SCOREBOARD_RENDER_SCALE);
 const scoreboardTexture = new THREE.CanvasTexture(scoreboardCanvas);
 scoreboardTexture.colorSpace = THREE.SRGBColorSpace;
+scoreboardTexture.magFilter = THREE.LinearFilter;
+scoreboardTexture.minFilter = THREE.LinearMipmapLinearFilter;
+scoreboardTexture.generateMipmaps = true;
+scoreboardTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 const MARKET_TOKEN_ADDRESSES = [
   '0x1bc0c42215582d5A085795f4baDbaC3ff36d1Bcb',
   '0x0947FB7076BFa307796F8fd533055f6016C6cccC',
@@ -463,7 +471,7 @@ function drawArenaScoreboard(message = scoreboardMessage) {
   gradient.addColorStop(0, '#07172d'); gradient.addColorStop(0.55, '#10264b'); gradient.addColorStop(1, '#24134b');
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, 768, 256);
   ctx.strokeStyle = '#55e6e0'; ctx.lineWidth = 7; ctx.strokeRect(7, 7, 754, 242);
-  ctx.textAlign = 'left'; ctx.shadowColor = '#42e8ff'; ctx.shadowBlur = 12;
+  ctx.textAlign = 'left'; ctx.shadowColor = '#42e8ff'; ctx.shadowBlur = 3;
   ctx.fillStyle = '#ffffff'; ctx.font = '900 29px system-ui'; ctx.fillText('KICKERS // BASE MARKET', 28, 43);
   ctx.shadowBlur = 0; ctx.textAlign = 'right'; ctx.fillStyle = '#63f0d2'; ctx.font = '800 17px system-ui';
   ctx.fillText(marketLoading ? 'CONNECTING' : marketError ? 'LIVE FEED DELAYED' : 'LIVE DATA', 738, 41);
@@ -476,7 +484,7 @@ function drawArenaScoreboard(message = scoreboardMessage) {
       ctx.drawImage(marketLogo, 682, 53, 54, 54); ctx.restore();
     }
     ctx.shadowColor = change !== null && change >= 0 ? '#46f2ad' : '#ff6685';
-    ctx.shadowBlur = 13; ctx.fillStyle = '#ffffff'; ctx.font = '900 58px system-ui';
+    ctx.shadowBlur = 4; ctx.fillStyle = '#ffffff'; ctx.font = '900 58px system-ui';
     ctx.fillText(formatMarketUsd(arenaMarket.priceUsd), 28, 143);
     ctx.shadowBlur = 0; ctx.textAlign = 'right'; ctx.font = '900 28px system-ui';
     ctx.fillStyle = change === null ? '#d7e5f5' : change >= 0 ? '#46f2ad' : '#ff6685';
