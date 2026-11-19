@@ -8,6 +8,13 @@ const danceButton = document.querySelector<HTMLButtonElement>('#taunt')!;
 const styleButton = document.querySelector<HTMLButtonElement>('#mock')!;
 const specialButton = document.querySelector<HTMLButtonElement>('#special')!;
 const powerupStatus = document.querySelector<HTMLElement>('#powerup-status')!;
+let powerupNoticeTimer: ReturnType<typeof setTimeout> | undefined;
+function showPowerupNotice(message: string) {
+  powerupStatus.textContent = message;
+  powerupStatus.classList.add('is-visible');
+  if (powerupNoticeTimer) clearTimeout(powerupNoticeTimer);
+  powerupNoticeTimer = setTimeout(() => powerupStatus.classList.remove('is-visible'), 1900);
+}
 const joystick = document.querySelector<HTMLDivElement>('#joystick')!;
 const stick = document.querySelector<HTMLDivElement>('#stick')!;
 const creator = document.querySelector<HTMLDivElement>('#creator')!;
@@ -2227,15 +2234,15 @@ function animate() {
       if (eventRoll === 0) {
         speedBoostTime = Math.max(speedBoostTime, 8);
         statusEl.textContent = 'ARENA EVENT: SPEED SURGE!';
-        powerupStatus.textContent = 'EVENT · SPEED SURGE 8.0s';
+        showPowerupNotice('SPEED SURGE ACTIVATED');
       } else if (eventRoll === 1) {
         shieldTime = Math.max(shieldTime, 8);
         statusEl.textContent = 'ARENA EVENT: SHIELD UP!';
-        powerupStatus.textContent = 'EVENT · SHIELD 8.0s';
+        showPowerupNotice('SHIELD ACTIVATED');
       } else {
         powerKickTime = Math.max(powerKickTime, 8);
         statusEl.textContent = 'ARENA EVENT: POWER KICK!';
-        powerupStatus.textContent = 'EVENT · POWER KICK 8.0s';
+        showPowerupNotice('POWER KICK ACTIVATED');
       }
       playSound('victory');
     }
@@ -2253,24 +2260,17 @@ function animate() {
     shieldAura.scale.setScalar(auraPulse);
     speedAura.scale.setScalar(1 + Math.sin(clock.elapsedTime * 12) * 0.08);
     powerKickAura.scale.setScalar(1 + Math.sin(clock.elapsedTime * 14) * 0.1);
-    const activeEffect = speedBoostTime > 0 ? `SPEED BOOST ${speedBoostTime.toFixed(1)}s`
-      : shieldTime > 0 ? `SHIELD ${shieldTime.toFixed(1)}s`
-      : powerKickTime > 0 ? `POWER KICK ${powerKickTime.toFixed(1)}s`
-      : specialCooldown > 0 ? `SPECIAL ${Math.ceil(specialCooldown)}s`
-      : !powerup.visible && powerupRespawn > 0 ? `NEXT POWER-UP IN ${powerupRespawn.toFixed(1)}s`
-      : 'POWER-UP AVAILABLE';
-    powerupStatus.textContent = activeEffect;
     if (powerup.visible) {
       powerup.rotation.y += delta * 1.5;
       powerup.position.y = 0.82 + Math.sin(clock.elapsedTime * 2.8) * 0.12;
       if (!player.userData.fallen && Math.hypot(player.position.x - powerup.position.x, player.position.z - powerup.position.z) < 1.05) {
         powerup.visible = false;
         if (nextPowerupKind === 'speed') {
-          speedBoostTime = 7; powerupStatus.textContent = 'SPEED BOOST 7.0s'; statusEl.textContent = 'SPEED BOOST!';
+          speedBoostTime = 7; showPowerupNotice('SPEED BOOST ACTIVATED'); statusEl.textContent = 'SPEED BOOST!';
         } else if (nextPowerupKind === 'shield') {
-          shieldTime = 8; powerupStatus.textContent = 'SHIELD 8.0s'; statusEl.textContent = 'SHIELD ACTIVATED!';
+          shieldTime = 8; showPowerupNotice('SHIELD ACTIVATED'); statusEl.textContent = 'SHIELD ACTIVATED!';
         } else {
-          powerKickTime = 8; powerupStatus.textContent = 'POWER KICK 8.0s'; statusEl.textContent = 'POWER KICK ACTIVATED!';
+          powerKickTime = 8; showPowerupNotice('POWER KICK ACTIVATED'); statusEl.textContent = 'POWER KICK ACTIVATED!';
         }
         powerupRespawn = 10; playSound('victory');
       }
@@ -2284,7 +2284,7 @@ function animate() {
         powerup.visible = true;
       }
     }
-  } else { powerup.visible = false; powerupStatus.textContent = networkReady ? 'ONLINE MATCH' : 'MATCH COMPLETE'; }
+  } else { powerup.visible = false; powerupStatus.classList.remove('is-visible'); }
 
   // Solo bots fight every active opponent, not just the human player.
   if (!networkReady) rivals.forEach((bot, index) => {
