@@ -824,3 +824,22 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
   .market-zoom-metrics strong { font-size: 14px; }
   .market-zoom-footer { align-items: flex-start; flex-direction: column; }
 }
+
+
+/* Keep the live token market directly beneath the official X profile link. */
+.social-market-column {
+  display: flex; flex-direction: column; align-items: flex-start;
+  justify-content: center; gap: 8px; min-width: 0; pointer-events: auto;
+}
+.social-market-column .market-zoom-toggle {
+  width: auto; min-width: 132px; max-width: min(190px, 28vw);
+  min-height: 34px; padding: 0 11px; font-size: 8px;
+  writing-mode: horizontal-tb; white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .social-market-column { gap: 6px; }
+  .social-market-column .market-zoom-toggle {
+    min-width: 0; max-width: 132px; min-height: 30px;
+    padding: 0 8px; font-size: 7px; letter-spacing: 0;
+  }
+}
