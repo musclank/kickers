@@ -1,3 +1,5 @@
+import './creator2.css';
+
 type FieldValue = string;
 const creator = document.querySelector<HTMLElement>('#creator');
 if (creator && !document.querySelector('#creator2-tools')) {
