@@ -3,6 +3,25 @@ import './style.css';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 const statusEl = document.querySelector<HTMLSpanElement>('#status')!;
+
+const contractAddressInput = document.querySelector<HTMLInputElement>('#contract-address');
+const copyContractButton = document.querySelector<HTMLButtonElement>('#copy-contract');
+copyContractButton?.addEventListener('click', async () => {
+  if (!contractAddressInput) return;
+  const address = contractAddressInput.value;
+  try {
+    await navigator.clipboard.writeText(address);
+  } catch {
+    contractAddressInput.focus();
+    contractAddressInput.select();
+    document.execCommand('copy');
+    contractAddressInput.setSelectionRange(0, 0);
+  }
+  if (copyContractButton) {
+    copyContractButton.textContent = 'COPIED';
+    window.setTimeout(() => { if (copyContractButton) copyContractButton.textContent = 'COPY'; }, 1400);
+  }
+});
 const kickButton = document.querySelector<HTMLButtonElement>('#kick')!;
 const danceButton = document.querySelector<HTMLButtonElement>('#taunt')!;
 const styleButton = document.querySelector<HTMLButtonElement>('#mock')!;
