@@ -100,6 +100,10 @@ export class ArenaRoom {
         const dz = Number(victim.z || 0) - Number(meta.z || 0);
         const distance = Math.hypot(dx, dz);
         if (distance > 2.15 || distance < 0.001) continue;
+        const facingX = -Math.sin(Number(meta.rotation) || 0);
+        const facingZ = -Math.cos(Number(meta.rotation) || 0);
+        const facingDot = facingX * (dx / distance) + facingZ * (dz / distance);
+        if (facingDot <= 0.42) continue;
         victim.hp = Math.max(0, Number(victim.hp ?? 100) - 35);
         if (victim.hp <= 0) victim.knockedOut = true;
         target.serializeAttachment(victim);
