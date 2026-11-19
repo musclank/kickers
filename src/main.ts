@@ -476,7 +476,8 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = t
   const leftLeg = new THREE.Group();
   leftLeg.position.set(-0.22 * cfg.bodyWidth, 0.34 * legScale, 0);
   addMesh(leftLeg, new THREE.CapsuleGeometry(0.155, (cfg.pantsStyle === 'shorts' ? 0.08 : 0.29) * legScale, 4, 8), cfg.pants, 0, -0.16 * legScale, 0);
-  addMesh(leftLeg, new THREE.CapsuleGeometry(0.15, 0.28 * legScale, 4, 8), cfg.skin, 0, -0.16 * legScale, 0);
+  addMesh(leftLeg, new THREE.CapsuleGeometry(0.145, 0.25 * legScale, 4, 8), cfg.pantsStyle === 'shorts' ? cfg.skin : cfg.pants, 0, -0.36 * legScale, 0);
+  if (cfg.pantsStyle === 'joggers') addMesh(leftLeg, new THREE.TorusGeometry(0.145, 0.025, 6, 14), '#20283b', 0, -0.48 * legScale, 0);
   const makeShoe = (parent: THREE.Group, y: number) => {
     const sole = addMesh(parent, new THREE.BoxGeometry(0.38, 0.10, 0.56), '#20283b', 0, y - 0.07, -0.15);
     const upper = addMesh(parent, new THREE.BoxGeometry(0.34, cfg.shoeStyle === 'boots' ? 0.34 : 0.20, cfg.shoeStyle === 'high-tops' ? 0.48 : 0.50), cfg.shoes, 0, y, -0.13);
@@ -493,11 +494,11 @@ function makeAvatar(cfg: AvatarConfig, x: number, z: number, useShirtTexture = t
   const kickLeg = new THREE.Group();
   kickLeg.position.set(0.22 * cfg.bodyWidth, 0.34 * legScale, 0);
   addMesh(kickLeg, new THREE.CapsuleGeometry(0.155, (cfg.pantsStyle === 'shorts' ? 0.08 : 0.29) * legScale, 4, 8), cfg.pants, 0, -0.16 * legScale, 0);
-  addMesh(kickLeg, new THREE.CapsuleGeometry(0.15, 0.28 * legScale, 4, 8), cfg.skin, 0, -0.16 * legScale, 0);
+
   const knee = addMesh(kickLeg, new THREE.SphereGeometry(0.15, 12, 10), cfg.skin, 0, -0.29 * legScale, 0);
   const shin = new THREE.Group();
   shin.position.set(0, -0.29 * legScale, 0);
-  addMesh(shin, new THREE.CapsuleGeometry(0.13, 0.25 * legScale, 4, 8), cfg.skin, 0, -0.13 * legScale, 0);
+  addMesh(shin, new THREE.CapsuleGeometry(0.13, 0.25 * legScale, 4, 8), cfg.pantsStyle === 'shorts' ? cfg.skin : cfg.pants, 0, -0.13 * legScale, 0);
   makeShoe(shin, -0.29 * legScale);
   kickLeg.add(shin);
   group.add(kickLeg);
