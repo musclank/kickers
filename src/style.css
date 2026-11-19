@@ -1128,3 +1128,34 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 @media (orientation: landscape) and (max-height: 700px) and (pointer: coarse) {
   .buy-kick-button { min-height: 34px; margin-top: 7px; padding: 7px 10px; font-size: 8px; }
 }
+
+
+/* Official KICK token marker in the live market selector. */
+.official-market-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 7px;
+  padding: 4px 7px;
+  border: 1px solid #f2c66d99;
+  border-radius: 999px;
+  background: linear-gradient(110deg,#f4c76b,#e99a45);
+  color: #172039;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 1000;
+  letter-spacing: .08em;
+  vertical-align: middle;
+}
+.market-token-option.official-token {
+  border-color: #f2c66d99;
+  background: linear-gradient(120deg,#f2c66d18,#ffffff08);
+}
+.market-token-option.official-token.selected {
+  border-color: #f4c76b;
+  background: linear-gradient(120deg,#f2c76b2b,#65e7d91a);
+  box-shadow: inset 0 0 16px #f2c76b18;
+}
+.market-token-option.official-token .market-token-option-identity small {
+  color: #f4c76b;
+  font-weight: 900;
+}
