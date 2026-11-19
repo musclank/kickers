@@ -731,3 +731,16 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 #creator .creator-grid select { min-height: 42px; width: 100%; padding: 9px 10px; border: 1px solid rgba(101,231,217,.25); border-radius: 9px; background: #101b32; color: #edf6ff; font-size: 11px; }
 #creator .creator-grid select:focus-visible { outline: 2px solid #65e7d9; outline-offset: 2px; }
 @media(max-width:520px){ #creator .creator-grid select { min-height: 44px; font-size: 12px; } }
+
+
+/* Keep the official X profile visible directly above the Customize control. */
+.x-social-link {
+  position: absolute;
+  z-index: 9;
+  top: max(78px, calc(env(safe-area-inset-top) + 68px));
+  right: 14px;
+  margin: 0;
+}
+.creator-toggle {
+  top: max(126px, calc(env(safe-area-inset-top) + 116px));
+}
