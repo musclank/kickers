@@ -85,7 +85,33 @@ export class ArenaRoom {
       ws.serializeAttachment(meta);
       this.broadcast({ type: "state", id: meta.id, x: meta.x, z: meta.z, rotation: meta.rotation }, ws);
     }
-    if (data.type === "kick") this.broadcast({ type: "kick", id: meta.id }, ws);
+    if (data.type === "kick") {
+      if (!this.match.started || this.match.finished || meta.knockedOut) return;
+      const now = Date.now();
+      if (now - Number(meta.lastKickAt || 0) < 650) return;
+      meta.lastKickAt = now;
+      ws.serializeAttachment(meta);
+      this.broadcast({ type: "kick", id: meta.id });
+      for (const target of this.state.getWebSockets()) {
+        if (target === ws) continue;
+        const victim = target.deserializeAttachment() || {};
+        if (victim.knockedOut) continue;
+        const dx = Number(victim.x || 0) - Number(meta.x || 0);
+        const dz = Number(victim.z || 0) - Number(meta.z || 0);
+        const distance = Math.hypot(dx, dz);
+        if (distance > 2.15 || distance < 0.001) continue;
+        victim.hp = Math.max(0, Number(victim.hp ?? 100) - 35);
+        if (victim.hp <= 0) victim.knockedOut = true;
+        target.serializeAttachment(victim);
+        this.broadcast({ type: "combat-hit", attackerId: meta.id, targetId: victim.id, hp: victim.hp, knockX: dx / distance, knockZ: dz / distance, knockedOut: victim.knockedOut });
+        if (victim.knockedOut) this.broadcast({ type: "knockout", playerId: victim.id });
+      }
+      const alive = this.state.getWebSockets().map(other => other.deserializeAttachment() || {}).filter(p => !p.knockedOut);
+      if (alive.length === 1 && this.state.getWebSockets().length >= 2) {
+        this.match.finished = true;
+        this.broadcast({ type: "match-result", winnerId: alive[0].id, players: this.state.getWebSockets().map(other => { const p = other.deserializeAttachment() || {}; return { id: p.id, hp: p.hp, knockedOut: Boolean(p.knockedOut) }; }) });
+      }
+    }
     if (data.type === "taunt") this.broadcast({ type: "taunt", id: meta.id }, ws);
     if (data.type === "mock") this.broadcast({ type: "mock", id: meta.id }, ws);
   }
