@@ -575,6 +575,7 @@ localStorage.setItem('kickers-online-id', localPlayerId);
 let activeRoom = '';
 let networkSendClock = 0;
 let networkReady = false;
+let onlineHp = 100;
 const MULTIPLAYER_SERVER_URL = 'https://kickers-multiplayer.papahjahat9999.workers.dev';
 function setOnlineMessage(message: string) { onlineMessage.textContent = message; }
 function getWorkerBase() { return MULTIPLAYER_SERVER_URL; }
@@ -668,8 +669,52 @@ function connectToRoom(room: string) {
   });
   ws.addEventListener('message', event => {
     try {
-      const data = JSON.parse(String(event.data)) as { type: string; players?: Array<{ id: string; name?: string; walletAddress?: string | null; avatar?: Partial<AvatarConfig>; x?: number; z?: number; rotation?: number }>; id?: string; x?: number; z?: number; rotation?: number };
+      const data = JSON.parse(String(event.data)) as { type: string; players?: Array<{ id: string; name?: string; walletAddress?: string | null; avatar?: Partial<AvatarConfig>; x?: number; z?: number; rotation?: number; hp?: number; knockedOut?: boolean }>; id?: string; x?: number; z?: number; rotation?: number; duration?: number; attackerId?: string; targetId?: string; hp?: number; knockX?: number; knockZ?: number; knockedOut?: boolean; playerId?: string; winnerId?: string };
       if (data.type === 'roster' && data.players) updateRoster(data.players);
+      if (data.type === 'match-start') {
+        onlineHp = 100;
+        matchResultRecorded = false;
+        matchXpAwarded = false;
+        matchXpEarned = 0;
+        roundOver = false;
+        matchTimeEl.textContent = 'ONLINE';
+        statusEl.textContent = 'ONLINE MATCH';
+        setOnlineMessage('MATCH LIVE — KNOCK OUT YOUR RIVALS');
+      }
+      if (data.type === 'combat-hit' && data.targetId) {
+        if (data.targetId === localPlayerId) {
+          onlineHp = Math.max(0, Number(data.hp ?? onlineHp));
+          statusEl.textContent = onlineHp > 0 ? `HIT TAKEN · HP ${onlineHp}` : 'KNOCKED OUT';
+          if (typeof data.knockX === 'number' && typeof data.knockZ === 'number') {
+            player.position.x += data.knockX * 0.55;
+            player.position.z += data.knockZ * 0.55;
+          }
+        } else {
+          const victim = remotePlayers.get(data.targetId);
+          if (victim) {
+            victim.mesh.userData.remoteKickTime = 0.48;
+            if (data.knockedOut) victim.mesh.visible = false;
+          }
+        }
+      }
+      if (data.type === 'knockout' && data.playerId === localPlayerId) {
+        player.userData.fallen = true;
+        player.userData.fallVelocity = 0;
+        player.visible = false;
+      }
+      if (data.type === 'match-result' && data.winnerId) {
+        const won = data.winnerId === localPlayerId;
+        roundOver = true;
+        matchXpEarned = awardMatchXP(won ? 100 : 25) >= 0 ? (won ? 100 : 25) : 0;
+        recordMatchResult(won ? 'win' : 'loss');
+        if (won) completeDailyChallenge();
+        matchOverTitle.textContent = won ? 'YOU ARE THE CHAMPION!' : 'MATCH OVER';
+        matchOverMessage.textContent = won ? 'All rivals eliminated. The arena belongs to you!' : 'You were knocked out. Ready for another match?';
+        updateMatchResult();
+        matchOverEl.hidden = false;
+        matchOverEl.setAttribute('aria-hidden', 'false');
+        setOnlineMessage(won ? 'VICTORY — MATCH COMPLETE' : 'MATCH COMPLETE');
+      }
       if (data.type === 'state' && data.id && data.id !== localPlayerId) {
         const remote = remotePlayers.get(data.id);
         if (remote && typeof data.x === 'number') {
@@ -1223,7 +1268,7 @@ function animate() {
   requestAnimationFrame(animate);
   const delta = Math.min(clock.getDelta(), 0.04);
   if ((gamePaused && !networkReady) || customizing) { renderer.render(scene, camera); return; }
-  if (!roundOver && !trainingMode) {
+  if (!roundOver && !trainingMode && !networkReady) {
     matchTimeRemaining = Math.max(0, matchTimeRemaining - delta);
     matchTimeEl.textContent = formatMatchTime(matchTimeRemaining);
     matchTimeEl.classList.toggle('urgent', matchTimeRemaining <= 30);
