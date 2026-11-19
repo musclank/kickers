@@ -59,6 +59,8 @@
     <main id="app">
       <div class="topbar">
         <div class="brand-block"><div class="brand">KICKERS</div><div class="contract-box"><label for="contract-address">CONTRACT ADDRESS</label><div class="contract-field"><input id="contract-address" type="text" placeholder="COMING SOON" aria-label="Token contract address" readonly><button id="copy-contract" type="button" disabled>COPY</button></div></div></div>
+          <a class="x-social-link" href="https://x.com/kickerszone" target="_blank" rel="noopener noreferrer" aria-label="Follow KICKERS on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3L12 14.6 5.5 22H2.3l7.3-8.4L1.8 2h6.5l4.5 6.8L18.9 2Zm-1.1 18h1.7L7.3 3.9H5.5L17.8 20Z"/></svg><span>@kickerszone</span></a>
+        </div>
         <div class="topbar-actions"><div class="sound-controls"><button id="audio-toggle" type="button" aria-label="Toggle sound">SOUND ON</button><label class="volume-control" aria-label="Volume"><span>VOL</span><input id="audio-volume" type="range" min="0" max="100" value="35"></label></div><div class="round-label">ARENA PROTOTYPE <span id="status">READY</span></div><button id="pause-toggle" class="pause-toggle" type="button" aria-label="Pause offline game">PAUSE</button><button id="fullscreen-toggle" class="fullscreen-toggle" type="button" aria-label="Enter fullscreen">FULL SCREEN</button></div>
       </div>
       <section id="start-screen" class="start-screen" aria-label="Game start menu">
@@ -108,7 +110,6 @@
         <button id="leave-room" class="leave-room" type="button" disabled>LEAVE ROOM</button>
         <span id="online-message" class="online-message">READY — CREATE OR JOIN A ROOM</span>
       </section>
-      <a class="x-social-link" href="https://x.com/kickerszone" target="_blank" rel="noopener noreferrer" aria-label="Follow KICKERS on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3L12 14.6 5.5 22H2.3l7.3-8.4L1.8 2h6.5l4.5 6.8L18.9 2Zm-1.1 18h1.7L7.3 3.9H5.5L17.8 20Z"/></svg><span>@kickerszone</span></a>
       <button id="creator-toggle" class="creator-toggle">CUSTOMIZE</button>
       
       <section id="creator" class="creator-panel">
