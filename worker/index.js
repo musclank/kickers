@@ -92,6 +92,11 @@ export class ArenaRoom {
     }
     if (data.type === "kick") {
       if (!this.match.started || this.match.finished || meta.knockedOut) return;
+      // Use the attacker's freshest transform instead of a possibly stale 30 Hz state packet.
+      if (Number.isFinite(data.x)) meta.x = Math.max(-8, Math.min(8, data.x));
+      if (Number.isFinite(data.z)) meta.z = Math.max(-8, Math.min(8, data.z));
+      if (Number.isFinite(data.rotation)) meta.rotation = data.rotation;
+      ws.serializeAttachment(meta);
       const now = Date.now();
       if (now - Number(meta.lastKickAt || 0) < 650) return;
       meta.lastKickAt = now;
