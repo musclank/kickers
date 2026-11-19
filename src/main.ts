@@ -584,6 +584,10 @@ async function refreshArenaMarket() {
     drawArenaScoreboard();
   }
 }
+// Start live market polling after the refresh function is defined.
+void refreshArenaMarket();
+window.setInterval(() => { void refreshArenaMarket(); }, 30000);
+
 const scoreboard = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 2.4), new THREE.MeshBasicMaterial({ map: scoreboardTexture, side: THREE.DoubleSide }));
 scoreboard.position.set(0, 5.4, -12.8); scoreboard.rotation.x = -0.08; scene.add(scoreboard);
 drawArenaScoreboard();
