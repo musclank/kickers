@@ -733,20 +733,11 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 @media(max-width:520px){ #creator .creator-grid select { min-height: 44px; font-size: 12px; } }
 
 
-/* Keep the X profile clear of the top-right PAUSE and FULL SCREEN controls. */
-.x-social-link {
-  position: absolute;
-  z-index: 6;
-  top: max(78px, calc(env(safe-area-inset-top) + 68px));
-  left: 14px;
-  right: auto;
+/* X profile stays in the brand column's normal layout flow. */
+.brand-block .x-social-link {
+  position: static;
+  z-index: auto;
+  align-self: flex-start;
   margin: 0;
-  max-width: min(180px, calc(100vw - 28px));
-}
-@media (max-width: 700px) {
-  .x-social-link {
-    top: max(78px, calc(env(safe-area-inset-top) + 68px));
-    left: 14px;
-    right: auto;
-  }
+  max-width: 100%;
 }
