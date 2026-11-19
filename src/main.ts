@@ -164,6 +164,17 @@ const fighterPresets: Record<string, AvatarConfig> = {
   nova: { ...defaults, fighterId: 'nova', skin: '#e5b7a3', outfit: '#167e9a', shoes: '#d5e8f0', hairColor: '#e8f2ff', hairStyle: 'smooth', accessory: 'crown', bodyWidth: 0.94, bodyHeight: 1.08, headSize: 1.08, legLength: 1.12 },
   frost: { ...defaults, fighterId: 'frost', skin: '#a6c9e8', outfit: '#dce9f4', shoes: '#536c91', hairColor: '#80bde9', hairStyle: 'spiky', accessory: 'none', bodyWidth: 0.98, bodyHeight: 1.16, headSize: 0.98, legLength: 1.08 }
 };
+
+type FighterMotion = { walkRate: number; stride: number; kickPower: number; idle: number; victory: number };
+const fighterMotion: Record<string, FighterMotion> = {
+  classic: { walkRate: 10, stride: 0.48, kickPower: 1.05, idle: 1, victory: 0.9 },
+  blaze:   { walkRate: 12, stride: 0.58, kickPower: 1.28, idle: 1.25, victory: 1.15 },
+  shadow:  { walkRate: 14, stride: 0.34, kickPower: 1.42, idle: 0.65, victory: 0.8 },
+  titan:   { walkRate: 7, stride: 0.62, kickPower: 0.92, idle: 1.4, victory: 1.3 },
+  venom:   { walkRate: 11, stride: 0.52, kickPower: 1.18, idle: 1.6, victory: 1.05 },
+  nova:    { walkRate: 13, stride: 0.42, kickPower: 1.12, idle: 1.1, victory: 1.5 },
+  frost:   { walkRate: 9, stride: 0.46, kickPower: 1.32, idle: 0.8, victory: 1.2 }
+};
 let config: AvatarConfig = { ...defaults };
 let shirtTexture: THREE.Texture | null = null;
 
@@ -1396,6 +1407,12 @@ function animate() {
     player.position.x += (0 - player.position.x) * Math.min(1, delta * 2.8);
     player.position.z += (0 - player.position.z) * Math.min(1, delta * 2.8);
     player.rotation.y += (Math.PI - player.rotation.y) * Math.min(1, delta * 2.5);
+    const victoryMotion = fighterMotion[config.fighterId || 'classic'] || fighterMotion.classic;
+    const victoryLeftArm = player.userData.leftArm as THREE.Group | THREE.Mesh | undefined;
+    const victoryRightArm = player.userData.rightArm as THREE.Group | THREE.Mesh | undefined;
+    if (victoryLeftArm) { victoryLeftArm.rotation.z += ((-0.95 * victoryMotion.victory) - victoryLeftArm.rotation.z) * Math.min(1, delta * 3); victoryLeftArm.rotation.x = Math.sin(victoryTime * 3) * 0.12; }
+    if (victoryRightArm) { victoryRightArm.rotation.z += ((0.95 * victoryMotion.victory) - victoryRightArm.rotation.z) * Math.min(1, delta * 3); victoryRightArm.rotation.x = -Math.sin(victoryTime * 3) * 0.12; }
+    player.rotation.z = Math.sin(victoryTime * 2.4) * 0.035;
     if (victoryTime > 1.65) {
       const rise = Math.min(1, (victoryTime - 1.65) / 2.15);
       const height = 0.035 + (PODIUM_HEIGHT - 0.035) * rise;
@@ -1607,8 +1624,10 @@ function animate() {
   // Alternate legs and counter-swing arms for a grounded walk cycle.
   // Face the actual travel direction. Three.js forward is local -Z, so X needs the opposite sign here.
   if (moving) player.rotation.y = Math.atan2(-inputX, -inputZ);
-  walkTime += delta * (moving ? 10 : 3);
-  const stride = moving ? Math.sin(walkTime) * 0.48 : 0;
+  const motion = fighterMotion[config.fighterId || 'classic'] || fighterMotion.classic;
+  walkTime += delta * (moving ? motion.walkRate : 3);
+  const idlePulse = Math.sin(clock.elapsedTime * (2.1 + motion.idle * 0.45)) * 0.012 * motion.idle;
+  const stride = moving ? Math.sin(walkTime) * motion.stride : 0;
   const leftLeg = player.userData.leftLeg as THREE.Group;
   const rightLeg = player.userData.kickLeg as THREE.Group;
   const leftArm = player.userData.leftArm as THREE.Mesh;
@@ -1654,17 +1673,18 @@ function animate() {
       player.rotation.z = 0; statusEl.textContent = 'READY';
     }
   }
-  if (mockTime <= 0 && tauntTime <= 0 && !player.userData.fallen) player.position.y = moving ? Math.abs(Math.sin(walkTime * 2)) * 0.025 : 0;
+  if (mockTime <= 0 && tauntTime <= 0 && !player.userData.fallen) player.position.y = moving ? Math.abs(Math.sin(walkTime * 2)) * (0.018 + motion.idle * 0.007) : idlePulse;
   if (kickTime > 0) {
     kickTime = Math.max(0, kickTime - delta);
     const progress = 1 - kickTime / 0.48;
     const swing = Math.sin(progress * Math.PI);
     const kickLeg = player.userData.kickLeg as THREE.Group;
     const kickShin = player.userData.kickShin as THREE.Group;
-    // Lift the thigh, extend the shin, and send the sneaker forward (-Z).
-    kickLeg.rotation.x = swing * 1.05;
-    kickShin.rotation.x = -swing * 0.22;
-    player.rotation.x = -swing * 0.07;
+    const kickMotion = fighterMotion[config.fighterId || 'classic'] || fighterMotion.classic;
+    // Each preset has its own kick rhythm and silhouette while sharing the same hit timing.
+    kickLeg.rotation.x = swing * kickMotion.kickPower;
+    kickShin.rotation.x = -swing * (0.16 + kickMotion.kickPower * 0.06);
+    player.rotation.x = -swing * (0.055 + kickMotion.kickPower * 0.014);
 
     // Register one impact during the forward part of each kick.
     if (!kickHitDone && progress >= 0.32 && progress <= 0.68) {
