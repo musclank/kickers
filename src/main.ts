@@ -938,6 +938,7 @@ try {
 let moveX = 0, moveZ = 0, kickTime = 0, tauntTime = 0, mockTime = 0, walkTime = 0, kickHitDone = false;
 let speedBoostTime = 0, shieldTime = 0, powerKickTime = 0, specialCooldown = 0, powerupRespawn = 0;
 let matchXpAwarded = false;
+let matchXpEarned = 0;
 const xpKey = 'kickers-progression-v1';
 function awardMatchXP(amount: number) {
   if (matchXpAwarded) return 0;
@@ -967,8 +968,17 @@ function beginVictory() {
   statusEl.textContent = 'CHAMPION!';
   trophy.visible = false;
   const totalXP = awardMatchXP(100);
+  matchXpEarned = 100;
   powerup.visible = false;
   matchOverMessage.textContent = `All rivals eliminated! +100 XP · Total XP: ${totalXP}`;
+  updateMatchResult();
+}
+function updateMatchResult() {
+  const stats = document.querySelector<HTMLElement>('#match-result-stats');
+  if (!stats) return;
+  const played = MATCH_DURATION - matchTimeRemaining;
+  const totalXP = (() => { try { return Number(JSON.parse(localStorage.getItem(xpKey) || '{}').xp || 0); } catch { return 0; } })();
+  stats.innerHTML = `<div><strong>${formatMatchTime(played)}</strong><span>TIME PLAYED</span></div><div><strong>+${matchXpEarned} XP</strong><span>THIS MATCH</span></div><div><strong>${totalXP} XP</strong><span>TOTAL XP</span></div>`;
 }
 function formatMatchTime(seconds: number) {
   const whole = Math.max(0, Math.ceil(seconds));
@@ -1099,6 +1109,7 @@ function animate() {
       statusEl.textContent = 'TIME UP';
       matchOverTitle.textContent = 'TIME UP';
       matchOverMessage.textContent = 'That round is over. Ready for another match?';
+      updateMatchResult();
       matchOverEl.hidden = false;
       matchOverEl.setAttribute('aria-hidden', 'false');
     }
@@ -1135,6 +1146,7 @@ function animate() {
       statusEl.textContent = 'CHAMPION!';
       matchOverTitle.textContent = 'YOU ARE THE CHAMPION!';
       matchOverMessage.textContent = 'All rivals eliminated. The arena belongs to you!';
+      updateMatchResult();
       matchOverEl.hidden = false;
       matchOverEl.setAttribute('aria-hidden', 'false');
     }
