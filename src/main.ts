@@ -156,6 +156,7 @@ const defaults: AvatarConfig = {
   accessory: 'none', bodyWidth: 1, bodyHeight: 1, headSize: 1, legLength: 1, fighterId: 'classic'
 };
 const fighterPresets: Record<string, AvatarConfig> = {
+  classic: { ...defaults, fighterId: 'classic' },
   blaze: { ...defaults, fighterId: 'blaze', skin: '#d98b62', outfit: '#c93632', shoes: '#24202b', hairColor: '#f3a33c', hairStyle: 'spiky', accessory: 'none', bodyWidth: 1.16, bodyHeight: 1.08, headSize: 0.96, legLength: 1.05 },
   shadow: { ...defaults, fighterId: 'shadow', skin: '#b6b9d2', outfit: '#242b49', shoes: '#101522', hairColor: '#121827', hairStyle: 'none', accessory: 'glasses', bodyWidth: 0.84, bodyHeight: 1.12, headSize: 0.94, legLength: 1.22 },
   titan: { ...defaults, fighterId: 'titan', skin: '#8cbd82', outfit: '#65717e', shoes: '#303945', hairColor: '#303945', hairStyle: 'none', accessory: 'none', bodyWidth: 1.42, bodyHeight: 1.22, headSize: 0.88, legLength: 0.86 },
@@ -1074,6 +1075,14 @@ try {
     }
   }
 } catch { /* Ignore an invalid local saved design. */ }
+const activeFighterId = config.fighterId || 'classic';
+fighterCards.forEach(card => {
+  const selected = card.dataset.fighter === activeFighterId;
+  card.classList.toggle('selected', selected);
+  card.setAttribute('aria-pressed', String(selected));
+});
+const selectedFighterLabel = document.querySelector<HTMLElement>('#selected-fighter-name');
+if (selectedFighterLabel) selectedFighterLabel.textContent = activeFighterId.toUpperCase();
 
 let moveX = 0, moveZ = 0, kickTime = 0, tauntTime = 0, mockTime = 0, walkTime = 0, kickHitDone = false;
 let speedBoostTime = 0, shieldTime = 0, powerKickTime = 0, specialCooldown = 0, powerupRespawn = 0;
