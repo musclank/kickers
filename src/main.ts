@@ -362,7 +362,9 @@ scoreboardTexture.magFilter = THREE.LinearFilter;
 scoreboardTexture.minFilter = THREE.LinearMipmapLinearFilter;
 scoreboardTexture.generateMipmaps = true;
 scoreboardTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const OFFICIAL_KICK_TOKEN_ADDRESS = '0x88b7F885d087fd89a6dA364bc7141C5333E5Cccc';
 const MARKET_TOKEN_ADDRESSES = [
+  OFFICIAL_KICK_TOKEN_ADDRESS,
   '0x1bc0c42215582d5A085795f4baDbaC3ff36d1Bcb',
   '0x0947FB7076BFa307796F8fd533055f6016C6cccC',
   '0x3441e8fCdD380c4e7F5C7F55CCd599B2a2afCcCC',
@@ -395,7 +397,7 @@ marketZoomPanel.setAttribute('aria-label', 'Live Base token market');
 marketZoomPanel.innerHTML = `
   <div class="market-zoom-card">
     <button class="market-zoom-close" type="button" aria-label="Close live market">CLOSE</button>
-    <div class="market-zoom-heading"><span>BASE NETWORK · LIVE MARKET</span><strong>SELECT A TOKEN</strong></div>
+    <div class="market-zoom-heading"><span>BASE NETWORK · LIVE MARKET</span><strong>SELECT A TOKEN <em class="official-market-badge">OFFICIAL $KICK</em></strong></div>
     <div class="market-token-list" role="list" aria-label="Tracked tokens"></div>
     <div class="market-zoom-brand"><img class="market-zoom-icon" alt="Official token logo"><div><span>SELECTED TOKEN</span><h2 class="market-zoom-name">TOKEN MARKET</h2><code class="market-zoom-address"></code></div></div>
     <div class="market-zoom-price"><strong class="market-zoom-price-value">—</strong><span class="market-zoom-change">WAITING FOR DATA</span></div>
@@ -425,8 +427,9 @@ function renderMarketTokenList() {
     fallback.textContent = (data?.symbol || '...').slice(0, 5);
     const identity = document.createElement('span');
     identity.className = 'market-token-option-identity';
-    const name = document.createElement('strong'); name.textContent = data ? data.symbol : marketLoading ? 'LOADING' : 'NO MARKET DATA';
-    const shortAddress = document.createElement('small'); shortAddress.textContent = address.slice(0, 8) + '…' + address.slice(-6);
+    const name = document.createElement('strong'); name.textContent = data ? data.symbol : address === OFFICIAL_KICK_TOKEN_ADDRESS ? 'OFFICIAL $KICK' : marketLoading ? 'LOADING' : 'NO MARKET DATA';
+    const shortAddress = document.createElement('small'); shortAddress.textContent = address === OFFICIAL_KICK_TOKEN_ADDRESS ? 'OFFICIAL KICKERS TOKEN · ' + address.slice(0, 8) + '…' + address.slice(-6) : address.slice(0, 8) + '…' + address.slice(-6);
+    if (address === OFFICIAL_KICK_TOKEN_ADDRESS) item.classList.add('official-token');
     identity.append(name, shortAddress);
     const quote = document.createElement('span'); quote.className = 'market-token-option-quote';
     quote.textContent = data ? formatMarketUsd(data.priceUsd) : '—';
@@ -498,7 +501,7 @@ function drawArenaScoreboard(message = scoreboardMessage) {
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, 768, 256);
   ctx.strokeStyle = '#55e6e0'; ctx.lineWidth = 7; ctx.strokeRect(7, 7, 754, 242);
   ctx.textAlign = 'left'; ctx.shadowColor = '#42e8ff'; ctx.shadowBlur = 3;
-  ctx.fillStyle = '#ffffff'; ctx.font = '900 29px system-ui'; ctx.fillText('CLANKER // LIVE MARKET', 28, 43);
+  ctx.fillStyle = '#ffffff'; ctx.font = '900 29px system-ui'; ctx.fillText(arenaMarket?.address.toLowerCase() === OFFICIAL_KICK_TOKEN_ADDRESS.toLowerCase() ? 'KICKERS // OFFICIAL TOKEN' : 'CLANKER // LIVE MARKET', 28, 43);
   ctx.shadowBlur = 0; ctx.textAlign = 'right'; ctx.fillStyle = '#63f0d2'; ctx.font = '800 17px system-ui';
   ctx.fillText(marketLoading ? 'CONNECTING' : marketError ? 'LIVE FEED DELAYED' : 'LIVE DATA', 738, 41);
   if (arenaMarket) {
