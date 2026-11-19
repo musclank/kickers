@@ -691,3 +691,7 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
 
 /* Training mode stays in the start menu and uses the existing arena controls. */
 #start-training{min-height:44px;border-radius:12px;font-size:10px;font-weight:1000;letter-spacing:.12em;cursor:pointer;touch-action:manipulation}
+
+
+/* Daily challenge is shown only inside the optional player profile. */
+.daily-challenge{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 16px;padding:12px;border:1px solid rgba(101,231,217,.25);border-radius:11px;background:rgba(31,74,83,.18);text-align:left}.daily-challenge>div:first-child{display:grid;gap:4px}.daily-challenge strong{color:#eaf5ff;font-size:8px;letter-spacing:.09em}.daily-challenge span{color:#91a6c8;font-size:8px}.daily-challenge-meta{display:grid;gap:4px;text-align:right}.daily-challenge-meta strong{color:#8ff4e8}.daily-challenge-meta span{color:#a7c9d8}.daily-challenge.completed{border-color:rgba(101,231,217,.5);background:rgba(49,139,132,.14)}.daily-challenge.completed .daily-challenge-meta strong{color:#78e8dc}
