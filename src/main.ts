@@ -457,7 +457,16 @@ async function refreshArenaMarket() {
     );
     const bestPair = matching.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0];
     if (!bestPair) throw new Error('No active Base liquidity pair found');
-    const iconUrl = bestPair.info?.imageUrl || null;
+    let iconUrl = bestPair.info?.imageUrl || null;
+    if (!iconUrl) {
+      try {
+        const profilesResponse = await fetch('https://api.dexscreener.com/token-profiles/latest/v1', { headers: { accept: 'application/json' }, cache: 'no-store' });
+        if (profilesResponse.ok) {
+          const profiles = await profilesResponse.json() as Array<{ chainId?: string; tokenAddress?: string; icon?: string }>;
+          iconUrl = profiles.find(profile => profile.chainId?.toLowerCase() === 'base' && profile.tokenAddress?.toLowerCase() === MARKET_TOKEN_ADDRESS.toLowerCase())?.icon || null;
+        }
+      } catch (profileError) { console.warn('Token icon metadata unavailable:', profileError); }
+    }
     if (iconUrl && iconUrl !== arenaMarket?.iconUrl) {
       const logo = new Image(); logo.crossOrigin = 'anonymous';
       logo.onload = () => { marketLogo = logo; drawArenaScoreboard(); };
