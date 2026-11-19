@@ -741,3 +741,16 @@ button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
   margin: 0;
   max-width: 100%;
 }
+
+
+/* Compact arena picker and touch-friendly 3D character preview. */
+.arena-picker{margin:0 0 14px;padding:11px;border:1px solid #65e7d933;border-radius:12px;background:#0a1427a8}
+.arena-picker-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.arena-picker-heading strong{font-size:9px;letter-spacing:.14em;color:#65e7d9}
+.arena-picker-heading span{font-size:8px;color:#91a2c2;letter-spacing:.08em}
+.arena-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.arena-option{min-width:0;min-height:38px;padding:7px 4px;border:1px solid #ffffff24;border-radius:8px;background:#182541;color:#c5d2e8;font-size:8px;font-weight:900;letter-spacing:.04em;cursor:pointer}
+.arena-option.selected{border-color:#65e7d9;background:#16434a;color:#8ff9ec;box-shadow:inset 0 0 0 1px #65e7d933}
+.arena-hint{margin:8px 0 0;color:#91a2c2;font-size:9px;line-height:1.4}
+.customizing .game-canvas{touch-action:none;cursor:grab}
+@media(max-width:520px){.arena-picker{padding:9px;margin-bottom:11px}.arena-option{min-height:42px;font-size:8px}}
